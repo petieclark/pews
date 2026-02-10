@@ -19,7 +19,7 @@ Pews is a modular church management platform. Each feature (People, Giving, Grou
 
 | Module | Description | Status |
 |--------|-------------|--------|
-| Core | Auth, tenant management, module registry, billing | 🔴 Not started |
+| Core | Auth, tenant management, module registry, billing | ✅ Complete |
 | People | Member database, households, communication | 🔴 Not started |
 | Giving | Online donations, recurring gifts, tax receipts | 🔴 Not started |
 | Services | Worship planning, team scheduling | 🔴 Not started |
@@ -28,15 +28,23 @@ Pews is a modular church management platform. Each feature (People, Giving, Grou
 
 ## Development
 
+See [DEVELOPMENT.md](DEVELOPMENT.md) for full setup instructions.
+
+**Quick start:**
 ```bash
-# Prerequisites: Go 1.22+, Node 20+, PostgreSQL 16+, Docker
+# Prerequisites: Go 1.22+, Node 20+, Docker
 
-# Start local dev environment
-docker compose up -d postgres
-go run cmd/pews/main.go
+# Copy environment config
+cp .env.example .env
 
-# Frontend
-cd web && npm run dev
+# Start everything (PostgreSQL + backend + frontend)
+make dev
+
+# Seed test data
+make seed
+
+# Access: http://localhost:5173
+# Login: test-church / admin@testchurch.com / password123
 ```
 
 ## License
