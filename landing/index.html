@@ -93,9 +93,10 @@ nav.scrolled { box-shadow: var(--shadow-sm); }
   transition: all 0.2s ease;
 }
 .btn-primary {
-  background: var(--teal); color: var(--white);
+  background: var(--navy); color: var(--white);
 }
-.btn-primary:hover { background: var(--navy); transform: translateY(-1px); box-shadow: var(--shadow-md); }
+.btn-primary:active { background: var(--teal); }
+.btn-primary:hover { background: var(--teal); transform: translateY(-1px); box-shadow: var(--shadow-md); }
 
 .btn-outline {
   background: transparent; color: var(--teal);
@@ -1029,7 +1030,7 @@ footer {
       <div class="footer-brand">
         <div>
           <div style="display:flex;align-items:center;gap:10px;">
-            <img src="icon.png" alt="Pews"> Pews
+            <img src="icon.png" alt="Pews"><span>Pews</span>
           </div>
           <small>A Clearline Technology Methods product</small>
         </div>
