@@ -1,0 +1,28 @@
+# Go
+/bin/
+/vendor/
+*.exe
+*.test
+*.out
+
+# Node/SvelteKit
+web/node_modules/
+web/.svelte-kit/
+web/build/
+
+# Environment
+.env
+.env.local
+*.secret
+
+# IDE
+.idea/
+.vscode/
+*.swp
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Docker
+docker-compose.override.yml
