@@ -1,0 +1,1118 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Pews — Church management, simplified.</title>
+<meta name="description" content="One flat price. Only the features you need. No surprises. Pews is modern church management software that gets out of your way.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Playfair+Display:wght@600;700;800&display=swap" rel="stylesheet">
+<style>
+*, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+:root {
+  --navy: #1B3A4B;
+  --navy-light: #244D63;
+  --teal: #4A8B8C;
+  --teal-hover: #3D7576;
+  --sage: #8FBCB0;
+  --sage-light: #A8CDBF;
+  --bg: #F7FAFA;
+  --bg-alt: #EEF4F3;
+  --text: #1B3A4B;
+  --text-secondary: #475569;
+  --text-muted: #6B7F8E;
+  --white: #FFFFFF;
+  --border: #D6E4E1;
+  --shadow-sm: 0 1px 3px rgba(27,58,75,0.06);
+  --shadow-md: 0 4px 16px rgba(27,58,75,0.08);
+  --shadow-lg: 0 8px 32px rgba(27,58,75,0.10);
+  --shadow-xl: 0 16px 48px rgba(27,58,75,0.12);
+  --radius: 12px;
+  --radius-lg: 16px;
+  --radius-xl: 24px;
+}
+
+html { scroll-behavior: smooth; -webkit-font-smoothing: antialiased; }
+
+body {
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  color: var(--text);
+  background: var(--bg);
+  line-height: 1.6;
+  overflow-x: hidden;
+}
+
+.container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 24px;
+}
+
+h1, h2, h3 { font-family: 'Playfair Display', Georgia, serif; line-height: 1.2; }
+
+/* ─── NAV ─── */
+nav {
+  position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+  background: rgba(247,250,250,0.92);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border-bottom: 1px solid var(--border);
+  transition: box-shadow 0.3s;
+}
+nav.scrolled { box-shadow: var(--shadow-sm); }
+
+.nav-inner {
+  max-width: 1200px; margin: 0 auto; padding: 0 24px;
+  display: flex; align-items: center; justify-content: space-between;
+  height: 72px;
+}
+
+.nav-logo {
+  font-family: 'Playfair Display', serif;
+  font-size: 1.5rem; font-weight: 700;
+  color: var(--navy); text-decoration: none;
+  display: flex; align-items: center; gap: 8px;
+}
+.nav-logo img { width: 36px; height: 36px; border-radius: 8px; }
+
+.nav-links { display: flex; align-items: center; gap: 36px; list-style: none; }
+.nav-links a {
+  text-decoration: none; color: var(--text-secondary);
+  font-size: 0.938rem; font-weight: 500;
+  transition: color 0.2s;
+}
+.nav-links a:hover { color: var(--text); }
+
+.btn {
+  display: inline-flex; align-items: center; justify-content: center;
+  padding: 12px 28px; border-radius: 10px;
+  font-family: 'Inter', sans-serif; font-size: 0.938rem; font-weight: 600;
+  text-decoration: none; border: none; cursor: pointer;
+  transition: all 0.2s ease;
+}
+.btn-primary {
+  background: var(--teal); color: var(--white);
+}
+.btn-primary:hover { background: var(--navy); transform: translateY(-1px); box-shadow: var(--shadow-md); }
+
+.btn-outline {
+  background: transparent; color: var(--teal);
+  border: 2px solid var(--teal);
+}
+.btn-outline:hover { background: var(--teal); color: var(--white); }
+
+.btn-large { padding: 16px 36px; font-size: 1rem; border-radius: 12px; }
+
+.nav-cta { padding: 10px 24px; font-size: 0.875rem; }
+
+.mobile-toggle {
+  display: none; background: none; border: none; cursor: pointer;
+  width: 32px; height: 32px; position: relative;
+}
+.mobile-toggle span {
+  display: block; width: 22px; height: 2px; background: var(--text);
+  position: absolute; left: 5px; transition: all 0.3s;
+}
+.mobile-toggle span:nth-child(1) { top: 9px; }
+.mobile-toggle span:nth-child(2) { top: 15px; }
+.mobile-toggle span:nth-child(3) { top: 21px; }
+.mobile-toggle.active span:nth-child(1) { top: 15px; transform: rotate(45deg); }
+.mobile-toggle.active span:nth-child(2) { opacity: 0; }
+.mobile-toggle.active span:nth-child(3) { top: 15px; transform: rotate(-45deg); }
+
+/* ─── HERO ─── */
+.hero {
+  padding: 160px 0 100px;
+  position: relative;
+  overflow: hidden;
+}
+.hero::before {
+  content: '';
+  position: absolute; top: -200px; right: -200px;
+  width: 600px; height: 600px;
+  background: radial-gradient(circle, rgba(74,139,140,0.06) 0%, transparent 70%);
+  pointer-events: none;
+}
+.hero::after {
+  content: '';
+  position: absolute; bottom: -100px; left: -100px;
+  width: 400px; height: 400px;
+  background: radial-gradient(circle, rgba(143,188,176,0.06) 0%, transparent 70%);
+  pointer-events: none;
+}
+
+.hero-content {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 80px;
+  align-items: center;
+}
+
+.hero-text { position: relative; z-index: 1; }
+
+.hero-badge {
+  display: inline-flex; align-items: center; gap: 8px;
+  padding: 8px 16px; border-radius: 100px;
+  background: var(--bg-alt); border: 1px solid var(--border);
+  font-size: 0.813rem; font-weight: 600; color: var(--teal);
+  margin-bottom: 28px;
+}
+.hero-badge-dot {
+  width: 8px; height: 8px; border-radius: 50%;
+  background: var(--teal);
+  animation: pulse 2s infinite;
+}
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.4; }
+}
+
+.hero h1 {
+  font-size: clamp(2.5rem, 5vw, 4rem);
+  font-weight: 800;
+  color: var(--navy);
+  margin-bottom: 20px;
+  letter-spacing: -0.02em;
+}
+
+.hero p {
+  font-size: 1.25rem;
+  color: var(--text-secondary);
+  max-width: 480px;
+  margin-bottom: 40px;
+  line-height: 1.7;
+}
+
+.hero-form {
+  display: flex; gap: 12px;
+  max-width: 460px;
+}
+.hero-form input[type="email"] {
+  flex: 1;
+  padding: 16px 20px; border: 2px solid var(--border);
+  border-radius: 12px; font-size: 1rem;
+  font-family: 'Inter', sans-serif;
+  background: var(--white);
+  transition: border-color 0.2s, box-shadow 0.2s;
+  outline: none;
+}
+.hero-form input[type="email"]:focus {
+  border-color: var(--teal);
+  box-shadow: 0 0 0 4px rgba(74,139,140,0.1);
+}
+.hero-form input[type="email"]::placeholder { color: var(--text-muted); }
+
+.hero-form-msg {
+  margin-top: 12px; font-size: 0.875rem; min-height: 20px;
+}
+.hero-form-msg.success { color: var(--teal); }
+.hero-form-msg.error { color: #B54A32; }
+
+.hero-social-proof {
+  margin-top: 48px;
+  display: flex; align-items: center; gap: 12px;
+  font-size: 0.875rem; color: var(--text-muted);
+}
+.hero-social-proof img { width: 24px; height: 24px; border-radius: 4px; }
+
+.hero-visual {
+  position: relative; z-index: 1;
+}
+
+.product-preview {
+  background: linear-gradient(145deg, var(--white) 0%, var(--bg-alt) 100%);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-xl);
+  box-shadow: var(--shadow-xl);
+  overflow: hidden;
+  aspect-ratio: 4/3;
+  display: flex; flex-direction: column;
+}
+
+.preview-toolbar {
+  display: flex; align-items: center; gap: 8px;
+  padding: 16px 20px;
+  background: var(--white);
+  border-bottom: 1px solid var(--border);
+}
+.preview-dot {
+  width: 12px; height: 12px; border-radius: 50%;
+}
+.preview-dot:nth-child(1) { background: #FF6058; }
+.preview-dot:nth-child(2) { background: #FFBE30; }
+.preview-dot:nth-child(3) { background: #27CA40; }
+
+.preview-body {
+  flex: 1; display: flex; align-items: center; justify-content: center;
+  padding: 40px;
+}
+.preview-body-inner {
+  text-align: center;
+}
+.preview-body-inner svg { margin-bottom: 20px; opacity: 0.3; }
+.preview-body-inner p {
+  font-size: 1.125rem; font-weight: 600;
+  color: var(--navy); letter-spacing: 0.02em;
+}
+.preview-body-inner span {
+  display: block; margin-top: 8px;
+  font-size: 0.813rem; color: var(--text-muted);
+  font-weight: 400;
+}
+
+/* ─── SECTIONS ─── */
+section { padding: 120px 0; }
+
+.section-label {
+  display: inline-block;
+  font-size: 0.75rem; font-weight: 700;
+  letter-spacing: 0.1em; text-transform: uppercase;
+  color: var(--teal);
+  margin-bottom: 16px;
+}
+
+.section-title {
+  font-size: clamp(2rem, 3.5vw, 3rem);
+  font-weight: 700;
+  color: var(--navy);
+  margin-bottom: 20px;
+  letter-spacing: -0.01em;
+}
+
+.section-subtitle {
+  font-size: 1.125rem;
+  color: var(--text-secondary);
+  max-width: 600px;
+  line-height: 1.7;
+}
+
+.section-header {
+  text-align: center;
+  margin-bottom: 80px;
+}
+.section-header .section-subtitle { margin: 0 auto; }
+
+/* ─── HOW IT WORKS ─── */
+.how-it-works { background: var(--white); }
+
+.steps-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 48px;
+}
+
+.step {
+  text-align: center;
+  padding: 48px 32px;
+  border-radius: var(--radius-lg);
+  transition: transform 0.3s, box-shadow 0.3s;
+}
+.step:hover { transform: translateY(-4px); box-shadow: var(--shadow-md); }
+
+.step-number {
+  width: 56px; height: 56px;
+  border-radius: 16px;
+  background: linear-gradient(135deg, var(--bg) 0%, var(--bg-alt) 100%);
+  display: inline-flex; align-items: center; justify-content: center;
+  font-family: 'Playfair Display', serif;
+  font-size: 1.25rem; font-weight: 700;
+  color: var(--teal);
+  margin-bottom: 24px;
+  border: 1px solid var(--border);
+}
+
+.step h3 {
+  font-size: 1.375rem; margin-bottom: 12px;
+  font-family: 'Inter', sans-serif; font-weight: 700;
+  color: var(--navy);
+}
+
+.step p {
+  color: var(--text-secondary);
+  font-size: 0.938rem;
+  line-height: 1.7;
+}
+
+/* ─── FEATURES ─── */
+.features-list { display: flex; flex-direction: column; gap: 120px; }
+
+.feature-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 80px;
+  align-items: center;
+}
+.feature-row.reverse .feature-visual { order: -1; }
+
+.feature-icon {
+  width: 64px; height: 64px;
+  border-radius: 18px;
+  display: flex; align-items: center; justify-content: center;
+  margin-bottom: 24px;
+  font-size: 1.75rem;
+}
+.feature-icon.people { background: rgba(74,139,140,0.1); }
+.feature-icon.giving { background: rgba(143,188,176,0.2); }
+.feature-icon.services { background: rgba(27,58,75,0.08); }
+.feature-icon.groups { background: rgba(74,139,140,0.1); }
+.feature-icon.checkins { background: rgba(143,188,176,0.15); }
+
+.feature-content h3 {
+  font-size: 1.75rem; margin-bottom: 8px;
+  color: var(--navy);
+}
+.feature-tagline {
+  font-size: 1.125rem; color: var(--teal); font-weight: 500;
+  margin-bottom: 16px;
+}
+.feature-content p {
+  color: var(--text-secondary); font-size: 1rem;
+  line-height: 1.8; margin-bottom: 24px;
+}
+
+.feature-list {
+  list-style: none; display: flex; flex-direction: column; gap: 10px;
+}
+.feature-list li {
+  display: flex; align-items: center; gap: 10px;
+  font-size: 0.938rem; color: var(--text-secondary);
+}
+.feature-list li::before {
+  content: '✓'; font-weight: 700; color: var(--teal);
+  width: 22px; height: 22px; border-radius: 50%;
+  background: rgba(74,139,140,0.08);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 0.75rem; flex-shrink: 0;
+}
+
+.feature-visual {
+  background: linear-gradient(145deg, var(--white) 0%, var(--bg-alt) 100%);
+  border-radius: var(--radius-xl);
+  border: 1px solid var(--border);
+  aspect-ratio: 4/3;
+  display: flex; align-items: center; justify-content: center;
+  box-shadow: var(--shadow-md);
+  position: relative; overflow: hidden;
+}
+.feature-visual-inner {
+  display: flex; flex-direction: column; align-items: center; gap: 12px;
+  opacity: 0.5;
+}
+.feature-visual-inner .mock-bar {
+  height: 10px; border-radius: 5px; background: var(--border);
+}
+.feature-visual-inner .mock-bar:nth-child(1) { width: 180px; }
+.feature-visual-inner .mock-bar:nth-child(2) { width: 140px; }
+.feature-visual-inner .mock-bar:nth-child(3) { width: 160px; }
+
+/* ─── COMPARISON ─── */
+.comparison { background: var(--white); }
+
+.comparison-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 32px;
+  max-width: 900px;
+  margin: 0 auto;
+}
+
+.comparison-card {
+  padding: 48px 40px;
+  border-radius: var(--radius-xl);
+  border: 1px solid var(--border);
+}
+.comparison-card.old {
+  background: var(--bg);
+}
+.comparison-card.pews {
+  background: linear-gradient(145deg, rgba(143,188,176,0.1) 0%, rgba(74,139,140,0.08) 100%);
+  border-color: rgba(74,139,140,0.25);
+}
+
+.comparison-card h3 {
+  font-family: 'Inter', sans-serif;
+  font-size: 1.125rem; font-weight: 700;
+  margin-bottom: 32px; padding-bottom: 16px;
+  border-bottom: 2px solid var(--border);
+}
+.comparison-card.pews h3 { color: var(--teal); border-color: rgba(74,139,140,0.3); }
+.comparison-card.old h3 { color: var(--text-muted); }
+
+.comparison-card ul { list-style: none; display: flex; flex-direction: column; gap: 20px; }
+.comparison-card ul li {
+  display: flex; align-items: flex-start; gap: 12px;
+  font-size: 0.938rem; line-height: 1.6;
+}
+.comparison-card.old ul li::before {
+  content: '✕'; color: #C44; font-weight: 700;
+  flex-shrink: 0; margin-top: 1px;
+}
+.comparison-card.pews ul li::before {
+  content: '✓'; color: var(--teal); font-weight: 700;
+  flex-shrink: 0; margin-top: 1px;
+}
+.comparison-card.old ul li { color: var(--text-muted); }
+.comparison-card.pews ul li { color: var(--text-secondary); }
+
+/* ─── PRICING ─── */
+.pricing-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 32px;
+  max-width: 840px;
+  margin: 0 auto 48px;
+}
+
+.pricing-card {
+  padding: 48px 40px;
+  border-radius: var(--radius-xl);
+  border: 1px solid var(--border);
+  background: var(--white);
+  position: relative;
+}
+.pricing-card.featured {
+  border-color: var(--navy);
+  border-width: 2px;
+  box-shadow: var(--shadow-lg);
+  background: var(--navy);
+  color: var(--white);
+}
+
+.pricing-badge {
+  position: absolute; top: -14px; left: 50%; transform: translateX(-50%);
+  background: var(--teal); color: var(--white);
+  padding: 6px 20px; border-radius: 100px;
+  font-size: 0.75rem; font-weight: 700; letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.pricing-card h3 {
+  font-family: 'Inter', sans-serif;
+  font-size: 1.25rem; font-weight: 700;
+  margin-bottom: 8px;
+}
+
+.pricing-amount {
+  font-family: 'Playfair Display', serif;
+  font-size: 3rem; font-weight: 800;
+  color: var(--text);
+  margin-bottom: 4px;
+}
+.pricing-amount span { font-size: 1.125rem; font-weight: 400; color: var(--text-muted); }
+.pricing-card.featured .pricing-amount { color: var(--white); }
+.pricing-card.featured .pricing-amount span { color: rgba(255,255,255,0.6); }
+
+.pricing-desc {
+  font-size: 0.875rem; color: var(--text-muted);
+  margin-bottom: 32px; padding-bottom: 32px;
+  border-bottom: 1px solid var(--border);
+}
+.pricing-card.featured .pricing-desc { color: rgba(255,255,255,0.6); border-color: rgba(255,255,255,0.15); }
+
+.pricing-features {
+  list-style: none; display: flex; flex-direction: column; gap: 14px;
+  margin-bottom: 36px;
+}
+.pricing-features li {
+  display: flex; align-items: center; gap: 10px;
+  font-size: 0.938rem; color: var(--text-secondary);
+}
+.pricing-features li::before {
+  content: '✓'; font-weight: 700; color: var(--teal);
+  font-size: 0.875rem;
+}
+.pricing-card.featured .pricing-features li { color: rgba(255,255,255,0.85); }
+.pricing-card.featured .pricing-features li::before { color: var(--sage); }
+
+.pricing-card.featured .btn-primary {
+  background: var(--white); color: var(--navy);
+}
+.pricing-card.featured .btn-primary:hover {
+  background: var(--sage-light); color: var(--navy);
+}
+
+.pricing-note {
+  text-align: center;
+  max-width: 600px;
+  margin: 0 auto;
+  padding: 32px;
+  background: var(--bg-alt);
+  border-radius: var(--radius-lg);
+}
+.pricing-note p {
+  font-size: 1rem; color: var(--text-secondary); line-height: 1.7;
+}
+.pricing-note strong { color: var(--text); }
+
+/* ─── TESTIMONIALS ─── */
+.testimonials { background: var(--white); }
+
+.testimonial-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 32px;
+}
+
+.testimonial-card {
+  padding: 40px 32px;
+  border-radius: var(--radius-xl);
+  border: 1px solid var(--border);
+  background: var(--bg);
+  text-align: center;
+}
+.testimonial-avatar {
+  width: 56px; height: 56px;
+  border-radius: 50%;
+  background: var(--bg-alt);
+  border: 2px solid var(--border);
+  margin: 0 auto 20px;
+  display: flex; align-items: center; justify-content: center;
+  color: var(--text-muted); font-size: 1.25rem;
+}
+.testimonial-card p {
+  font-size: 1rem; color: var(--text-muted);
+  font-style: italic; line-height: 1.7;
+}
+.testimonial-card .name {
+  margin-top: 16px; font-style: normal;
+  font-size: 0.813rem; font-weight: 600;
+  color: var(--text-muted); letter-spacing: 0.02em;
+}
+
+/* ─── CTA ─── */
+.cta-section {
+  background: linear-gradient(145deg, var(--navy) 0%, #142D3B 100%);
+  color: var(--white);
+  text-align: center;
+}
+.cta-section .section-label { color: var(--sage); }
+.cta-section .section-title { color: var(--white); }
+.cta-section .section-subtitle { color: rgba(255,255,255,0.8); margin: 0 auto 48px; }
+
+.cta-form {
+  display: flex; gap: 12px;
+  max-width: 500px; margin: 0 auto;
+  flex-wrap: wrap; justify-content: center;
+}
+.cta-form input {
+  padding: 16px 20px; border: 2px solid rgba(255,255,255,0.2);
+  border-radius: 12px; font-size: 1rem;
+  font-family: 'Inter', sans-serif;
+  background: rgba(255,255,255,0.1);
+  color: var(--white);
+  outline: none; transition: border-color 0.2s;
+}
+.cta-form input::placeholder { color: rgba(255,255,255,0.5); }
+.cta-form input:focus { border-color: rgba(255,255,255,0.5); }
+.cta-form input[name="EMAIL"] { flex: 1; min-width: 240px; }
+.cta-form input[name="FNAME"] { width: 160px; }
+.cta-form .btn {
+  background: var(--teal); color: var(--white);
+  font-weight: 700;
+}
+.cta-form .btn:hover { background: var(--sage); color: var(--navy); transform: translateY(-1px); }
+
+.cta-form-msg {
+  width: 100%; text-align: center;
+  font-size: 0.875rem; margin-top: 8px; min-height: 20px;
+}
+.cta-form-msg.success { color: #A8E6CF; }
+.cta-form-msg.error { color: #FFB4A8; }
+
+/* ─── FOOTER ─── */
+footer {
+  padding: 64px 0 48px;
+  border-top: 1px solid var(--border);
+}
+.footer-inner {
+  display: flex; justify-content: space-between; align-items: center;
+  flex-wrap: wrap; gap: 24px;
+}
+.footer-brand {
+  font-family: 'Playfair Display', serif;
+  font-size: 1.25rem; font-weight: 700;
+  color: var(--navy);
+  display: flex; align-items: center; gap: 10px;
+}
+.footer-brand img { width: 32px; height: 32px; border-radius: 6px; }
+.footer-brand small {
+  display: block; font-family: 'Inter', sans-serif;
+  font-size: 0.75rem; font-weight: 400;
+  color: var(--text-muted); margin-top: 4px;
+}
+.footer-links { display: flex; gap: 32px; list-style: none; }
+.footer-links a {
+  text-decoration: none; color: var(--text-muted);
+  font-size: 0.875rem; font-weight: 500;
+  transition: color 0.2s;
+}
+.footer-links a:hover { color: var(--text); }
+.footer-copy {
+  width: 100%; text-align: center;
+  font-size: 0.75rem; color: var(--text-muted);
+  margin-top: 32px; padding-top: 32px;
+  border-top: 1px solid var(--border);
+}
+
+/* ─── ANIMATIONS ─── */
+.fade-up {
+  opacity: 0; transform: translateY(30px);
+  transition: opacity 0.7s ease, transform 0.7s ease;
+}
+.fade-up.visible { opacity: 1; transform: translateY(0); }
+
+/* ─── RESPONSIVE ─── */
+@media (max-width: 960px) {
+  .hero-content { grid-template-columns: 1fr; gap: 60px; }
+  .hero-visual { max-width: 500px; }
+  .feature-row { grid-template-columns: 1fr; gap: 40px; }
+  .feature-row.reverse .feature-visual { order: 0; }
+  .comparison-grid { grid-template-columns: 1fr; }
+  .pricing-grid { grid-template-columns: 1fr; max-width: 440px; }
+  .testimonial-grid { grid-template-columns: 1fr; max-width: 440px; margin: 0 auto; }
+  .steps-grid { grid-template-columns: 1fr; max-width: 400px; margin: 0 auto; }
+}
+
+@media (max-width: 768px) {
+  section { padding: 80px 0; }
+  .nav-links { display: none; }
+  .nav-links.open {
+    display: flex; flex-direction: column;
+    position: absolute; top: 72px; left: 0; right: 0;
+    background: var(--bg); border-bottom: 1px solid var(--border);
+    padding: 24px; gap: 20px;
+    box-shadow: var(--shadow-md);
+  }
+  .mobile-toggle { display: block; }
+  .hero { padding: 120px 0 80px; }
+  .hero-form { flex-direction: column; }
+  .cta-form { flex-direction: column; align-items: stretch; }
+  .cta-form input[name="FNAME"] { width: auto; }
+  .features-list { gap: 80px; }
+  .section-header { margin-bottom: 48px; }
+  .footer-inner { flex-direction: column; text-align: center; }
+  .footer-links { flex-wrap: wrap; justify-content: center; }
+}
+</style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav id="nav">
+  <div class="nav-inner">
+    <a href="#" class="nav-logo"><img src="icon.png" alt="Pews"> Pews</a>
+    <ul class="nav-links" id="navLinks">
+      <li><a href="#features">Features</a></li>
+      <li><a href="#pricing">Pricing</a></li>
+      <li><a href="#about">About</a></li>
+      <li><a href="#waitlist" class="btn btn-primary nav-cta">Join the Waitlist</a></li>
+    </ul>
+    <button class="mobile-toggle" id="mobileToggle" aria-label="Menu">
+      <span></span><span></span><span></span>
+    </button>
+  </div>
+</nav>
+
+<!-- HERO -->
+<section class="hero">
+  <div class="container">
+    <div class="hero-content">
+      <div class="hero-text fade-up">
+        <div class="hero-badge">
+          <span class="hero-badge-dot"></span>
+          Now accepting early access signups
+        </div>
+        <h1>Church management, simplified.</h1>
+        <p>One flat price. Only the features you need. No surprises. Pews gives your church the tools it deserves — without the complexity.</p>
+        <form class="hero-form" id="heroForm" onsubmit="return submitForm(event, 'hero')">
+          <input type="email" name="EMAIL" placeholder="Enter your email" required>
+          <input type="hidden" name="group[bdb8993f60][47f5ba21c0]" value="1">
+          <input type="text" name="b_7f239d430d3572b980795a2ab_e665c7e29c" tabindex="-1" value="" style="position:absolute;left:-5000px;" aria-hidden="true">
+          <button type="submit" class="btn btn-primary">Get Early Access</button>
+        </form>
+        <div class="hero-form-msg" id="heroMsg"></div>
+        <div class="hero-social-proof">
+          <img src="icon.png" alt="Pews"> Sit down. We've got this.
+        </div>
+      </div>
+      <div class="hero-visual fade-up" style="transition-delay: 0.15s;">
+        <div class="product-preview">
+          <div class="preview-toolbar">
+            <div class="preview-dot"></div>
+            <div class="preview-dot"></div>
+            <div class="preview-dot"></div>
+          </div>
+          <div class="preview-body">
+            <div class="preview-body-inner">
+              <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" color="#4A8B8C"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18"/><path d="M9 21V9"/></svg>
+              <p>Product Preview Coming Soon</p>
+              <span>A better way to manage your church</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- HOW IT WORKS -->
+<section class="how-it-works" id="about">
+  <div class="container">
+    <div class="section-header fade-up">
+      <span class="section-label">How it works</span>
+      <h2 class="section-title">Up and running in minutes</h2>
+      <p class="section-subtitle">No implementation consultants. No week-long onboarding. Just sign up and start managing your church.</p>
+    </div>
+    <div class="steps-grid">
+      <div class="step fade-up">
+        <div class="step-number">1</div>
+        <h3>Sign up in minutes</h3>
+        <p>No complex setup wizards or lengthy onboarding calls. Create your account, name your church, and you're in.</p>
+      </div>
+      <div class="step fade-up" style="transition-delay: 0.1s;">
+        <div class="step-number">2</div>
+        <h3>Enable what you need</h3>
+        <p>Toggle modules on and off. Only see what matters to your church. Start with People, add Giving later — it's up to you.</p>
+      </div>
+      <div class="step fade-up" style="transition-delay: 0.2s;">
+        <div class="step-number">3</div>
+        <h3>Run your church</h3>
+        <p>People, giving, groups, services — all in one place. No more juggling five different apps and spreadsheets.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- FEATURES -->
+<section id="features">
+  <div class="container">
+    <div class="section-header fade-up">
+      <span class="section-label">Features</span>
+      <h2 class="section-title">Everything your church needs</h2>
+      <p class="section-subtitle">Modular by design. Enable only what you need — nothing more, nothing less.</p>
+    </div>
+    <div class="features-list">
+
+      <div class="feature-row fade-up">
+        <div class="feature-content">
+          <div class="feature-icon people">👥</div>
+          <h3>People</h3>
+          <p class="feature-tagline">Your congregation, connected.</p>
+          <p>A powerful yet simple member database that keeps your church organized. Track households, manage communication, and find anyone in seconds.</p>
+          <ul class="feature-list">
+            <li>Member & household database</li>
+            <li>Smart search & filtering</li>
+            <li>Email & SMS communication</li>
+            <li>Custom fields & tags</li>
+          </ul>
+        </div>
+        <div class="feature-visual">
+          <div class="feature-visual-inner">
+            <div class="mock-bar"></div><div class="mock-bar"></div><div class="mock-bar"></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="feature-row reverse fade-up">
+        <div class="feature-content">
+          <div class="feature-icon giving">💚</div>
+          <h3>Giving</h3>
+          <p class="feature-tagline">Generosity, simplified.</p>
+          <p>Accept online donations, manage recurring gifts, and generate year-end tax receipts — all powered by Stripe for reliable, secure processing.</p>
+          <ul class="feature-list">
+            <li>Online & mobile donations</li>
+            <li>Recurring gift management</li>
+            <li>Automatic tax receipts</li>
+            <li>Fund & campaign tracking</li>
+          </ul>
+        </div>
+        <div class="feature-visual">
+          <div class="feature-visual-inner">
+            <div class="mock-bar"></div><div class="mock-bar"></div><div class="mock-bar"></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="feature-row fade-up">
+        <div class="feature-content">
+          <div class="feature-icon services">🎵</div>
+          <h3>Services</h3>
+          <p class="feature-tagline">Sunday mornings, coordinated.</p>
+          <p>Plan worship services, schedule volunteer teams, and manage your song library — all in one integrated workflow.</p>
+          <ul class="feature-list">
+            <li>Worship service planning</li>
+            <li>Team scheduling & reminders</li>
+            <li>Song & setlist database</li>
+            <li>Service order templates</li>
+          </ul>
+        </div>
+        <div class="feature-visual">
+          <div class="feature-visual-inner">
+            <div class="mock-bar"></div><div class="mock-bar"></div><div class="mock-bar"></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="feature-row reverse fade-up">
+        <div class="feature-content">
+          <div class="feature-icon groups">🤝</div>
+          <h3>Groups</h3>
+          <p class="feature-tagline">Community, organized.</p>
+          <p>Manage small groups, equip leaders with the tools they need, and make it easy for members to find and join community.</p>
+          <ul class="feature-list">
+            <li>Small group management</li>
+            <li>Leader dashboards & tools</li>
+            <li>Member sign-up & discovery</li>
+            <li>Attendance & engagement</li>
+          </ul>
+        </div>
+        <div class="feature-visual">
+          <div class="feature-visual-inner">
+            <div class="mock-bar"></div><div class="mock-bar"></div><div class="mock-bar"></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="feature-row fade-up">
+        <div class="feature-content">
+          <div class="feature-icon checkins">🛡️</div>
+          <h3>Check-Ins</h3>
+          <p class="feature-tagline">Safety, guaranteed.</p>
+          <p>Secure child check-in with allergy alerts, attendance tracking, and kiosk mode. Give parents peace of mind every Sunday.</p>
+          <ul class="feature-list">
+            <li>Secure child check-in</li>
+            <li>Allergy & medical alerts</li>
+            <li>Attendance tracking</li>
+            <li>Self-service kiosk mode</li>
+          </ul>
+        </div>
+        <div class="feature-visual">
+          <div class="feature-visual-inner">
+            <div class="mock-bar"></div><div class="mock-bar"></div><div class="mock-bar"></div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+<!-- COMPARISON -->
+<section class="comparison">
+  <div class="container">
+    <div class="section-header fade-up">
+      <span class="section-label">Why Pews</span>
+      <h2 class="section-title">A better way forward</h2>
+      <p class="section-subtitle">Church software shouldn't require a budget committee and an IT team to get started.</p>
+    </div>
+    <div class="comparison-grid fade-up">
+      <div class="comparison-card old">
+        <h3>The old way</h3>
+        <ul>
+          <li>Pay per module — costs add up fast</li>
+          <li>Complex setup requiring consultants</li>
+          <li>Feature bloat you never asked for</li>
+          <li>Hidden fees and surprise charges</li>
+          <li>Per-seat pricing punishes growth</li>
+        </ul>
+      </div>
+      <div class="comparison-card pews">
+        <h3>The Pews way</h3>
+        <ul>
+          <li>One flat price — everything included</li>
+          <li>Set up in minutes, not weeks</li>
+          <li>Only the features you actually need</li>
+          <li>Transparent pricing, no surprises</li>
+          <li>Unlimited admins, unlimited growth</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- PRICING -->
+<section id="pricing">
+  <div class="container">
+    <div class="section-header fade-up">
+      <span class="section-label">Pricing</span>
+      <h2 class="section-title">Simple, honest pricing</h2>
+      <p class="section-subtitle">No per-module pricing. No per-seat charges. No contracts. Just tools that work.</p>
+    </div>
+    <div class="pricing-grid fade-up">
+      <div class="pricing-card">
+        <h3>Free</h3>
+        <div class="pricing-amount">$0<span>/mo</span></div>
+        <p class="pricing-desc">Perfect for getting started</p>
+        <ul class="pricing-features">
+          <li>People database</li>
+          <li>Basic email communication</li>
+          <li>1 admin user</li>
+          <li>Community support</li>
+        </ul>
+        <a href="#waitlist" class="btn btn-outline" style="width: 100%;">Get Started Free</a>
+      </div>
+      <div class="pricing-card featured">
+        <div class="pricing-badge">Most Popular</div>
+        <h3>Pro</h3>
+        <div class="pricing-amount">$29<span>/mo</span></div>
+        <p class="pricing-desc">Everything your church needs</p>
+        <ul class="pricing-features">
+          <li>All modules included</li>
+          <li>Unlimited admin users</li>
+          <li>SMS communication</li>
+          <li>Priority support</li>
+          <li>Custom branding</li>
+          <li>Advanced reporting</li>
+        </ul>
+        <a href="#waitlist" class="btn btn-primary" style="width: 100%;">Join the Waitlist</a>
+      </div>
+    </div>
+    <div class="pricing-note fade-up">
+      <p><strong>Giving:</strong> Stripe processing fees + 1% platform fee. That's it. No monthly charges for the Giving module — you only pay when your church receives donations.</p>
+    </div>
+  </div>
+</section>
+
+<!-- TESTIMONIALS -->
+<section class="testimonials">
+  <div class="container">
+    <div class="section-header fade-up">
+      <span class="section-label">Testimonials</span>
+      <h2 class="section-title">Hear from churches using Pews</h2>
+      <p class="section-subtitle">We're onboarding our first churches now. Their stories will live here soon.</p>
+    </div>
+    <div class="testimonial-grid fade-up">
+      <div class="testimonial-card">
+        <div class="testimonial-avatar">🙏</div>
+        <p>"Coming soon — we can't wait to share what churches are saying about Pews."</p>
+        <p class="name">— Early Access Church</p>
+      </div>
+      <div class="testimonial-card">
+        <div class="testimonial-avatar">⛪</div>
+        <p>"Your story could be here. Join the waitlist and be among the first to experience Pews."</p>
+        <p class="name">— Your Church</p>
+      </div>
+      <div class="testimonial-card">
+        <div class="testimonial-avatar">💒</div>
+        <p>"We're building Pews alongside real churches. Real feedback. Real impact."</p>
+        <p class="name">— The Pews Team</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- CTA -->
+<section class="cta-section" id="waitlist">
+  <div class="container">
+    <div class="section-header fade-up" style="margin-bottom: 48px;">
+      <span class="section-label">Early Access</span>
+      <h2 class="section-title">Ready to simplify your church?</h2>
+      <p class="section-subtitle">Join the waitlist and be the first to know when Pews launches. Early access members get priority onboarding and a locked-in founding rate.</p>
+    </div>
+    <form class="cta-form fade-up" id="ctaForm" onsubmit="return submitForm(event, 'cta')">
+      <input type="text" name="FNAME" placeholder="First name">
+      <input type="email" name="EMAIL" placeholder="Your email address" required>
+      <input type="hidden" name="group[bdb8993f60][47f5ba21c0]" value="1">
+      <input type="text" name="b_7f239d430d3572b980795a2ab_e665c7e29c" tabindex="-1" value="" style="position:absolute;left:-5000px;" aria-hidden="true">
+      <button type="submit" class="btn btn-large">Join the Waitlist</button>
+      <div class="cta-form-msg" id="ctaMsg"></div>
+    </form>
+  </div>
+</section>
+
+<!-- FOOTER -->
+<footer>
+  <div class="container">
+    <div class="footer-inner">
+      <div class="footer-brand">
+        <div>
+          <div style="display:flex;align-items:center;gap:10px;">
+            <img src="icon.png" alt="Pews"> Pews
+          </div>
+          <small>A Clearline Technology Methods product</small>
+        </div>
+      </div>
+      <ul class="footer-links">
+        <li><a href="#features">Features</a></li>
+        <li><a href="#pricing">Pricing</a></li>
+        <li><a href="#about">About</a></li>
+        <li><a href="mailto:hello@pews.app">Contact</a></li>
+      </ul>
+    </div>
+    <p class="footer-copy">© 2026 Pews. All rights reserved.</p>
+  </div>
+</footer>
+
+<script>
+// Nav scroll effect
+const nav = document.getElementById('nav');
+window.addEventListener('scroll', () => {
+  nav.classList.toggle('scrolled', window.scrollY > 10);
+});
+
+// Mobile menu
+const toggle = document.getElementById('mobileToggle');
+const links = document.getElementById('navLinks');
+toggle.addEventListener('click', () => {
+  toggle.classList.toggle('active');
+  links.classList.toggle('open');
+});
+links.querySelectorAll('a').forEach(a => a.addEventListener('click', () => {
+  toggle.classList.remove('active');
+  links.classList.remove('open');
+}));
+
+// Fade-in on scroll
+const observer = new IntersectionObserver((entries) => {
+  entries.forEach(e => { if (e.isIntersecting) { e.target.classList.add('visible'); observer.unobserve(e.target); }});
+}, { threshold: 0.1, rootMargin: '0px 0px -40px 0px' });
+document.querySelectorAll('.fade-up').forEach(el => observer.observe(el));
+
+// Mailchimp JSONP submit
+function submitForm(e, prefix) {
+  e.preventDefault();
+  const form = e.target;
+  const msgEl = document.getElementById(prefix + 'Msg');
+  const email = form.querySelector('input[name="EMAIL"]').value;
+  const fname = form.querySelector('input[name="FNAME"]');
+  if (!email) return false;
+
+  const params = new URLSearchParams();
+  params.set('u', '7f239d430d3572b980795a2ab');
+  params.set('id', 'e665c7e29c');
+  params.set('EMAIL', email);
+  if (fname && fname.value) params.set('FNAME', fname.value);
+  params.set('group[bdb8993f60][47f5ba21c0]', '1');
+
+  const cb = 'mc_' + Date.now();
+  params.set('c', cb);
+
+  msgEl.textContent = 'Submitting...';
+  msgEl.className = prefix === 'hero' ? 'hero-form-msg' : 'cta-form-msg';
+
+  window[cb] = function(resp) {
+    if (resp.result === 'success') {
+      msgEl.textContent = '🎉 You\'re on the list! We\'ll be in touch soon.';
+      msgEl.classList.add('success');
+      form.reset();
+    } else {
+      const msg = resp.msg || 'Something went wrong. Please try again.';
+      msgEl.innerHTML = msg.includes('already subscribed') ? 'You\'re already on the list! 🙌' : msg;
+      msgEl.classList.add(msg.includes('already subscribed') ? 'success' : 'error');
+    }
+    delete window[cb];
+    const s = document.getElementById('mc_script_' + cb);
+    if (s) s.remove();
+  };
+
+  const script = document.createElement('script');
+  script.id = 'mc_script_' + cb;
+  script.src = 'https://warpapaya.us4.list-manage.com/subscribe/post-json?' + params.toString();
+  document.body.appendChild(script);
+  return false;
+}
+</script>
+</body>
+</html>
