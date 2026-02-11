@@ -765,8 +765,8 @@ func (s *Service) GetStats(ctx context.Context, tenantID string) (*Communication
 	var totalSent, totalOpened int
 	err = s.db.QueryRow(ctx, `
 		SELECT 
-			COUNT(*) FILTER (WHERE status IN ('sent', 'delivered', 'opened', 'clicked')),
-			COUNT(*) FILTER (WHERE status IN ('opened', 'clicked'))
+			COUNT(*) FILTER (WHERE cr.status IN ('sent', 'delivered', 'opened', 'clicked')),
+			COUNT(*) FILTER (WHERE cr.status IN ('opened', 'clicked'))
 		FROM campaign_recipients cr
 		JOIN campaigns c ON cr.campaign_id = c.id
 		WHERE c.channel = 'email'
