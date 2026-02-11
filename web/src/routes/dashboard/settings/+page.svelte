@@ -89,15 +89,7 @@
 </script>
 
 <div class="max-w-4xl">
-	<div class="flex justify-between items-center mb-6">
-		<h1 class="text-3xl font-bold text-primary">Settings</h1>
-		<a 
-			href="/dashboard/settings/import" 
-			class="bg-[var(--teal)] text-white py-2 px-4 rounded-lg font-medium hover:opacity-90"
-		>
-			Import Data
-		</a>
-	</div>
+	<h1 class="text-3xl font-bold text-primary mb-6">Settings</h1>
 
 	{#if loading}
 		<div class="text-center py-12">
