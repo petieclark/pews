@@ -1,269 +1,410 @@
-<script>
-import {onMount} from 'svelte';
-import {api} from '$lib/api';
+<script lang="ts">
+	import { onMount } from 'svelte';
+	import { api } from '$lib/api';
 
-let followUps=[];
-let stats={};
-let people=[];
-let showModal=false;
-let form={person_id:'',type:'visit',priority:'medium',title:'',notes:'',due_date:''};
-let filter={type:'all',priority:'all'};
+	interface FollowUp {
+		id: string;
+		person_id: string;
+		person_name: string;
+		assigned_to?: string;
+		assigned_name?: string;
+		title: string;
+		type: string;
+		priority: string;
+		status: string;
+		due_date?: string;
+		completed_at?: string;
+		created_at: string;
+		notes?: Note[];
+	}
 
-onMount(()=>{
-	load();
-	loadStats();
-	loadPeople();
-});
+	interface Note {
+		id: string;
+		author_name: string;
+		note: string;
+		created_at: string;
+	}
 
-async function load(){
-	const p=new URLSearchParams();
-	if(filter.type!=='all')p.append('type',filter.type);
-	if(filter.priority!=='all')p.append('priority',filter.priority);
-	const r=await api(`/api/follow-ups?${p}`);
-	followUps=r.follow_ups||[];
-}
+	let followUps: FollowUp[] = [];
+	let stats: any = {};
+	let people: any[] = [];
+	let showCreateModal = false;
+	let showDetailModal = false;
+	let selectedItem: FollowUp | null = null;
+	let newNote = '';
 
-async function loadStats(){
-	stats=await api('/api/follow-ups/stats');
-}
+	let formData = {
+		person_id: '',
+		assigned_to: '',
+		title: '',
+		type: 'general',
+		priority: 'medium',
+		due_date: '',
+		notes: ''
+	};
 
-async function loadPeople(){
-	const r=await api('/api/people?limit=100');
-	people=r.people||[];
-}
+	let personSearch = '';
+	let filteredPeople: any[] = [];
 
-async function create(){
-	await api('/api/follow-ups',{method:'POST',body:JSON.stringify(form)});
-	showModal=false;
-	form={person_id:'',type:'visit',priority:'medium',title:'',notes:'',due_date:''};
-	load();
-	loadStats();
-}
+	const types = [
+		{ value: 'first_time_visitor', label: 'First-Time Visitor', icon: '👋' },
+		{ value: 'hospital_visit', label: 'Hospital Visit', icon: '🏥' },
+		{ value: 'counseling', label: 'Counseling', icon: '💬' },
+		{ value: 'general', label: 'General', icon: '📋' },
+		{ value: 'membership', label: 'Membership', icon: '🤝' }
+	];
 
-async function updateStatus(id,status){
-	await api(`/api/follow-ups/${id}`,{method:'PUT',body:JSON.stringify({status})});
-	load();
-	loadStats();
-}
+	const priorities = [
+		{ value: 'high', label: 'High', color: '#EF4444' },
+		{ value: 'medium', label: 'Medium', color: '#F59E0B' },
+		{ value: 'low', label: 'Low', color: '#6B7280' }
+	];
 
-async function del(id){
-	if(!confirm('Delete?'))return;
-	await api(`/api/follow-ups/${id}`,{method:'DELETE'});
-	load();
-	loadStats();
-}
+	const columns = [
+		{ status: 'new', label: 'New', icon: '🆕', color: '#3B82F6' },
+		{ status: 'in_progress', label: 'In Progress', icon: '🔄', color: '#F59E0B' },
+		{ status: 'waiting', label: 'Waiting', icon: '⏳', color: '#8B5CF6' },
+		{ status: 'completed', label: 'Completed', icon: '✅', color: '#10B981' }
+	];
 
-function pColor(p){
-	return{
-		low:'border-gray-500',
-		medium:'border-blue-500',
-		high:'border-orange-500',
-		urgent:'border-red-500'
-	}[p];
-}
+	onMount(() => { load(); loadPeople(); });
 
-function tIcon(t){
-	return{visit:'🏥',call:'📞',email:'📧',meeting:'🤝'}[t]||'📋';
-}
+	async function load() {
+		try {
+			const [fuData, statsData] = await Promise.all([
+				api('/api/follow-ups'),
+				api('/api/follow-ups/stats')
+			]);
+			followUps = fuData.follow_ups || [];
+			stats = statsData;
+		} catch (e) { console.error(e); }
+	}
 
-function fmt(d){
-	return d?new Date(d).toLocaleDateString():'';
-}
+	async function loadPeople() {
+		try {
+			const r = await api('/api/people?limit=200');
+			people = r.people || [];
+		} catch (e) { console.error(e); }
+	}
 
-function over(d){
-	return d&&new Date(d)<new Date();
-}
+	function searchPeople(q: string) {
+		if (!q) { filteredPeople = []; return; }
+		const lower = q.toLowerCase();
+		filteredPeople = people.filter(p =>
+			`${p.first_name} ${p.last_name}`.toLowerCase().includes(lower)
+		).slice(0, 10);
+	}
 
-$:pending=followUps.filter(f=>f.status==='pending');
-$:progress=followUps.filter(f=>f.status==='in_progress');
-$:done=followUps.filter(f=>f.status==='completed');
+	function selectPerson(p: any) {
+		formData.person_id = p.id;
+		personSearch = `${p.first_name} ${p.last_name}`;
+		filteredPeople = [];
+	}
+
+	async function create() {
+		try {
+			await api('/api/follow-ups', {
+				method: 'POST',
+				body: JSON.stringify({
+					...formData,
+					assigned_to: formData.assigned_to || null
+				})
+			});
+			showCreateModal = false;
+			formData = { person_id: '', assigned_to: '', title: '', type: 'general', priority: 'medium', due_date: '', notes: '' };
+			personSearch = '';
+			load();
+		} catch (e) { console.error(e); }
+	}
+
+	async function updateStatus(id: string, status: string) {
+		try {
+			await api(`/api/follow-ups/${id}`, { method: 'PUT', body: JSON.stringify({ status }) });
+			load();
+			if (selectedItem?.id === id) {
+				selectedItem = { ...selectedItem, status };
+			}
+		} catch (e) { console.error(e); }
+	}
+
+	async function openDetail(item: FollowUp) {
+		try {
+			selectedItem = await api(`/api/follow-ups/${item.id}`);
+			showDetailModal = true;
+		} catch (e) { console.error(e); }
+	}
+
+	async function addNote() {
+		if (!newNote.trim() || !selectedItem) return;
+		try {
+			await api(`/api/follow-ups/${selectedItem.id}/notes`, {
+				method: 'POST',
+				body: JSON.stringify({ note: newNote })
+			});
+			newNote = '';
+			selectedItem = await api(`/api/follow-ups/${selectedItem.id}`);
+			load();
+		} catch (e) { console.error(e); }
+	}
+
+	async function deleteItem(id: string) {
+		if (!confirm('Delete this follow-up?')) return;
+		try {
+			await api(`/api/follow-ups/${id}`, { method: 'DELETE' });
+			showDetailModal = false;
+			load();
+		} catch (e) { console.error(e); }
+	}
+
+	function getTypeInfo(t: string) { return types.find(x => x.value === t) || types[3]; }
+	function getPriorityInfo(p: string) { return priorities.find(x => x.value === p) || priorities[1]; }
+
+	function isOverdue(item: FollowUp) {
+		return item.due_date && item.status !== 'completed' && new Date(item.due_date) < new Date();
+	}
+
+	function formatDate(d: string) {
+		return new Date(d).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+	}
+
+	function formatDateTime(d: string) {
+		return new Date(d).toLocaleDateString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
+	}
+
+	function getColumnItems(status: string) {
+		return followUps.filter(f => f.status === status);
+	}
 </script>
 
 <div class="space-y-6">
+	<!-- Header -->
 	<div class="flex justify-between items-center">
-		<h1 class="text-3xl font-bold text-primary">Care & Follow-Ups</h1>
-		<button on:click={()=>showModal=true} class="px-4 py-2 bg-[var(--teal)] text-white rounded-md hover:opacity-90">
+		<h1 class="text-3xl font-bold text-[var(--text-primary)]">🤝 Care & Follow-Ups</h1>
+		<button on:click={() => { showCreateModal = true; personSearch = ''; }} class="px-4 py-2 bg-[var(--teal)] text-white rounded-lg hover:opacity-90 font-medium">
 			+ New Follow-Up
 		</button>
 	</div>
 
-	<!-- Stats Cards -->
-	<div class="grid grid-cols-4 gap-4">
-		<div class="bg-surface p-4 rounded-lg shadow-sm border border-custom">
-			<div class="text-sm text-secondary">Pending</div>
-			<div class="text-2xl font-bold text-blue-600">{stats.pending_count||0}</div>
-		</div>
-		<div class="bg-surface p-4 rounded-lg shadow-sm border border-custom">
-			<div class="text-sm text-secondary">In Progress</div>
-			<div class="text-2xl font-bold text-orange-600">{stats.in_progress_count||0}</div>
-		</div>
-		<div class="bg-surface p-4 rounded-lg shadow-sm border border-custom">
-			<div class="text-sm text-secondary">Overdue</div>
-			<div class="text-2xl font-bold text-red-600">{stats.overdue_count||0}</div>
-		</div>
-		<div class="bg-surface p-4 rounded-lg shadow-sm border border-custom">
-			<div class="text-sm text-secondary">Done This Week</div>
-			<div class="text-2xl font-bold text-green-600">{stats.completed_this_week||0}</div>
-		</div>
+	<!-- Stats Dashboard -->
+	<div class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-3">
+		{#each [
+			{ label: 'New', value: stats.new_count || 0, color: '#3B82F6' },
+			{ label: 'In Progress', value: stats.in_progress_count || 0, color: '#F59E0B' },
+			{ label: 'Waiting', value: stats.waiting_count || 0, color: '#8B5CF6' },
+			{ label: 'Completed', value: stats.completed_count || 0, color: '#10B981' },
+			{ label: 'Overdue', value: stats.overdue_count || 0, color: '#EF4444' },
+			{ label: 'Due Today', value: stats.due_today_count || 0, color: '#F97316' },
+			{ label: 'This Week', value: stats.due_this_week_count || 0, color: '#4A8B8C' }
+		] as stat}
+			<div class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-3 text-center">
+				<div class="text-2xl font-bold" style="color: {stat.color}">{stat.value}</div>
+				<div class="text-xs text-[var(--text-secondary)] mt-1">{stat.label}</div>
+			</div>
+		{/each}
 	</div>
 
-	<!-- Filters -->
-	<div class="bg-surface p-4 rounded-lg shadow-sm border border-custom flex gap-4">
-		<select bind:value={filter.type} on:change={load} class="rounded-md border-custom bg-surface text-primary px-3 py-2">
-			<option value="all">All Types</option>
-			<option value="visit">Visit</option>
-			<option value="call">Call</option>
-			<option value="email">Email</option>
-			<option value="meeting">Meeting</option>
-		</select>
-		<select bind:value={filter.priority} on:change={load} class="rounded-md border-custom bg-surface text-primary px-3 py-2">
-			<option value="all">All Priorities</option>
-			<option value="low">Low</option>
-			<option value="medium">Medium</option>
-			<option value="high">High</option>
-			<option value="urgent">Urgent</option>
-		</select>
-	</div>
-
-	<!-- Kanban Columns -->
-	<div class="grid grid-cols-3 gap-4">
-		<!-- Pending Column -->
-		<div class="bg-[var(--bg)] p-4 rounded-lg border border-custom">
-			<h2 class="text-lg font-semibold mb-4 text-primary">Pending ({pending.length})</h2>
-			<div class="space-y-3">
-				{#each pending as f}
-					<div class="bg-surface p-3 rounded-lg shadow-sm border-l-4 {pColor(f.priority)}">
-						<div class="font-semibold text-primary">{tIcon(f.type)} {f.title}</div>
-						<div class="text-sm text-secondary">{f.person_name}</div>
-						{#if f.due_date}
-							<div class="text-xs mt-1" class:text-red-600={over(f.due_date)} class:text-secondary={!over(f.due_date)}>
-								Due: {fmt(f.due_date)}
-							</div>
-						{/if}
-						<div class="flex gap-2 mt-2">
-							<button on:click={()=>updateStatus(f.id,'in_progress')} class="text-xs px-2 py-1 bg-orange-500 text-white rounded hover:opacity-90">
-								Start
-							</button>
-							<button on:click={()=>updateStatus(f.id,'completed')} class="text-xs px-2 py-1 bg-green-500 text-white rounded hover:opacity-90">
-								Done
-							</button>
-							<button on:click={()=>del(f.id)} class="text-xs px-2 py-1 bg-red-500 text-white rounded hover:opacity-90">
-								Del
-							</button>
-						</div>
-					</div>
-				{/each}
-			</div>
+	<!-- Kanban Board -->
+	{#if followUps.length === 0 && !stats.new_count}
+		<div class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-12 text-center">
+			<div class="text-5xl mb-4">🤝</div>
+			<h3 class="text-xl font-semibold text-[var(--text-primary)] mb-2">No follow-ups yet</h3>
+			<p class="text-[var(--text-secondary)] max-w-md mx-auto mb-6">
+				Follow-ups help you track pastoral care, visitor connections, and member needs.
+				Create your first follow-up to start caring for your community.
+			</p>
+			<button on:click={() => showCreateModal = true} class="px-6 py-2 bg-[var(--teal)] text-white rounded-lg hover:opacity-90 font-medium">
+				+ Create First Follow-Up
+			</button>
 		</div>
-
-		<!-- In Progress Column -->
-		<div class="bg-[var(--bg)] p-4 rounded-lg border border-custom">
-			<h2 class="text-lg font-semibold mb-4 text-primary">In Progress ({progress.length})</h2>
-			<div class="space-y-3">
-				{#each progress as f}
-					<div class="bg-surface p-3 rounded-lg shadow-sm border-l-4 {pColor(f.priority)}">
-						<div class="font-semibold text-primary">{tIcon(f.type)} {f.title}</div>
-						<div class="text-sm text-secondary">{f.person_name}</div>
-						{#if f.due_date}
-							<div class="text-xs mt-1" class:text-red-600={over(f.due_date)} class:text-secondary={!over(f.due_date)}>
-								Due: {fmt(f.due_date)}
-							</div>
-						{/if}
-						<div class="flex gap-2 mt-2">
-							<button on:click={()=>updateStatus(f.id,'pending')} class="text-xs px-2 py-1 bg-gray-500 text-white rounded hover:opacity-90">
-								Back
-							</button>
-							<button on:click={()=>updateStatus(f.id,'completed')} class="text-xs px-2 py-1 bg-green-500 text-white rounded hover:opacity-90">
-								Done
-							</button>
-							<button on:click={()=>del(f.id)} class="text-xs px-2 py-1 bg-red-500 text-white rounded hover:opacity-90">
-								Del
-							</button>
-						</div>
+	{:else}
+		<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+			{#each columns as col}
+				{@const items = getColumnItems(col.status)}
+				<div class="bg-[var(--bg)] rounded-lg border border-[var(--border)] flex flex-col">
+					<div class="px-4 py-3 border-b border-[var(--border)] flex items-center gap-2">
+						<span>{col.icon}</span>
+						<span class="font-semibold text-[var(--text-primary)]">{col.label}</span>
+						<span class="ml-auto text-sm px-2 py-0.5 rounded-full bg-[var(--surface)] text-[var(--text-secondary)]">{items.length}</span>
 					</div>
-				{/each}
-			</div>
-		</div>
-
-		<!-- Completed Column -->
-		<div class="bg-[var(--bg)] p-4 rounded-lg border border-custom">
-			<h2 class="text-lg font-semibold mb-4 text-primary">Completed ({done.length})</h2>
-			<div class="space-y-3">
-				{#each done as f}
-					<div class="bg-surface p-3 rounded-lg shadow-sm border-l-4 border-green-500 opacity-75">
-						<div class="font-semibold line-through text-primary">{tIcon(f.type)} {f.title}</div>
-						<div class="text-sm text-secondary">{f.person_name}</div>
-						{#if f.completed_at}
-							<div class="text-xs text-secondary mt-1">Done: {fmt(f.completed_at)}</div>
+					<div class="p-2 space-y-2 flex-1 min-h-[200px] overflow-y-auto max-h-[60vh]">
+						{#each items as item}
+							<button class="w-full text-left bg-[var(--surface)] rounded-lg p-3 border border-[var(--border)] hover:border-[var(--teal)] transition-colors cursor-pointer" on:click={() => openDetail(item)}>
+								<div class="flex items-start justify-between gap-2 mb-1">
+									<span class="font-medium text-sm text-[var(--text-primary)] truncate">{getTypeInfo(item.type).icon} {item.title}</span>
+									<span class="w-2 h-2 rounded-full flex-shrink-0 mt-1.5" style="background-color: {getPriorityInfo(item.priority).color}" title="{getPriorityInfo(item.priority).label} priority"></span>
+								</div>
+								<div class="text-xs text-[var(--text-secondary)]">{item.person_name}</div>
+								{#if item.assigned_name}
+									<div class="text-xs text-[var(--text-secondary)] mt-0.5">→ {item.assigned_name}</div>
+								{/if}
+								{#if item.due_date}
+									<div class="text-xs mt-1 {isOverdue(item) ? 'text-red-500 font-semibold' : 'text-[var(--text-secondary)]'}">
+										{isOverdue(item) ? '⚠️ Overdue: ' : 'Due: '}{formatDate(item.due_date)}
+									</div>
+								{/if}
+							</button>
+						{/each}
+						{#if items.length === 0}
+							<div class="text-center text-xs text-[var(--text-secondary)] py-8 opacity-50">No items</div>
 						{/if}
-						<button on:click={()=>del(f.id)} class="text-xs px-2 py-1 bg-red-500 text-white rounded mt-2 hover:opacity-90">
-							Del
-						</button>
 					</div>
-				{/each}
-			</div>
+				</div>
+			{/each}
 		</div>
-	</div>
+	{/if}
 </div>
 
-<!-- Create Modal -->
-{#if showModal}
-	<div class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-		<div class="bg-surface rounded-lg p-6 w-full max-w-md border border-custom">
-			<h2 class="text-2xl font-bold mb-4 text-primary">Create Follow-Up</h2>
-			<form on:submit|preventDefault={create} class="space-y-4">
+<!-- Detail Modal -->
+{#if showDetailModal && selectedItem}
+	<div class="fixed inset-0 bg-black/50 flex items-center justify-center z-50" on:click={() => showDetailModal = false}>
+		<div class="bg-[var(--surface)] rounded-xl p-6 w-full max-w-lg border border-[var(--border)] shadow-xl max-h-[90vh] overflow-y-auto" on:click|stopPropagation>
+			<div class="flex items-start justify-between mb-4">
 				<div>
-					<label class="block text-sm font-medium mb-1 text-primary">Person *</label>
-					<select bind:value={form.person_id} required class="w-full rounded-md border-custom bg-surface text-primary px-3 py-2">
-						<option value="">Select a person...</option>
-						{#each people as p}
+					<div class="flex items-center gap-2 mb-1">
+						<span class="text-sm">{getTypeInfo(selectedItem.type).icon}</span>
+						<span class="text-xs px-2 py-0.5 rounded-full bg-[var(--surface-hover)] text-[var(--text-secondary)]">{getTypeInfo(selectedItem.type).label}</span>
+						<span class="w-2 h-2 rounded-full" style="background-color: {getPriorityInfo(selectedItem.priority).color}"></span>
+						<span class="text-xs text-[var(--text-secondary)]">{getPriorityInfo(selectedItem.priority).label}</span>
+					</div>
+					<h2 class="text-xl font-bold text-[var(--text-primary)]">{selectedItem.title}</h2>
+				</div>
+				<button on:click={() => showDetailModal = false} class="text-[var(--text-secondary)] hover:text-[var(--text-primary)] text-xl">✕</button>
+			</div>
+
+			<div class="space-y-3 text-sm mb-4">
+				<div class="flex items-center gap-2 text-[var(--text-secondary)]">
+					<span>👤</span><span>{selectedItem.person_name}</span>
+				</div>
+				{#if selectedItem.assigned_name}
+					<div class="flex items-center gap-2 text-[var(--text-secondary)]">
+						<span>→</span><span>Assigned to {selectedItem.assigned_name}</span>
+					</div>
+				{/if}
+				{#if selectedItem.due_date}
+					<div class="flex items-center gap-2 {isOverdue(selectedItem) ? 'text-red-500 font-semibold' : 'text-[var(--text-secondary)]'}">
+						<span>📅</span><span>{isOverdue(selectedItem) ? 'Overdue: ' : 'Due: '}{formatDate(selectedItem.due_date)}</span>
+					</div>
+				{/if}
+				<div class="flex items-center gap-2 text-[var(--text-secondary)]">
+					<span>📅</span><span>Created {formatDateTime(selectedItem.created_at)}</span>
+				</div>
+			</div>
+
+			<!-- Status Actions -->
+			<div class="flex flex-wrap gap-2 mb-4 pb-4 border-b border-[var(--border)]">
+				{#each columns as col}
+					<button
+						class="px-3 py-1.5 text-xs rounded-lg border transition-colors {selectedItem.status === col.status ? 'text-white border-transparent' : 'border-[var(--border)] text-[var(--text-secondary)] hover:text-[var(--text-primary)]'}"
+						style={selectedItem.status === col.status ? `background-color: ${col.color}` : ''}
+						on:click={() => updateStatus(selectedItem.id, col.status)}
+					>
+						{col.icon} {col.label}
+					</button>
+				{/each}
+			</div>
+
+			<!-- Notes History -->
+			<div class="mb-4">
+				<h3 class="font-semibold text-[var(--text-primary)] mb-3">Notes</h3>
+				{#if selectedItem.notes && selectedItem.notes.length > 0}
+					<div class="space-y-3 mb-4">
+						{#each selectedItem.notes as note}
+							<div class="bg-[var(--bg)] rounded-lg p-3 border border-[var(--border)]">
+								<div class="flex items-center justify-between mb-1">
+									<span class="text-xs font-medium text-[var(--teal)]">{note.author_name}</span>
+									<span class="text-xs text-[var(--text-secondary)]">{formatDateTime(note.created_at)}</span>
+								</div>
+								<p class="text-sm text-[var(--text-primary)] whitespace-pre-wrap">{note.note}</p>
+							</div>
+						{/each}
+					</div>
+				{:else}
+					<p class="text-sm text-[var(--text-secondary)] mb-4">No notes yet.</p>
+				{/if}
+
+				<!-- Add Note -->
+				<div class="flex gap-2">
+					<textarea bind:value={newNote} placeholder="Add a note..." rows="2" class="flex-1 px-3 py-2 rounded-lg border border-[var(--border)] bg-[var(--bg)] text-[var(--text-primary)] text-sm"></textarea>
+					<button on:click={addNote} disabled={!newNote.trim()} class="px-4 py-2 bg-[var(--teal)] text-white rounded-lg hover:opacity-90 text-sm disabled:opacity-50 self-end">Add</button>
+				</div>
+			</div>
+
+			<div class="flex justify-between pt-4 border-t border-[var(--border)]">
+				<button on:click={() => deleteItem(selectedItem.id)} class="px-4 py-2 text-sm text-red-500 hover:bg-red-500/10 rounded-lg">Delete</button>
+				<button on:click={() => showDetailModal = false} class="px-4 py-2 text-sm border border-[var(--border)] rounded-lg text-[var(--text-secondary)]">Close</button>
+			</div>
+		</div>
+	</div>
+{/if}
+
+<!-- Create Modal -->
+{#if showCreateModal}
+	<div class="fixed inset-0 bg-black/50 flex items-center justify-center z-50" on:click={() => showCreateModal = false}>
+		<div class="bg-[var(--surface)] rounded-xl p-6 w-full max-w-lg border border-[var(--border)] shadow-xl max-h-[90vh] overflow-y-auto" on:click|stopPropagation>
+			<h2 class="text-xl font-bold text-[var(--text-primary)] mb-4">New Follow-Up</h2>
+			<form on:submit|preventDefault={create} class="space-y-4">
+				<!-- Person Search -->
+				<div class="relative">
+					<label class="block text-sm font-medium text-[var(--text-primary)] mb-1">Person *</label>
+					<input type="text" bind:value={personSearch} on:input={() => searchPeople(personSearch)} placeholder="Search for a person..." required={!formData.person_id} class="w-full px-3 py-2 rounded-lg border border-[var(--border)] bg-[var(--bg)] text-[var(--text-primary)]" />
+					{#if filteredPeople.length > 0}
+						<div class="absolute z-10 w-full mt-1 bg-[var(--surface)] border border-[var(--border)] rounded-lg shadow-lg max-h-40 overflow-y-auto">
+							{#each filteredPeople as p}
+								<button type="button" class="w-full text-left px-3 py-2 text-sm hover:bg-[var(--surface-hover)] text-[var(--text-primary)]" on:click={() => selectPerson(p)}>
+									{p.first_name} {p.last_name}
+								</button>
+							{/each}
+						</div>
+					{/if}
+				</div>
+
+				<div>
+					<label class="block text-sm font-medium text-[var(--text-primary)] mb-1">Title *</label>
+					<input type="text" bind:value={formData.title} required placeholder="e.g., Welcome visit for new family" class="w-full px-3 py-2 rounded-lg border border-[var(--border)] bg-[var(--bg)] text-[var(--text-primary)]" />
+				</div>
+
+				<div class="grid grid-cols-2 gap-4">
+					<div>
+						<label class="block text-sm font-medium text-[var(--text-primary)] mb-1">Type</label>
+						<select bind:value={formData.type} class="w-full px-3 py-2 rounded-lg border border-[var(--border)] bg-[var(--bg)] text-[var(--text-primary)]">
+							{#each types as t}
+								<option value={t.value}>{t.icon} {t.label}</option>
+							{/each}
+						</select>
+					</div>
+					<div>
+						<label class="block text-sm font-medium text-[var(--text-primary)] mb-1">Priority</label>
+						<select bind:value={formData.priority} class="w-full px-3 py-2 rounded-lg border border-[var(--border)] bg-[var(--bg)] text-[var(--text-primary)]">
+							{#each priorities as p}
+								<option value={p.value}>{p.label}</option>
+							{/each}
+						</select>
+					</div>
+				</div>
+
+				<div>
+					<label class="block text-sm font-medium text-[var(--text-primary)] mb-1">Assigned To</label>
+					<select bind:value={formData.assigned_to} class="w-full px-3 py-2 rounded-lg border border-[var(--border)] bg-[var(--bg)] text-[var(--text-primary)]">
+						<option value="">Unassigned</option>
+						{#each people.slice(0, 50) as p}
 							<option value={p.id}>{p.first_name} {p.last_name}</option>
 						{/each}
 					</select>
 				</div>
-				
+
 				<div>
-					<label class="block text-sm font-medium mb-1 text-primary">Type *</label>
-					<select bind:value={form.type} required class="w-full rounded-md border-custom bg-surface text-primary px-3 py-2">
-						<option value="visit">Visit</option>
-						<option value="call">Call</option>
-						<option value="email">Email</option>
-						<option value="meeting">Meeting</option>
-					</select>
+					<label class="block text-sm font-medium text-[var(--text-primary)] mb-1">Due Date</label>
+					<input type="date" bind:value={formData.due_date} class="w-full px-3 py-2 rounded-lg border border-[var(--border)] bg-[var(--bg)] text-[var(--text-primary)]" />
 				</div>
-				
+
 				<div>
-					<label class="block text-sm font-medium mb-1 text-primary">Priority *</label>
-					<select bind:value={form.priority} required class="w-full rounded-md border-custom bg-surface text-primary px-3 py-2">
-						<option value="low">Low</option>
-						<option value="medium">Medium</option>
-						<option value="high">High</option>
-						<option value="urgent">Urgent</option>
-					</select>
+					<label class="block text-sm font-medium text-[var(--text-primary)] mb-1">Initial Notes</label>
+					<textarea bind:value={formData.notes} rows="3" placeholder="Any context or details..." class="w-full px-3 py-2 rounded-lg border border-[var(--border)] bg-[var(--bg)] text-[var(--text-primary)]"></textarea>
 				</div>
-				
-				<div>
-					<label class="block text-sm font-medium mb-1 text-primary">Title *</label>
-					<input type="text" bind:value={form.title} required class="w-full rounded-md border-custom bg-surface text-primary px-3 py-2"/>
-				</div>
-				
-				<div>
-					<label class="block text-sm font-medium mb-1 text-primary">Due Date</label>
-					<input type="date" bind:value={form.due_date} class="w-full rounded-md border-custom bg-surface text-primary px-3 py-2"/>
-				</div>
-				
-				<div>
-					<label class="block text-sm font-medium mb-1 text-primary">Notes</label>
-					<textarea bind:value={form.notes} class="w-full rounded-md border-custom bg-surface text-primary px-3 py-2" rows="3"></textarea>
-				</div>
-				
-				<div class="flex gap-2 justify-end">
-					<button type="button" on:click={()=>showModal=false} class="px-4 py-2 bg-[var(--surface-hover)] text-primary rounded-md border border-custom hover:opacity-90">
-						Cancel
-					</button>
-					<button type="submit" class="px-4 py-2 bg-[var(--teal)] text-white rounded-md hover:opacity-90">
-						Create
-					</button>
+
+				<div class="flex gap-2 justify-end pt-4 border-t border-[var(--border)]">
+					<button type="button" on:click={() => showCreateModal = false} class="px-4 py-2 text-sm border border-[var(--border)] rounded-lg text-[var(--text-secondary)]">Cancel</button>
+					<button type="submit" class="px-6 py-2 text-sm bg-[var(--teal)] text-white rounded-lg hover:opacity-90 font-medium">Create</button>
 				</div>
 			</form>
 		</div>
