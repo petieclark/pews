@@ -2,6 +2,8 @@
 	import { onMount, onDestroy } from 'svelte';
 	import { page } from '$app/stores';
 
+	const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8190';
+
 	$: streamId = $page.params.id;
 
 	let stream = null;
@@ -56,7 +58,7 @@
 
 	async function loadStream() {
 		try {
-			const response = await fetch(`/api/streaming/watch/${streamId}`);
+			const response = await fetch(`${API_URL}/api/streaming/watch/${streamId}`);
 			if (!response.ok) throw new Error('Stream not found');
 			stream = await response.json();
 		} catch (error) {
@@ -69,8 +71,8 @@
 		try {
 			const lastMsgId = chatMessages.length > 0 ? chatMessages[chatMessages.length - 1].id : '';
 			const url = lastMsgId 
-				? `/api/streaming/${streamId}/chat?after=${lastMsgId}&limit=50`
-				: `/api/streaming/${streamId}/chat?limit=50`;
+				? `${API_URL}/api/streaming/${streamId}/chat?after=${lastMsgId}&limit=50`
+				: `${API_URL}/api/streaming/${streamId}/chat?limit=50`;
 			
 			const response = await fetch(url);
 			if (!response.ok) throw new Error('Failed to load chat');
@@ -94,7 +96,7 @@
 
 	async function joinStream() {
 		try {
-			const response = await fetch(`/api/streaming/${streamId}/join`, {
+			const response = await fetch(`${API_URL}/api/streaming/${streamId}/join`, {
 				method: 'POST',
 				headers: { 'Content-Type': 'application/json' },
 				body: JSON.stringify({ guest_name: guestName })
@@ -112,7 +114,7 @@
 		if (!viewerId) return;
 		
 		try {
-			await fetch(`/api/streaming/${streamId}/leave`, {
+			await fetch(`${API_URL}/api/streaming/${streamId}/leave`, {
 				method: 'POST',
 				headers: { 'Content-Type': 'application/json' },
 				body: JSON.stringify({ viewer_id: viewerId })
@@ -126,7 +128,7 @@
 		if (!chatInput.trim()) return;
 
 		try {
-			const response = await fetch(`/api/streaming/${streamId}/chat`, {
+			const response = await fetch(`${API_URL}/api/streaming/${streamId}/chat`, {
 				method: 'POST',
 				headers: { 'Content-Type': 'application/json' },
 				body: JSON.stringify({
@@ -152,7 +154,7 @@
 		}
 
 		try {
-			const response = await fetch('/api/communication/cards', {
+			const response = await fetch(`${API_URL}/api/communication/cards`, {
 				method: 'POST',
 				headers: { 'Content-Type': 'application/json' },
 				body: JSON.stringify({
