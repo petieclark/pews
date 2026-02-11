@@ -38,11 +38,11 @@ func (s *Service) ListGroups(ctx context.Context, tenantID string, groupType str
 		       COUNT(DISTINCT gm.id) as member_count
 		FROM groups g
 		LEFT JOIN group_members gm ON gm.group_id = g.id
-		WHERE 1=1`
+		WHERE g.tenant_id = $1`
 
-	countQuery := `SELECT COUNT(DISTINCT g.id) FROM groups g WHERE 1=1`
-	args := []interface{}{}
-	argPos := 1
+	countQuery := `SELECT COUNT(DISTINCT g.id) FROM groups g WHERE g.tenant_id = $1`
+	args := []interface{}{tenantID}
+	argPos := 2
 
 	if groupType != "" {
 		filter := fmt.Sprintf(` AND g.group_type = $%d`, argPos)
