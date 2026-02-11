@@ -204,6 +204,10 @@ func New(
 		r.Put("/api/communication/templates/{id}", communicationHandler.UpdateTemplate)
 		r.Delete("/api/communication/templates/{id}", communicationHandler.DeleteTemplate)
 
+		// Communication - Email Template Preview
+		r.Get("/api/communication/email-templates", communicationHandler.ListEmailTemplates)
+		r.Get("/api/communication/email-templates/{name}/preview", communicationHandler.PreviewEmailTemplate)
+
 		// Communication - Campaigns
 		r.Get("/api/communication/campaigns", communicationHandler.ListCampaigns)
 		r.Post("/api/communication/campaigns", communicationHandler.CreateCampaign)

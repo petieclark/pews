@@ -1,0 +1,104 @@
+{{define "content"}}
+<table border="0" cellpadding="0" cellspacing="0" width="100%">
+    <tr>
+        <td style="padding-bottom: 20px;">
+            <h2 style="color: #1e3a5f; margin: 0 0 10px 0; font-size: 24px;">Reminder: {{.EventName}}</h2>
+        </td>
+    </tr>
+    <tr>
+        <td style="padding-bottom: 20px;">
+            <p style="margin: 0; font-size: 16px; color: #374151; line-height: 1.6;">
+                Hi {{.FirstName}},
+            </p>
+            <p style="margin: 15px 0 0 0; font-size: 16px; color: #374151; line-height: 1.6;">
+                This is a friendly reminder that <strong>{{.EventName}}</strong> is coming up soon. We're looking forward to seeing you there!
+            </p>
+        </td>
+    </tr>
+    
+    <!-- Event Details Card -->
+    <tr>
+        <td style="padding: 25px; background-color: #f0fdfa; border-radius: 8px; border: 2px solid #2dd4bf;">
+            <table border="0" cellpadding="0" cellspacing="0" width="100%">
+                <tr>
+                    <td style="padding-bottom: 15px;">
+                        <h3 style="color: #1e3a5f; margin: 0; font-size: 20px;">📅 Event Details</h3>
+                    </td>
+                </tr>
+                <tr>
+                    <td style="padding-bottom: 10px;">
+                        <p style="margin: 0; font-size: 15px; color: #374151; line-height: 1.8;">
+                            <strong style="color: #1e3a5f;">When:</strong> {{.EventDate}} at {{.EventTime}}
+                        </p>
+                    </td>
+                </tr>
+                <tr>
+                    <td style="padding-bottom: 10px;">
+                        <p style="margin: 0; font-size: 15px; color: #374151; line-height: 1.8;">
+                            <strong style="color: #1e3a5f;">Where:</strong> {{.EventLocation}}
+                        </p>
+                    </td>
+                </tr>
+                {{if .EventDescription}}
+                <tr>
+                    <td style="padding-top: 10px; border-top: 1px solid #99f6e4;">
+                        <p style="margin: 10px 0 0 0; font-size: 15px; color: #374151; line-height: 1.6;">
+                            {{.EventDescription}}
+                        </p>
+                    </td>
+                </tr>
+                {{end}}
+            </table>
+        </td>
+    </tr>
+    
+    {{if .RequiresRSVP}}
+    <!-- RSVP Section -->
+    <tr>
+        <td style="padding-top: 25px;">
+            <p style="margin: 0 0 15px 0; font-size: 15px; color: #374151; line-height: 1.6;">
+                <strong>Please confirm your attendance so we can plan accordingly.</strong>
+            </p>
+        </td>
+    </tr>
+    <tr>
+        <td align="center" style="padding: 20px 0;">
+            <table border="0" cellpadding="0" cellspacing="0">
+                <tr>
+                    <td align="center" style="background-color: #2dd4bf; border-radius: 6px;">
+                        <a href="{{.RSVPLink}}" style="display: inline-block; padding: 15px 40px; color: #ffffff; text-decoration: none; font-size: 16px; font-weight: bold;">
+                            Confirm My RSVP
+                        </a>
+                    </td>
+                </tr>
+            </table>
+        </td>
+    </tr>
+    {{end}}
+    
+    {{if .AddToCalendarLink}}
+    <!-- Calendar Link -->
+    <tr>
+        <td align="center" style="padding: 15px 0;">
+            <p style="margin: 0;">
+                <a href="{{.AddToCalendarLink}}" style="color: #2dd4bf; text-decoration: underline; font-size: 14px;">
+                    📆 Add to Calendar
+                </a>
+            </p>
+        </td>
+    </tr>
+    {{end}}
+    
+    <!-- Closing -->
+    <tr>
+        <td style="padding-top: 30px;">
+            <p style="margin: 0; font-size: 15px; color: #374151; line-height: 1.6;">
+                We can't wait to see you there! If you have any questions, feel free to reply to this email or give us a call.
+            </p>
+            <p style="margin: 15px 0 0 0; font-size: 15px; color: #374151;">
+                See you soon!
+            </p>
+        </td>
+    </tr>
+</table>
+{{end}}

@@ -2,6 +2,7 @@
 	import { onMount } from 'svelte';
 	import { goto } from '$app/navigation';
 	import { api } from '$lib/api';
+	import Modal from '$lib/Modal.svelte';
 
 	let people = [];
 	let tags = [];
@@ -106,16 +107,20 @@
 	<!-- Search and filters -->
 	<div class="bg-surface rounded-lg shadow p-4 border border-custom">
 		<div class="flex gap-4">
+			<label for="people-search" class="sr-only">Search people</label>
 			<input
-				type="text"
+				id="people-search"
+				type="search"
 				bind:value={searchQuery}
 				on:keyup={(e) => e.key === 'Enter' && handleSearch()}
 				placeholder="Search by name, email, or phone..."
 				class="flex-1 px-4 py-2 border input-border rounded-md focus:outline-none focus:ring-2 focus:ring-[var(--teal)] bg-[var(--input-bg)] text-primary"
+				aria-label="Search people by name, email, or phone"
 			/>
 			<button
 				on:click={handleSearch}
-				class="px-6 py-2 bg-[var(--navy)] text-white rounded-md hover:opacity-90"
+				class="px-6 py-2 bg-[var(--navy)] text-white rounded-md hover:opacity-90 focus:outline-none focus:ring-2 focus:ring-[var(--teal)] focus:ring-offset-2"
+				aria-label="Search"
 			>
 				Search
 			</button>
@@ -125,9 +130,9 @@
 	<!-- People table -->
 	<div class="bg-surface rounded-lg shadow overflow-hidden border border-custom">
 		{#if loading}
-			<div class="p-8 text-center text-secondary">Loading...</div>
+			<div class="p-8 text-center text-secondary" role="status" aria-live="polite">Loading...</div>
 		{:else if people.length === 0}
-			<div class="p-8 text-center text-secondary">
+			<div class="p-8 text-center text-secondary" role="status">
 				No people found. {#if searchQuery}Try a different search.{:else}Add your first person to get
 					started.{/if}
 			</div>
@@ -156,7 +161,11 @@
 					{#each people as person}
 						<tr
 							on:click={() => viewPerson(person.id)}
-							class="hover:bg-[var(--surface-hover)] cursor-pointer"
+							on:keydown={(e) => (e.key === 'Enter' || e.key === ' ') && viewPerson(person.id)}
+							tabindex="0"
+							role="button"
+							class="hover:bg-[var(--surface-hover)] cursor-pointer focus:outline-none focus:ring-2 focus:ring-inset focus:ring-[var(--teal)]"
+							aria-label="View details for {person.first_name} {person.last_name}"
 						>
 							<td class="px-6 py-4 whitespace-nowrap">
 								<div class="text-sm font-medium text-primary">
@@ -234,76 +243,78 @@
 </div>
 
 <!-- Create person modal -->
-{#if showCreateModal}
-	<div class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-		<div class="bg-surface rounded-lg max-w-md w-full p-6 border border-custom">
-			<h2 class="text-2xl font-bold text-primary mb-4">Add Person</h2>
-			<form on:submit|preventDefault={createPerson} class="space-y-4">
-				<div>
-					<label class="block text-sm font-medium text-primary">First Name *</label>
-					<input
-						type="text"
-						bind:value={newPerson.first_name}
-						required
-						class="mt-1 block w-full px-3 py-2 border input-border rounded-md focus:outline-none focus:ring-2 focus:ring-[var(--teal)] bg-[var(--input-bg)] text-primary"
-					/>
-				</div>
-				<div>
-					<label class="block text-sm font-medium text-primary">Last Name *</label>
-					<input
-						type="text"
-						bind:value={newPerson.last_name}
-						required
-						class="mt-1 block w-full px-3 py-2 border input-border rounded-md focus:outline-none focus:ring-2 focus:ring-[var(--teal)] bg-[var(--input-bg)] text-primary"
-					/>
-				</div>
-				<div>
-					<label class="block text-sm font-medium text-primary">Email</label>
-					<input
-						type="email"
-						bind:value={newPerson.email}
-						class="mt-1 block w-full px-3 py-2 border input-border rounded-md focus:outline-none focus:ring-2 focus:ring-[var(--teal)] bg-[var(--input-bg)] text-primary"
-					/>
-				</div>
-				<div>
-					<label class="block text-sm font-medium text-primary">Phone</label>
-					<input
-						type="tel"
-						bind:value={newPerson.phone}
-						class="mt-1 block w-full px-3 py-2 border input-border rounded-md focus:outline-none focus:ring-2 focus:ring-[var(--teal)] bg-[var(--input-bg)] text-primary"
-					/>
-				</div>
-				<div>
-					<label class="block text-sm font-medium text-primary">Status</label>
-					<select
-						bind:value={newPerson.membership_status}
-						class="mt-1 block w-full px-3 py-2 border input-border rounded-md focus:outline-none focus:ring-2 focus:ring-[var(--teal)] bg-[var(--input-bg)] text-primary"
-					>
-						<option value="active">Active</option>
-						<option value="inactive">Inactive</option>
-						<option value="visitor">Visitor</option>
-						<option value="member">Member</option>
-					</select>
-				</div>
-				<div class="flex gap-2 pt-4">
-					<button
-						type="button"
-						on:click={() => (showCreateModal = false)}
-						class="flex-1 px-4 py-2 border border-custom rounded-md hover:bg-[var(--surface-hover)] text-primary"
-					>
-						Cancel
-					</button>
-					<button
-						type="submit"
-						class="flex-1 px-4 py-2 bg-[var(--teal)] text-white rounded-md hover:opacity-90"
-					>
-						Create
-					</button>
-				</div>
-			</form>
+<Modal show={showCreateModal} title="Add Person" onClose={() => (showCreateModal = false)}>
+	<form on:submit|preventDefault={createPerson} class="space-y-4">
+		<div>
+			<label for="firstName" class="block text-sm font-medium text-primary">First Name *</label>
+			<input
+				id="firstName"
+				type="text"
+				bind:value={newPerson.first_name}
+				required
+				class="mt-1 block w-full px-3 py-2 border input-border rounded-md focus:outline-none focus:ring-2 focus:ring-[var(--teal)] bg-[var(--input-bg)] text-primary"
+			/>
 		</div>
-	</div>
-{/if}
+		<div>
+			<label for="lastName" class="block text-sm font-medium text-primary">Last Name *</label>
+			<input
+				id="lastName"
+				type="text"
+				bind:value={newPerson.last_name}
+				required
+				class="mt-1 block w-full px-3 py-2 border input-border rounded-md focus:outline-none focus:ring-2 focus:ring-[var(--teal)] bg-[var(--input-bg)] text-primary"
+			/>
+		</div>
+		<div>
+			<label for="email" class="block text-sm font-medium text-primary">Email</label>
+			<input
+				id="email"
+				type="email"
+				bind:value={newPerson.email}
+				autocomplete="email"
+				class="mt-1 block w-full px-3 py-2 border input-border rounded-md focus:outline-none focus:ring-2 focus:ring-[var(--teal)] bg-[var(--input-bg)] text-primary"
+			/>
+		</div>
+		<div>
+			<label for="phone" class="block text-sm font-medium text-primary">Phone</label>
+			<input
+				id="phone"
+				type="tel"
+				bind:value={newPerson.phone}
+				autocomplete="tel"
+				class="mt-1 block w-full px-3 py-2 border input-border rounded-md focus:outline-none focus:ring-2 focus:ring-[var(--teal)] bg-[var(--input-bg)] text-primary"
+			/>
+		</div>
+		<div>
+			<label for="status" class="block text-sm font-medium text-primary">Status</label>
+			<select
+				id="status"
+				bind:value={newPerson.membership_status}
+				class="mt-1 block w-full px-3 py-2 border input-border rounded-md focus:outline-none focus:ring-2 focus:ring-[var(--teal)] bg-[var(--input-bg)] text-primary"
+			>
+				<option value="active">Active</option>
+				<option value="inactive">Inactive</option>
+				<option value="visitor">Visitor</option>
+				<option value="member">Member</option>
+			</select>
+		</div>
+		<div class="flex gap-2 pt-4">
+			<button
+				type="button"
+				on:click={() => (showCreateModal = false)}
+				class="flex-1 px-4 py-2 border border-custom rounded-md hover:bg-[var(--surface-hover)] text-primary focus:outline-none focus:ring-2 focus:ring-[var(--teal)] focus:ring-offset-2"
+			>
+				Cancel
+			</button>
+			<button
+				type="submit"
+				class="flex-1 px-4 py-2 bg-[var(--teal)] text-white rounded-md hover:opacity-90 focus:outline-none focus:ring-2 focus:ring-[var(--teal)] focus:ring-offset-2"
+			>
+				Create
+			</button>
+		</div>
+	</form>
+</Modal>
 
 <style>
 	.status-active {
@@ -340,5 +351,17 @@
 	:global(.dark) .status-member {
 		background-color: #134E4A;
 		color: #5EEAD4;
+	}
+	
+	.sr-only {
+		position: absolute;
+		width: 1px;
+		height: 1px;
+		padding: 0;
+		margin: -1px;
+		overflow: hidden;
+		clip: rect(0, 0, 0, 0);
+		white-space: nowrap;
+		border-width: 0;
 	}
 </style>

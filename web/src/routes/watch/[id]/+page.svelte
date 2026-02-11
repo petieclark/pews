@@ -1,12 +1,15 @@
 <script>
 	import { onMount, onDestroy } from 'svelte';
 	import { page } from '$app/stores';
+	import SEO from '$lib/components/SEO.svelte';
 
 	const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8190';
 
-	$: streamId = $page.params.id;
+	export let data;
 
-	let stream = null;
+	$: streamId = $page.params.id;
+	$: stream = data?.stream || null;
+	$: seo = data?.seo || {};
 	let chatMessages = [];
 	let notes = '';
 	let guestName = '';
@@ -57,13 +60,17 @@
 	});
 
 	async function loadStream() {
-		try {
-			const response = await fetch(`${API_URL}/api/streaming/watch/${streamId}`);
-			if (!response.ok) throw new Error('Stream not found');
-			stream = await response.json();
-		} catch (error) {
-			console.error('Failed to load stream:', error);
-			alert('Stream not found');
+		// Stream data already loaded server-side via +page.server.js
+		// This function kept for real-time updates if needed
+		if (!stream) {
+			try {
+				const response = await fetch(`${API_URL}/api/streaming/watch/${streamId}`);
+				if (!response.ok) throw new Error('Stream not found');
+				stream = await response.json();
+			} catch (error) {
+				console.error('Failed to load stream:', error);
+				alert('Stream not found');
+			}
 		}
 	}
 
@@ -181,6 +188,15 @@
 		return date.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
 	}
 </script>
+
+<!-- SEO Component -->
+<SEO 
+	title={seo.title}
+	description={seo.description}
+	image={seo.image}
+	type={seo.type}
+	structuredData={seo.structuredData}
+/>
 
 {#if stream}
 	<div class="max-w-7xl mx-auto">

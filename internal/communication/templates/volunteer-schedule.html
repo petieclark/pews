@@ -1,0 +1,141 @@
+{{define "content"}}
+<table border="0" cellpadding="0" cellspacing="0" width="100%">
+    <tr>
+        <td style="padding-bottom: 20px;">
+            <h2 style="color: #1e3a5f; margin: 0 0 10px 0; font-size: 24px;">You're Scheduled to Serve! 🙌</h2>
+        </td>
+    </tr>
+    <tr>
+        <td style="padding-bottom: 20px;">
+            <p style="margin: 0; font-size: 16px; color: #374151; line-height: 1.6;">
+                Hi {{.FirstName}},
+            </p>
+            <p style="margin: 15px 0 0 0; font-size: 16px; color: #374151; line-height: 1.6;">
+                Thank you for serving! Your willingness to use your gifts makes a huge difference in our community. Here are the details of your upcoming service assignment:
+            </p>
+        </td>
+    </tr>
+    
+    <!-- Schedule Card -->
+    <tr>
+        <td style="padding: 25px; background-color: #eff6ff; border-radius: 8px; border: 2px solid #2dd4bf;">
+            <table border="0" cellpadding="0" cellspacing="0" width="100%">
+                <tr>
+                    <td style="padding-bottom: 15px;">
+                        <h3 style="color: #1e3a5f; margin: 0; font-size: 20px;">📋 Your Assignment</h3>
+                    </td>
+                </tr>
+                <tr>
+                    <td style="padding-bottom: 12px;">
+                        <p style="margin: 0; font-size: 16px; line-height: 1.8;">
+                            <strong style="color: #1e3a5f; font-size: 18px;">{{.Role}}</strong>
+                        </p>
+                    </td>
+                </tr>
+                <tr>
+                    <td style="padding-bottom: 10px;">
+                        <p style="margin: 0; font-size: 15px; color: #374151; line-height: 1.8;">
+                            <strong style="color: #1e3a5f;">Date:</strong> {{.ServiceDate}}
+                        </p>
+                    </td>
+                </tr>
+                <tr>
+                    <td style="padding-bottom: 10px;">
+                        <p style="margin: 0; font-size: 15px; color: #374151; line-height: 1.8;">
+                            <strong style="color: #1e3a5f;">Time:</strong> {{.ServiceTime}}
+                        </p>
+                    </td>
+                </tr>
+                {{if .ArrivalTime}}
+                <tr>
+                    <td style="padding-bottom: 10px;">
+                        <p style="margin: 0; font-size: 15px; color: #374151; line-height: 1.8;">
+                            <strong style="color: #1e3a5f;">Please arrive by:</strong> {{.ArrivalTime}}
+                        </p>
+                    </td>
+                </tr>
+                {{end}}
+                <tr>
+                    <td style="padding-bottom: 10px;">
+                        <p style="margin: 0; font-size: 15px; color: #374151; line-height: 1.8;">
+                            <strong style="color: #1e3a5f;">Location:</strong> {{.Location}}
+                        </p>
+                    </td>
+                </tr>
+                {{if .TeamLeader}}
+                <tr>
+                    <td style="padding-bottom: 10px;">
+                        <p style="margin: 0; font-size: 15px; color: #374151; line-height: 1.8;">
+                            <strong style="color: #1e3a5f;">Team Leader:</strong> {{.TeamLeader}}
+                            {{if .TeamLeaderPhone}}<br/>({{.TeamLeaderPhone}}){{end}}
+                        </p>
+                    </td>
+                </tr>
+                {{end}}
+                {{if .SpecialInstructions}}
+                <tr>
+                    <td style="padding-top: 15px; border-top: 1px solid #bfdbfe;">
+                        <p style="margin: 10px 0 0 0; font-size: 15px; color: #374151; line-height: 1.6;">
+                            <strong style="color: #1e3a5f;">Special Instructions:</strong><br/>
+                            {{.SpecialInstructions}}
+                        </p>
+                    </td>
+                </tr>
+                {{end}}
+            </table>
+        </td>
+    </tr>
+    
+    <!-- Can't Make It Section -->
+    <tr>
+        <td style="padding-top: 25px;">
+            <table border="0" cellpadding="0" cellspacing="0" width="100%" style="background-color: #fef3c7; border-radius: 6px; padding: 15px;">
+                <tr>
+                    <td>
+                        <p style="margin: 0; font-size: 14px; color: #78350f; line-height: 1.6;">
+                            <strong>Can't make it?</strong> We understand things come up! Please let us know as soon as possible so we can find a substitute.
+                        </p>
+                    </td>
+                </tr>
+            </table>
+        </td>
+    </tr>
+    
+    <!-- Action Buttons -->
+    <tr>
+        <td align="center" style="padding: 30px 0 10px 0;">
+            <table border="0" cellpadding="0" cellspacing="0">
+                <tr>
+                    <td align="center" style="background-color: #2dd4bf; border-radius: 6px;">
+                        <a href="{{.ConfirmLink}}" style="display: inline-block; padding: 15px 40px; color: #ffffff; text-decoration: none; font-size: 16px; font-weight: bold;">
+                            Confirm I'll Be There
+                        </a>
+                    </td>
+                </tr>
+            </table>
+        </td>
+    </tr>
+    <tr>
+        <td align="center" style="padding: 10px 0;">
+            <p style="margin: 0;">
+                <a href="{{.CantMakeItLink}}" style="color: #6b7280; text-decoration: underline; font-size: 14px;">
+                    I can't make it
+                </a>
+            </p>
+        </td>
+    </tr>
+    
+    <!-- Closing -->
+    <tr>
+        <td style="padding-top: 30px; border-top: 1px solid #e5e7eb;">
+            <p style="margin: 0; font-size: 15px; color: #374151; line-height: 1.6;">
+                Thank you for being part of our volunteer team. Your service helps create an incredible experience for everyone who walks through our doors!
+            </p>
+            <p style="margin: 15px 0 0 0; font-size: 15px; color: #374151; line-height: 1.6;">
+                Grateful for you,<br/>
+                <strong>The {{.ChurchName}} Team</strong>
+            </p>
+        </td>
+    </tr>
+</table>
+{{end}}
