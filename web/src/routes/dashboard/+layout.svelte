@@ -31,6 +31,7 @@
 				{ href: '/dashboard/calendar', label: 'Calendar', icon: 'calendar', module: 'calendar' },
 				{ href: '/dashboard/checkins', label: 'Check-Ins', icon: 'checkins', module: 'checkins' },
 				{ href: '/dashboard/care', label: 'Care', icon: 'care', module: 'care' },
+				{ href: '/dashboard/prayer', label: 'Prayer', icon: 'prayer', module: 'prayer' },
 				{ href: '/dashboard/communication', label: 'Communication', icon: 'comm', module: 'communication' }
 			]
 		},

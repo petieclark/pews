@@ -772,6 +772,69 @@ VALUES
      true, true)
 ON CONFLICT (id) DO NOTHING;
 
+-- ============================================================================
+-- CALENDAR EVENTS
+-- ============================================================================
+
+DELETE FROM events WHERE tenant_id = '00000000-0000-0000-0000-000000000001';
+
+INSERT INTO events (id, tenant_id, title, description, location, start_time, end_time, all_day, recurring, event_type, color, created_by)
+VALUES
+    ('C0000000-0000-0000-0000-000000000001', '00000000-0000-0000-0000-000000000001', 'Sunday Worship Service', 'Weekly worship service with praise, prayer, and teaching.', 'Main Sanctuary', '2026-02-15 10:00:00', '2026-02-15 11:30:00', false, 'weekly', 'service', '#4A8B8C', '00000000-0000-0000-0000-000000000010'),
+    ('C0000000-0000-0000-0000-000000000002', '00000000-0000-0000-0000-000000000001', 'Elder Board Meeting', 'Monthly elder board meeting to discuss church direction.', 'Conference Room', '2026-02-17 19:00:00', '2026-02-17 21:00:00', false, 'monthly', 'meeting', '#1B3A4B', '00000000-0000-0000-0000-000000000010'),
+    ('C0000000-0000-0000-0000-000000000003', '00000000-0000-0000-0000-000000000001', 'New Members Class', 'A 4-week class for those interested in membership.', 'Room 201', '2026-02-18 18:30:00', '2026-02-18 20:00:00', false, 'weekly', 'class', '#8B5CF6', '00000000-0000-0000-0000-000000000010'),
+    ('C0000000-0000-0000-0000-000000000004', '00000000-0000-0000-0000-000000000001', 'Youth Game Night', 'Fun and fellowship for middle and high school students.', 'Youth Center', '2026-02-20 18:00:00', '2026-02-20 20:30:00', false, 'none', 'social', '#F59E0B', '00000000-0000-0000-0000-000000000010'),
+    ('C0000000-0000-0000-0000-000000000005', '00000000-0000-0000-0000-000000000001', 'Community Food Drive', 'Collecting non-perishable food items for local families.', 'Church Parking Lot', '2026-02-22 09:00:00', '2026-02-22 14:00:00', false, 'none', 'outreach', '#10B981', '00000000-0000-0000-0000-000000000010'),
+    ('C0000000-0000-0000-0000-000000000006', '00000000-0000-0000-0000-000000000001', 'Worship Team Practice', 'Weekly rehearsal for the worship team.', 'Main Sanctuary', '2026-02-19 19:00:00', '2026-02-19 21:00:00', false, 'weekly', 'service', '#4A8B8C', '00000000-0000-0000-0000-000000000010'),
+    ('C0000000-0000-0000-0000-000000000007', '00000000-0000-0000-0000-000000000001', 'Men''s Breakfast', 'Monthly men''s fellowship breakfast.', 'Fellowship Hall', '2026-02-28 08:00:00', '2026-02-28 10:00:00', false, 'monthly', 'social', '#F59E0B', '00000000-0000-0000-0000-000000000010'),
+    ('C0000000-0000-0000-0000-000000000008', '00000000-0000-0000-0000-000000000001', 'Women''s Bible Study', 'Studying the book of Psalms together.', 'Room 105', '2026-02-12 10:00:00', '2026-02-12 11:30:00', false, 'weekly', 'class', '#8B5CF6', '00000000-0000-0000-0000-000000000010')
+ON CONFLICT (id) DO NOTHING;
+
+-- ============================================================================
+-- CARE / FOLLOW-UPS
+-- ============================================================================
+
+DELETE FROM follow_up_notes WHERE follow_up_id IN (SELECT id FROM follow_ups WHERE tenant_id = '00000000-0000-0000-0000-000000000001');
+DELETE FROM follow_ups WHERE tenant_id = '00000000-0000-0000-0000-000000000001';
+
+INSERT INTO follow_ups (id, tenant_id, person_id, title, type, priority, status, due_date)
+VALUES
+    ('D0000000-0000-0000-0000-000000000001', '00000000-0000-0000-0000-000000000001', '20000000-0000-0000-0000-000000000001', 'Welcome visit for Johnson family', 'first_time_visitor', 'high', 'in_progress', '2026-02-14'),
+    ('D0000000-0000-0000-0000-000000000002', '00000000-0000-0000-0000-000000000001', '20000000-0000-0000-0000-000000000005', 'Hospital visit - Robert Williams', 'hospital_visit', 'high', 'new', '2026-02-12'),
+    ('D0000000-0000-0000-0000-000000000003', '00000000-0000-0000-0000-000000000001', '20000000-0000-0000-0000-000000000009', 'Membership follow-up - Lisa Chen', 'membership', 'medium', 'waiting', '2026-02-20'),
+    ('D0000000-0000-0000-0000-000000000004', '00000000-0000-0000-0000-000000000001', '20000000-0000-0000-0000-000000000013', 'Counseling session - James Wilson', 'counseling', 'medium', 'in_progress', '2026-02-15'),
+    ('D0000000-0000-0000-0000-000000000005', '00000000-0000-0000-0000-000000000001', '20000000-0000-0000-0000-000000000017', 'General check-in - Maria Garcia', 'general', 'low', 'completed', '2026-02-08'),
+    ('D0000000-0000-0000-0000-000000000006', '00000000-0000-0000-0000-000000000001', '20000000-0000-0000-0000-000000000021', 'New visitor welcome call', 'first_time_visitor', 'high', 'new', '2026-02-13')
+ON CONFLICT (id) DO NOTHING;
+
+INSERT INTO follow_up_notes (id, follow_up_id, note, created_at)
+VALUES
+    ('D1000000-0000-0000-0000-000000000001', 'D0000000-0000-0000-0000-000000000001', 'Called and scheduled visit for Saturday afternoon. Family seems very enthusiastic about joining.', '2026-02-10 14:30:00'),
+    ('D1000000-0000-0000-0000-000000000002', 'D0000000-0000-0000-0000-000000000001', 'Visited the Johnson family. They have two kids and are looking for a church home. Invited to small group.', '2026-02-12 16:00:00'),
+    ('D1000000-0000-0000-0000-000000000003', 'D0000000-0000-0000-0000-000000000004', 'First session completed. Will continue meeting weekly.', '2026-02-11 10:00:00'),
+    ('D1000000-0000-0000-0000-000000000004', 'D0000000-0000-0000-0000-000000000005', 'Maria is doing well. Connected her with the women''s Bible study group.', '2026-02-08 11:00:00')
+ON CONFLICT (id) DO NOTHING;
+
+-- ============================================================================
+-- PRAYER REQUESTS
+-- ============================================================================
+
+DELETE FROM prayer_followers WHERE prayer_request_id IN (SELECT id FROM prayer_requests WHERE tenant_id = '00000000-0000-0000-0000-000000000001');
+DELETE FROM prayer_requests WHERE tenant_id = '00000000-0000-0000-0000-000000000001';
+
+INSERT INTO prayer_requests (id, tenant_id, person_id, name, request_text, is_public, status, submitted_at)
+VALUES
+    ('F0000000-0000-0000-0000-000000000001', '00000000-0000-0000-0000-000000000001', '20000000-0000-0000-0000-000000000002', 'Sarah Johnson', 'Please pray for my mother who is recovering from surgery. She had a hip replacement last week and the recovery is going slowly.', true, 'praying', '2026-02-05 09:30:00'),
+    ('F0000000-0000-0000-0000-000000000002', '00000000-0000-0000-0000-000000000001', '20000000-0000-0000-0000-000000000005', 'Robert Williams', 'Praying for wisdom as we navigate a difficult season at work. Potential layoffs have everyone worried.', true, 'pending', '2026-02-08 14:15:00'),
+    ('F0000000-0000-0000-0000-000000000003', '00000000-0000-0000-0000-000000000001', NULL, 'Anonymous', 'Struggling with anxiety and would appreciate prayers for peace and clarity.', false, 'praying', '2026-02-09 20:00:00'),
+    ('F0000000-0000-0000-0000-000000000004', '00000000-0000-0000-0000-000000000001', '20000000-0000-0000-0000-000000000009', 'Lisa Chen', 'Our small group is praying for revival in our community. Please join us!', true, 'pending', '2026-02-10 08:00:00'),
+    ('F0000000-0000-0000-0000-000000000005', '00000000-0000-0000-0000-000000000001', '20000000-0000-0000-0000-000000000013', 'James Wilson', 'Thank God! My wife got the all-clear from her oncologist after two years of treatment.', true, 'answered', '2026-01-20 11:00:00'),
+    ('F0000000-0000-0000-0000-000000000006', '00000000-0000-0000-0000-000000000001', '20000000-0000-0000-0000-000000000017', 'Maria Garcia', 'Please pray for our youth mission trip to Guatemala this summer. We need funding and volunteers.', true, 'pending', '2026-02-11 16:30:00')
+ON CONFLICT (id) DO NOTHING;
+
+-- Update answered prayer with testimony
+UPDATE prayer_requests SET notes = 'After two years of treatment, the doctors confirmed complete remission. God is faithful! Thank you all for your prayers.' WHERE id = 'F0000000-0000-0000-0000-000000000005';
+
 COMMIT;
 
 -- Summary
