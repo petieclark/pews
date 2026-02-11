@@ -232,6 +232,10 @@ func New(
 		// Communication - Stats
 		r.Get("/api/communication/stats", communicationHandler.GetStats)
 
+		// Communication - Email Template Preview
+		r.Get("/api/communication/email-templates", communicationHandler.ListEmailTemplates)
+		r.Get("/api/communication/email-templates/{name}/preview", communicationHandler.PreviewEmailTemplate)
+
 		// Check-ins - Events
 		r.Get("/api/checkins/events", checkinsHandler.ListEvents)
 		r.Post("/api/checkins/events", checkinsHandler.CreateEvent)

@@ -1,0 +1,68 @@
+{{define "content"}}
+<table border="0" cellpadding="0" cellspacing="0" width="100%">
+    <tr>
+        <td style="padding-bottom: 20px;">
+            <h2 style="color: #1e3a5f; margin: 0 0 10px 0; font-size: 26px; text-align: center;">{{.Title}}</h2>
+            {{if .Subtitle}}
+            <p style="margin: 0; font-size: 16px; color: #6b7280; text-align: center;">{{.Subtitle}}</p>
+            {{end}}
+        </td>
+    </tr>
+    {{if .Introduction}}
+    <tr>
+        <td style="padding-bottom: 30px;">
+            <p style="margin: 0; font-size: 16px; color: #374151; line-height: 1.6;">Hi {{.FirstName}},</p>
+            <p style="margin: 15px 0 0 0; font-size: 16px; color: #374151; line-height: 1.6;">{{.Introduction}}</p>
+        </td>
+    </tr>
+    {{end}}
+    {{range .Articles}}
+    <tr>
+        <td style="padding-bottom: 30px;">
+            <h3 style="color: #1e3a5f; margin: 0 0 10px 0; font-size: 20px;">{{.Title}}</h3>
+            <p style="margin: 0 0 15px 0; font-size: 15px; color: #374151; line-height: 1.6;">{{.Content}}</p>
+            {{if .ButtonText}}
+            <table border="0" cellpadding="0" cellspacing="0">
+                <tr>
+                    <td style="background-color: #2dd4bf; border-radius: 6px;">
+                        <a href="{{.ButtonLink}}" style="display: inline-block; padding: 12px 30px; color: #ffffff; text-decoration: none; font-size: 15px; font-weight: bold;">
+                            {{.ButtonText}}
+                        </a>
+                    </td>
+                </tr>
+            </table>
+            {{end}}
+        </td>
+    </tr>
+    {{end}}
+    {{if .Events}}
+    <tr>
+        <td style="padding: 30px 0 20px 0; border-top: 2px solid #e5e7eb;">
+            <h3 style="color: #1e3a5f; margin: 0 0 20px 0; font-size: 20px;">📅 Upcoming Events</h3>
+        </td>
+    </tr>
+    {{range .Events}}
+    <tr>
+        <td style="padding: 0 0 15px 0;">
+            <table border="0" cellpadding="0" cellspacing="0" width="100%" style="background-color: #f9fafb; border-left: 4px solid #2dd4bf; padding: 15px;">
+                <tr>
+                    <td>
+                        <p style="margin: 0 0 5px 0; font-size: 16px; color: #1e3a5f; font-weight: bold;">{{.Name}}</p>
+                        <p style="margin: 0; font-size: 14px; color: #6b7280;">{{.Date}} at {{.Time}}</p>
+                    </td>
+                </tr>
+            </table>
+        </td>
+    </tr>
+    {{end}}
+    {{end}}
+    <tr>
+        <td style="padding-top: 30px; border-top: 2px solid #e5e7eb;">
+            <p style="margin: 0; font-size: 15px; color: #374151; line-height: 1.6;">
+                Blessings,<br/>
+                <strong>{{.SenderName}}</strong>
+            </p>
+        </td>
+    </tr>
+</table>
+{{end}}

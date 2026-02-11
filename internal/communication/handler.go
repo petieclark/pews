@@ -2,6 +2,7 @@ package communication
 
 import (
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"time"
 
@@ -10,11 +11,22 @@ import (
 )
 
 type Handler struct {
-	service *Service
+	service       *Service
+	emailRenderer *EmailRenderer
 }
 
 func NewHandler(service *Service) *Handler {
-	return &Handler{service: service}
+	// Initialize email renderer
+	renderer, err := NewEmailRenderer()
+	if err != nil {
+		// In production, handle this more gracefully
+		panic(fmt.Sprintf("failed to initialize email renderer: %v", err))
+	}
+
+	return &Handler{
+		service:       service,
+		emailRenderer: renderer,
+	}
 }
 
 // ===== TEMPLATES =====
@@ -694,4 +706,43 @@ func (h *Handler) GetStats(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(stats)
+}
+
+// ===== EMAIL TEMPLATE PREVIEW =====
+
+// PreviewEmailTemplate renders an email template with sample data for preview
+func (h *Handler) PreviewEmailTemplate(w http.ResponseWriter, r *http.Request) {
+	_, ok := middleware.GetClaims(r.Context())
+	if !ok {
+		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		return
+	}
+
+	templateName := chi.URLParam(r, "name")
+	data := GetSampleData(templateName)
+
+	html, err := h.emailRenderer.RenderEmail(templateName, data)
+	if err != nil {
+		http.Error(w, fmt.Sprintf("Failed to render template: %v", err), http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "text/html; charset=utf-8")
+	w.Write([]byte(html))
+}
+
+// ListEmailTemplates returns a list of available email template names
+func (h *Handler) ListEmailTemplates(w http.ResponseWriter, r *http.Request) {
+	_, ok := middleware.GetClaims(r.Context())
+	if !ok {
+		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		return
+	}
+
+	templates := h.emailRenderer.GetTemplateNames()
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]interface{}{
+		"templates": templates,
+	})
 }
