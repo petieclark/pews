@@ -21,7 +21,6 @@ func NewService(db *pgxpool.Pool) *Service {
 // ServiceType operations
 
 func (s *Service) ListServiceTypes(ctx context.Context, tenantID string) ([]ServiceType, error) {
-	_, err := s.db.Exec(ctx, "SELECT set_config('app.current_tenant_id', $1, TRUE)", tenantID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to set tenant context: %w", err)
 	}
@@ -50,7 +49,6 @@ func (s *Service) ListServiceTypes(ctx context.Context, tenantID string) ([]Serv
 }
 
 func (s *Service) CreateServiceType(ctx context.Context, tenantID string, st *ServiceType) (*ServiceType, error) {
-	_, err := s.db.Exec(ctx, "SELECT set_config('app.current_tenant_id', $1, TRUE)", tenantID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to set tenant context: %w", err)
 	}
@@ -73,7 +71,6 @@ func (s *Service) CreateServiceType(ctx context.Context, tenantID string, st *Se
 }
 
 func (s *Service) UpdateServiceType(ctx context.Context, tenantID, typeID string, st *ServiceType) (*ServiceType, error) {
-	_, err := s.db.Exec(ctx, "SELECT set_config('app.current_tenant_id', $1, TRUE)", tenantID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to set tenant context: %w", err)
 	}
@@ -110,7 +107,6 @@ func (s *Service) ListServices(ctx context.Context, tenantID, fromDate, toDate, 
 	}
 	offset := (page - 1) * limit
 
-	_, err := s.db.Exec(ctx, "SELECT set_config('app.current_tenant_id', $1, TRUE)", tenantID)
 	if err != nil {
 		return nil, 0, fmt.Errorf("failed to set tenant context: %w", err)
 	}
@@ -198,7 +194,6 @@ func (s *Service) GetUpcomingServices(ctx context.Context, tenantID string, limi
 		limit = 4
 	}
 
-	_, err := s.db.Exec(ctx, "SELECT set_config('app.current_tenant_id', $1, TRUE)", tenantID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to set tenant context: %w", err)
 	}
@@ -238,7 +233,6 @@ func (s *Service) GetUpcomingServices(ctx context.Context, tenantID string, limi
 }
 
 func (s *Service) GetServiceByID(ctx context.Context, tenantID, serviceID string) (*ChurchService, error) {
-	_, err := s.db.Exec(ctx, "SELECT set_config('app.current_tenant_id', $1, TRUE)", tenantID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to set tenant context: %w", err)
 	}
@@ -285,7 +279,6 @@ func (s *Service) GetServiceByID(ctx context.Context, tenantID, serviceID string
 }
 
 func (s *Service) CreateService(ctx context.Context, tenantID string, svc *ChurchService) (*ChurchService, error) {
-	_, err := s.db.Exec(ctx, "SELECT set_config('app.current_tenant_id', $1, TRUE)", tenantID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to set tenant context: %w", err)
 	}
@@ -308,7 +301,6 @@ func (s *Service) CreateService(ctx context.Context, tenantID string, svc *Churc
 }
 
 func (s *Service) UpdateService(ctx context.Context, tenantID, serviceID string, svc *ChurchService) (*ChurchService, error) {
-	_, err := s.db.Exec(ctx, "SELECT set_config('app.current_tenant_id', $1, TRUE)", tenantID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to set tenant context: %w", err)
 	}
@@ -335,7 +327,6 @@ func (s *Service) UpdateService(ctx context.Context, tenantID, serviceID string,
 }
 
 func (s *Service) DeleteService(ctx context.Context, tenantID, serviceID string) error {
-	_, err := s.db.Exec(ctx, "SELECT set_config('app.current_tenant_id', $1, TRUE)", tenantID)
 	if err != nil {
 		return fmt.Errorf("failed to set tenant context: %w", err)
 	}
@@ -355,7 +346,6 @@ func (s *Service) DeleteService(ctx context.Context, tenantID, serviceID string)
 // Service Items operations
 
 func (s *Service) GetServiceItems(ctx context.Context, tenantID, serviceID string) ([]ServiceItem, error) {
-	_, err := s.db.Exec(ctx, "SELECT set_config('app.current_tenant_id', $1, TRUE)", tenantID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to set tenant context: %w", err)
 	}
@@ -394,7 +384,6 @@ func (s *Service) GetServiceItems(ctx context.Context, tenantID, serviceID strin
 }
 
 func (s *Service) AddServiceItem(ctx context.Context, tenantID string, item *ServiceItem) (*ServiceItem, error) {
-	_, err := s.db.Exec(ctx, "SELECT set_config('app.current_tenant_id', $1, TRUE)", tenantID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to set tenant context: %w", err)
 	}
@@ -422,7 +411,6 @@ func (s *Service) AddServiceItem(ctx context.Context, tenantID string, item *Ser
 }
 
 func (s *Service) UpdateServiceItem(ctx context.Context, tenantID, itemID string, item *ServiceItem) (*ServiceItem, error) {
-	_, err := s.db.Exec(ctx, "SELECT set_config('app.current_tenant_id', $1, TRUE)", tenantID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to set tenant context: %w", err)
 	}
@@ -448,7 +436,6 @@ func (s *Service) UpdateServiceItem(ctx context.Context, tenantID, itemID string
 }
 
 func (s *Service) DeleteServiceItem(ctx context.Context, tenantID, itemID string) error {
-	_, err := s.db.Exec(ctx, "SELECT set_config('app.current_tenant_id', $1, TRUE)", tenantID)
 	if err != nil {
 		return fmt.Errorf("failed to set tenant context: %w", err)
 	}
@@ -468,7 +455,6 @@ func (s *Service) DeleteServiceItem(ctx context.Context, tenantID, itemID string
 // Service Team operations
 
 func (s *Service) GetServiceTeam(ctx context.Context, tenantID, serviceID string) ([]ServiceTeam, error) {
-	_, err := s.db.Exec(ctx, "SELECT set_config('app.current_tenant_id', $1, TRUE)", tenantID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to set tenant context: %w", err)
 	}
@@ -500,7 +486,6 @@ func (s *Service) GetServiceTeam(ctx context.Context, tenantID, serviceID string
 }
 
 func (s *Service) AddServiceTeamMember(ctx context.Context, tenantID string, member *ServiceTeam) (*ServiceTeam, error) {
-	_, err := s.db.Exec(ctx, "SELECT set_config('app.current_tenant_id', $1, TRUE)", tenantID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to set tenant context: %w", err)
 	}
@@ -521,7 +506,6 @@ func (s *Service) AddServiceTeamMember(ctx context.Context, tenantID string, mem
 }
 
 func (s *Service) UpdateServiceTeamMember(ctx context.Context, tenantID, teamID string, member *ServiceTeam) (*ServiceTeam, error) {
-	_, err := s.db.Exec(ctx, "SELECT set_config('app.current_tenant_id', $1, TRUE)", tenantID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to set tenant context: %w", err)
 	}
@@ -546,7 +530,6 @@ func (s *Service) UpdateServiceTeamMember(ctx context.Context, tenantID, teamID 
 }
 
 func (s *Service) DeleteServiceTeamMember(ctx context.Context, tenantID, teamID string) error {
-	_, err := s.db.Exec(ctx, "SELECT set_config('app.current_tenant_id', $1, TRUE)", tenantID)
 	if err != nil {
 		return fmt.Errorf("failed to set tenant context: %w", err)
 	}
@@ -574,7 +557,6 @@ func (s *Service) ListSongs(ctx context.Context, tenantID, query string, page, l
 	}
 	offset := (page - 1) * limit
 
-	_, err := s.db.Exec(ctx, "SELECT set_config('app.current_tenant_id', $1, TRUE)", tenantID)
 	if err != nil {
 		return nil, 0, fmt.Errorf("failed to set tenant context: %w", err)
 	}
@@ -629,7 +611,6 @@ func (s *Service) ListSongs(ctx context.Context, tenantID, query string, page, l
 }
 
 func (s *Service) GetSongByID(ctx context.Context, tenantID, songID string) (*Song, error) {
-	_, err := s.db.Exec(ctx, "SELECT set_config('app.current_tenant_id', $1, TRUE)", tenantID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to set tenant context: %w", err)
 	}
@@ -653,7 +634,6 @@ func (s *Service) GetSongByID(ctx context.Context, tenantID, songID string) (*So
 }
 
 func (s *Service) CreateSong(ctx context.Context, tenantID string, song *Song) (*Song, error) {
-	_, err := s.db.Exec(ctx, "SELECT set_config('app.current_tenant_id', $1, TRUE)", tenantID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to set tenant context: %w", err)
 	}
@@ -676,7 +656,6 @@ func (s *Service) CreateSong(ctx context.Context, tenantID string, song *Song) (
 }
 
 func (s *Service) UpdateSong(ctx context.Context, tenantID, songID string, song *Song) (*Song, error) {
-	_, err := s.db.Exec(ctx, "SELECT set_config('app.current_tenant_id', $1, TRUE)", tenantID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to set tenant context: %w", err)
 	}
@@ -703,7 +682,6 @@ func (s *Service) UpdateSong(ctx context.Context, tenantID, songID string, song 
 }
 
 func (s *Service) DeleteSong(ctx context.Context, tenantID, songID string) error {
-	_, err := s.db.Exec(ctx, "SELECT set_config('app.current_tenant_id', $1, TRUE)", tenantID)
 	if err != nil {
 		return fmt.Errorf("failed to set tenant context: %w", err)
 	}

@@ -7,6 +7,7 @@ import (
 	"sort"
 	"strings"
 
+	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
@@ -17,8 +18,33 @@ type DB struct {
 	Pool *pgxpool.Pool
 }
 
+// contextKey is used for storing tenant ID in context
+type contextKey string
+
+const TenantIDContextKey contextKey = "tenant_id"
+
 func New(ctx context.Context, databaseURL string) (*DB, error) {
-	pool, err := pgxpool.New(ctx, databaseURL)
+	config, err := pgxpool.ParseConfig(databaseURL)
+	if err != nil {
+		return nil, fmt.Errorf("failed to parse database URL: %w", err)
+	}
+
+	// Add BeforeAcquire hook to set tenant context on each connection acquisition
+	config.BeforeAcquire = func(ctx context.Context, conn *pgx.Conn) bool {
+		// Extract tenant ID from context
+		if tenantID, ok := ctx.Value(TenantIDContextKey).(string); ok && tenantID != "" {
+			// Set the tenant context for this connection (TRUE = transaction-local)
+			_, err := conn.Exec(ctx, "SELECT set_config('app.current_tenant_id', $1, TRUE)", tenantID)
+			if err != nil {
+				// Log error but allow connection to be used
+				// In production, you might want to handle this differently
+				fmt.Printf("Warning: failed to set tenant context: %v\n", err)
+			}
+		}
+		return true // Allow connection to be acquired
+	}
+
+	pool, err := pgxpool.NewWithConfig(ctx, config)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create connection pool: %w", err)
 	}

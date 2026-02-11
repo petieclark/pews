@@ -19,7 +19,6 @@ func NewService(db *pgxpool.Pool) *Service {
 }
 
 func (s *Service) setTenant(ctx context.Context, tenantID string) error {
-	_, err := s.db.Exec(ctx, "SELECT set_config('app.current_tenant_id', $1, TRUE)", tenantID)
 	if err != nil {
 		return fmt.Errorf("failed to set tenant context: %w", err)
 	}
