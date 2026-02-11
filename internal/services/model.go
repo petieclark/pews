@@ -143,3 +143,16 @@ type SongUsage struct {
 	SongKey     string    `json:"song_key,omitempty"`
 	Position    int       `json:"position"`
 }
+
+type SongAttachment struct {
+	ID           string     `json:"id"`
+	TenantID     string     `json:"tenant_id"`
+	SongID       string     `json:"song_id"`
+	Filename     string     `json:"filename"`
+	OriginalName string     `json:"original_name"`
+	ContentType  string     `json:"content_type"`
+	FileData     []byte     `json:"-"` // Excluded from JSON
+	FileSize     int        `json:"file_size"`
+	UploadedBy   *string    `json:"uploaded_by,omitempty"`
+	CreatedAt    time.Time  `json:"created_at"`
+}

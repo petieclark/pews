@@ -211,6 +211,12 @@ func New(
 		r.Delete("/api/services/songs/{id}", servicesHandler.DeleteSong)
 		r.Get("/api/services/songs/{id}/usage", servicesHandler.GetSongUsage)
 
+		// Services - Song Attachments
+		r.Post("/api/services/songs/{id}/attachments", servicesHandler.UploadSongAttachment)
+		r.Get("/api/services/songs/{id}/attachments", servicesHandler.ListSongAttachments)
+		r.Get("/api/services/songs/attachments/{attachmentId}", servicesHandler.GetSongAttachment)
+		r.Delete("/api/services/songs/attachments/{attachmentId}", servicesHandler.DeleteSongAttachment)
+
 		// Worship - Service Plans (TODO: wire up worship handler)
 		// r.Get("/api/worship/plans", worshipHandler.ListPlans)
 		// r.Post("/api/worship/plans", worshipHandler.CreatePlan)

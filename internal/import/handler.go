@@ -183,3 +183,113 @@ func (h *Handler) ImportGiving(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(result)
 }
+
+// ImportPCOPeople handles POST /api/import/pco/people
+// Supports flexible PCO column naming and stores unmapped columns in custom_fields
+func (h *Handler) ImportPCOPeople(w http.ResponseWriter, r *http.Request) {
+	claims, ok := middleware.GetClaims(r.Context())
+	if !ok {
+		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		return
+	}
+
+	// Parse multipart form
+	err := r.ParseMultipartForm(50 << 20) // 50 MB max
+	if err != nil {
+		http.Error(w, "Failed to parse multipart form: "+err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	file, _, err := r.FormFile("file")
+	if err != nil {
+		http.Error(w, "Failed to read file: "+err.Error(), http.StatusBadRequest)
+		return
+	}
+	defer file.Close()
+
+	// Parse PCO CSV with flexible column mapping
+	people, err := ParsePCOPeopleCSV(file)
+	if err != nil {
+		http.Error(w, "Failed to parse PCO CSV: "+err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	// Check for update mode
+	updateMode := r.FormValue("update_mode") // "skip" or "update"
+	if updateMode == "" {
+		updateMode = "skip"
+	}
+
+	result, err := h.service.ImportPCOPeople(r.Context(), claims.TenantID, people, updateMode)
+	if err != nil {
+		http.Error(w, "Failed to import people: "+err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(result)
+}
+
+// ImportPCOSongs handles POST /api/import/pco/songs
+// Supports flexible PCO column naming and stores unmapped columns in notes
+func (h *Handler) ImportPCOSongs(w http.ResponseWriter, r *http.Request) {
+	claims, ok := middleware.GetClaims(r.Context())
+	if !ok {
+		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		return
+	}
+
+	// Parse multipart form
+	err := r.ParseMultipartForm(50 << 20) // 50 MB max
+	if err != nil {
+		http.Error(w, "Failed to parse multipart form: "+err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	file, _, err := r.FormFile("file")
+	if err != nil {
+		http.Error(w, "Failed to read file: "+err.Error(), http.StatusBadRequest)
+		return
+	}
+	defer file.Close()
+
+	// Parse PCO CSV with flexible column mapping
+	songs, err := ParsePCOSongsCSV(file)
+	if err != nil {
+		http.Error(w, "Failed to parse PCO CSV: "+err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	// Check for update mode
+	updateMode := r.FormValue("update_mode") // "skip" or "update"
+	if updateMode == "" {
+		updateMode = "skip"
+	}
+
+	result, err := h.service.ImportPCOSongs(r.Context(), claims.TenantID, songs, updateMode)
+	if err != nil {
+		http.Error(w, "Failed to import songs: "+err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(result)
+}
+
+// GetImportStatus handles GET /api/import/status
+func (h *Handler) GetImportStatus(w http.ResponseWriter, r *http.Request) {
+	claims, ok := middleware.GetClaims(r.Context())
+	if !ok {
+		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		return
+	}
+
+	status, err := h.service.GetImportHistory(r.Context(), claims.TenantID)
+	if err != nil {
+		http.Error(w, "Failed to get import status: "+err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(status)
+}

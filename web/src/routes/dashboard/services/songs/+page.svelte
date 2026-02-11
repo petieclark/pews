@@ -21,6 +21,8 @@
 		notes: '',
 		tags: ''
 	};
+	let attachments = [];
+	let uploadingFile = false;
 
 	onMount(() => {
 		loadSongs();
@@ -66,7 +68,7 @@
 		showModal = true;
 	}
 
-	function openEditModal(song) {
+	async function openEditModal(song) {
 		editingSong = song;
 		formData = {
 			title: song.title,
@@ -79,6 +81,7 @@
 			tags: song.tags || ''
 		};
 		showModal = true;
+		await loadAttachments(song.id);
 	}
 
 	async function saveSong() {
@@ -118,6 +121,74 @@
 		const date = new Date(dateStr);
 		return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
 	}
+
+	async function loadAttachments(songId) {
+		try {
+			attachments = await api(`/api/services/songs/${songId}/attachments`);
+		} catch (error) {
+			console.error('Failed to load attachments:', error);
+			attachments = [];
+		}
+	}
+
+	async function uploadAttachment(event) {
+		const file = event.target.files[0];
+		if (!file) return;
+
+		if (file.type !== 'application/pdf') {
+			alert('Only PDF files are allowed');
+			return;
+		}
+
+		if (file.size > 10 * 1024 * 1024) {
+			alert('File size must be less than 10MB');
+			return;
+		}
+
+		uploadingFile = true;
+		try {
+			const formData = new FormData();
+			formData.append('file', file);
+
+			const response = await fetch(`/api/services/songs/${editingSong.id}/attachments`, {
+				method: 'POST',
+				headers: {
+					'Authorization': `Bearer ${localStorage.getItem('token')}`
+				},
+				body: formData
+			});
+
+			if (!response.ok) {
+				throw new Error('Upload failed');
+			}
+
+			await loadAttachments(editingSong.id);
+			event.target.value = ''; // Clear file input
+		} catch (error) {
+			alert('Failed to upload file: ' + error.message);
+		} finally {
+			uploadingFile = false;
+		}
+	}
+
+	async function deleteAttachment(attachmentId) {
+		if (!confirm('Delete this attachment?')) return;
+
+		try {
+			await api(`/api/services/songs/attachments/${attachmentId}`, {
+				method: 'DELETE'
+			});
+			await loadAttachments(editingSong.id);
+		} catch (error) {
+			alert('Failed to delete attachment: ' + error.message);
+		}
+	}
+
+	function formatFileSize(bytes) {
+		if (bytes < 1024) return bytes + ' B';
+		if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
+		return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
+	}
 </script>
 
 <div class="space-y-6">
@@ -129,7 +200,7 @@
 			>
 				← Back to Services
 			</button>
-			<h1 class="text-3xl font-bold text-navy">Song Library</h1>
+			<h1 class="text-3xl font-bold text-[var(--text-primary)]">Song Library</h1>
 		</div>
 		<button
 			on:click={openCreateModal}
@@ -273,7 +344,7 @@
 {#if showModal}
 	<div class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
 		<div class="bg-surface rounded-lg max-w-2xl w-full p-6 max-h-[90vh] overflow-y-auto">
-			<h2 class="text-2xl font-bold text-navy mb-4">
+			<h2 class="text-2xl font-bold text-[var(--text-primary)] mb-4">
 				{editingSong ? 'Edit Song' : 'Add Song'}
 			</h2>
 			<form on:submit|preventDefault={saveSong} class="space-y-4">
@@ -345,6 +416,64 @@
 							class="mt-1 block w-full px-3 py-2 border input-border bg-[var(--input-bg)] text-primary rounded-md focus:outline-none focus:ring-2 focus:ring-teal"
 						></textarea>
 					</div>
+					
+					{#if editingSong}
+						<div class="col-span-2 border-t pt-4">
+							<label class="block text-sm font-medium text-primary mb-2">Attachments (PDFs)</label>
+							
+							<!-- Upload button -->
+							<div class="mb-4">
+								<label class="cursor-pointer inline-flex items-center px-4 py-2 bg-[var(--surface)] border border-custom text-primary rounded-md hover:bg-[var(--surface-hover)]">
+									{#if uploadingFile}
+										Uploading...
+									{:else}
+										📎 Upload PDF
+									{/if}
+									<input
+										type="file"
+										accept=".pdf,application/pdf"
+										on:change={uploadAttachment}
+										disabled={uploadingFile}
+										class="hidden"
+									/>
+								</label>
+								<span class="ml-2 text-xs text-secondary">Max 10MB</span>
+							</div>
+
+							<!-- Attachments list -->
+							{#if attachments.length > 0}
+								<div class="space-y-2">
+									{#each attachments as attachment}
+										<div class="flex items-center justify-between bg-[var(--surface-hover)] p-3 rounded">
+											<div class="flex items-center space-x-3">
+												<span class="text-2xl">📄</span>
+												<div>
+													<a
+														href={`/api/services/songs/attachments/${attachment.id}`}
+														target="_blank"
+														class="text-sm font-medium text-primary hover:text-teal"
+													>
+														{attachment.original_name}
+													</a>
+													<div class="text-xs text-secondary">
+														{formatFileSize(attachment.file_size)} • Uploaded {formatDate(attachment.created_at)}
+													</div>
+												</div>
+											</div>
+											<button
+												on:click={() => deleteAttachment(attachment.id)}
+												class="text-red-600 hover:text-red-800 text-sm"
+											>
+												Delete
+											</button>
+										</div>
+									{/each}
+								</div>
+							{:else}
+								<p class="text-sm text-secondary italic">No attachments yet. Upload chord charts or sheet music PDFs.</p>
+							{/if}
+						</div>
+					{/if}
 				</div>
 				<div class="flex gap-2 pt-4">
 					<button

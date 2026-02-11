@@ -89,11 +89,11 @@
 
 <div class="space-y-6">
 	<div class="flex justify-between items-center">
-		<h1 class="text-3xl font-bold text-navy">Services</h1>
+		<h1 class="text-3xl font-bold text-[var(--text-primary)]">Services</h1>
 		<div class="flex gap-2">
 			<button
 				on:click={() => goto('/dashboard/services/songs')}
-				class="px-4 py-2 bg-surface border border-navy text-navy rounded-md hover:bg-[var(--surface-hover)]"
+				class="px-4 py-2 bg-[var(--surface)] border border-custom text-primary rounded-md hover:bg-[var(--surface-hover)]"
 			>
 				Song Library
 			</button>
@@ -109,7 +109,7 @@
 	<!-- Upcoming Services -->
 	{#if upcomingServices.length > 0}
 		<div class="bg-surface rounded-lg shadow p-6">
-			<h2 class="text-xl font-semibold text-navy mb-4">Upcoming Services</h2>
+			<h2 class="text-xl font-semibold text-[var(--text-primary)] mb-4">Upcoming Services</h2>
 			<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
 				{#each upcomingServices as service}
 					<div
@@ -138,7 +138,7 @@
 	<!-- All Services List -->
 	<div class="bg-surface rounded-lg shadow overflow-hidden">
 		<div class="p-4 border-b">
-			<h2 class="text-lg font-semibold text-navy">All Services</h2>
+			<h2 class="text-lg font-semibold text-[var(--text-primary)]">All Services</h2>
 		</div>
 		{#if loading}
 			<div class="p-8 text-center text-secondary">Loading...</div>
@@ -194,7 +194,7 @@
 {#if showCreateModal}
 	<div class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
 		<div class="bg-surface rounded-lg max-w-md w-full p-6">
-			<h2 class="text-2xl font-bold text-navy mb-4">Plan a Service</h2>
+			<h2 class="text-2xl font-bold text-[var(--text-primary)] mb-4">Plan a Service</h2>
 			<form on:submit|preventDefault={createService} class="space-y-4">
 				<div>
 					<label class="block text-sm font-medium text-primary">Service Type *</label>

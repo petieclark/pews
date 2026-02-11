@@ -640,3 +640,82 @@ func (s *Service) GetSongUsage(ctx context.Context, tenantID, songID string) ([]
 
 	return usage, nil
 }
+
+// Song Attachment operations
+
+func (s *Service) CreateSongAttachment(ctx context.Context, tenantID string, attachment *SongAttachment) (*SongAttachment, error) {
+	attachment.ID = uuid.New().String()
+	attachment.TenantID = tenantID
+
+	err := s.db.QueryRow(ctx, `
+		INSERT INTO song_attachments (id, tenant_id, song_id, filename, original_name, content_type, file_data, file_size, uploaded_by)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+		RETURNING created_at`,
+		attachment.ID, attachment.TenantID, attachment.SongID, attachment.Filename, attachment.OriginalName,
+		attachment.ContentType, attachment.FileData, attachment.FileSize, attachment.UploadedBy,
+	).Scan(&attachment.CreatedAt)
+
+	if err != nil {
+		return nil, fmt.Errorf("failed to create song attachment: %w", err)
+	}
+
+	// Clear FileData from response (already stored)
+	attachment.FileData = nil
+
+	return attachment, nil
+}
+
+func (s *Service) ListSongAttachments(ctx context.Context, tenantID, songID string) ([]SongAttachment, error) {
+	rows, err := s.db.Query(ctx, `
+		SELECT id, tenant_id, song_id, filename, original_name, content_type, file_size, uploaded_by, created_at
+		FROM song_attachments
+		WHERE tenant_id = $1 AND song_id = $2
+		ORDER BY created_at DESC`, tenantID, songID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to list song attachments: %w", err)
+	}
+	defer rows.Close()
+
+	attachments := []SongAttachment{}
+	for rows.Next() {
+		var a SongAttachment
+		err := rows.Scan(&a.ID, &a.TenantID, &a.SongID, &a.Filename, &a.OriginalName, &a.ContentType, &a.FileSize, &a.UploadedBy, &a.CreatedAt)
+		if err != nil {
+			return nil, fmt.Errorf("failed to scan song attachment: %w", err)
+		}
+		attachments = append(attachments, a)
+	}
+
+	return attachments, nil
+}
+
+func (s *Service) GetSongAttachment(ctx context.Context, tenantID, attachmentID string) (*SongAttachment, error) {
+	var a SongAttachment
+	err := s.db.QueryRow(ctx, `
+		SELECT id, tenant_id, song_id, filename, original_name, content_type, file_data, file_size, uploaded_by, created_at
+		FROM song_attachments
+		WHERE tenant_id = $1 AND id = $2`, tenantID, attachmentID).Scan(
+		&a.ID, &a.TenantID, &a.SongID, &a.Filename, &a.OriginalName, &a.ContentType, &a.FileData, &a.FileSize, &a.UploadedBy, &a.CreatedAt)
+
+	if err != nil {
+		if err == pgx.ErrNoRows {
+			return nil, fmt.Errorf("attachment not found")
+		}
+		return nil, fmt.Errorf("failed to get song attachment: %w", err)
+	}
+
+	return &a, nil
+}
+
+func (s *Service) DeleteSongAttachment(ctx context.Context, tenantID, attachmentID string) error {
+	result, err := s.db.Exec(ctx, "DELETE FROM song_attachments WHERE tenant_id = $1 AND id = $2", tenantID, attachmentID)
+	if err != nil {
+		return fmt.Errorf("failed to delete song attachment: %w", err)
+	}
+
+	if result.RowsAffected() == 0 {
+		return fmt.Errorf("attachment not found")
+	}
+
+	return nil
+}
