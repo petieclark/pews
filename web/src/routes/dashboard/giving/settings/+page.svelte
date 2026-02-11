@@ -7,8 +7,11 @@
 		onboarding_completed: false,
 		charges_enabled: false,
 		payouts_enabled: false,
-		account_id: ''
+		account_id: '',
+		is_test_mode: false
 	};
+	
+	let testModeDismissed = false;
 
 	let loading = true;
 	let creatingLink = false;
