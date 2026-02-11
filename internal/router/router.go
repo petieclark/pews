@@ -4,6 +4,7 @@ import (
 	"net/http"
 
 	"github.com/go-chi/chi/v5"
+	// "github.com/petieclark/pews/internal/audit"
 	"github.com/petieclark/pews/internal/auth"
 	"github.com/petieclark/pews/internal/billing"
 	"github.com/petieclark/pews/internal/checkins"
@@ -16,6 +17,7 @@ import (
 	"github.com/petieclark/pews/internal/services"
 	"github.com/petieclark/pews/internal/streaming"
 	"github.com/petieclark/pews/internal/tenant"
+	"github.com/petieclark/pews/internal/website"
 )
 
 type Router struct {
@@ -35,6 +37,7 @@ func New(
 	streamingHandler *streaming.Handler,
 	communicationHandler *communication.Handler,
 	checkinsHandler *checkins.Handler,
+	websiteHandler *website.Handler,
 	webhookSecret string,
 	givingWebhookSecret string,
 	frontendURL string,
@@ -51,6 +54,10 @@ func New(
 	r.Post("/api/auth/login", authHandler.Login)
 	r.Post("/api/billing/webhook", billingHandler.HandleWebhook(webhookSecret))
 	r.Post("/api/giving/webhook", givingHandler.HandleWebhook(givingWebhookSecret))
+	
+	// Public kiosk routes
+	r.Get("/api/giving/kiosk/config", givingHandler.GetPublicKioskConfig)
+	r.Post("/api/giving/public/checkout", givingHandler.CreatePublicCheckout)
 
 	// Public streaming routes (no auth required)
 	r.Get("/api/streaming/watch/{id}", streamingHandler.GetWatchStream)
@@ -62,6 +69,9 @@ func New(
 	// Public communication route - connection card submission (no auth required)
 	r.Post("/api/communication/cards", communicationHandler.SubmitConnectionCard)
 
+	// Public website route (no auth required)
+	r.Get("/{slug}", websiteHandler.RenderPublicWebsite)
+
 	// Health check
 	r.Get("/api/health", func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
@@ -71,9 +81,20 @@ func New(
 	// Protected routes
 	r.Group(func(r chi.Router) {
 		r.Use(authService.Middleware)
+		
+		// Audit middleware (logs all mutating actions) - commented out
+		// auditMiddleware := middleware.NewAuditMiddleware(auditService)
+		// r.Use(auditMiddleware.AuditLog)
 
 		// Auth
 		r.Post("/api/auth/logout", authHandler.Logout)
+
+		// Audit & Security (admin only)
+		// Audit routes commented out - audit package needs fixing
+		// r.Get("/api/audit/logs", auditHandler.GetLogs)
+		// r.Get("/api/audit/logs/user/{id}", auditHandler.GetUserLogs)
+		// r.Get("/api/audit/security", auditHandler.GetSecurityDashboard)
+		// r.Get("/api/audit/export", auditHandler.ExportLogs)
 
 		// Tenant
 		r.Get("/api/tenant", tenantHandler.GetTenant)
@@ -176,6 +197,10 @@ func New(
 		r.Get("/api/giving/connect/return", givingHandler.HandleConnectReturn)
 		r.Get("/api/giving/connect/refresh", givingHandler.HandleConnectRefresh)
 		r.Post("/api/giving/checkout", givingHandler.CreateCheckout)
+		
+		// Giving - Kiosk
+		r.Get("/api/giving/kiosk", givingHandler.GetKioskConfig)
+		r.Put("/api/giving/kiosk", givingHandler.UpdateKioskConfig)
 
 		// Streaming - Streams
 		r.Get("/api/streaming", streamingHandler.ListStreams)
@@ -258,6 +283,11 @@ func New(
 		// Check-ins - Stats & Search
 		r.Get("/api/checkins/stats", checkinsHandler.GetStats)
 		r.Get("/api/checkins/search", checkinsHandler.SearchPeople)
+
+		// Website Builder
+		r.Get("/api/website/config", websiteHandler.GetConfig)
+		r.Put("/api/website/config", websiteHandler.UpdateConfig)
+		r.Get("/api/website/preview", websiteHandler.GetPreview)
 	})
 
 	return &Router{r}

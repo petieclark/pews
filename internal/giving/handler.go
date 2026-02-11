@@ -513,3 +513,148 @@ func (h *Handler) HandleWebhook(webhookSecret string) http.HandlerFunc {
 		w.WriteHeader(http.StatusOK)
 	}
 }
+
+// Kiosk
+
+func (h *Handler) GetKioskConfig(w http.ResponseWriter, r *http.Request) {
+	claims, ok := middleware.GetClaims(r.Context())
+	if !ok {
+		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		return
+	}
+
+	config, err := h.service.GetKioskConfig(r.Context(), claims.TenantID)
+	if err != nil {
+		http.Error(w, "Failed to get kiosk config: "+err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(config)
+}
+
+type UpdateKioskConfigRequest struct {
+	Enabled         bool     `json:"enabled"`
+	QuickAmounts    []int    `json:"quick_amounts"`
+	DefaultFundID   *string  `json:"default_fund_id"`
+	ThankYouMessage string   `json:"thank_you_message"`
+}
+
+func (h *Handler) UpdateKioskConfig(w http.ResponseWriter, r *http.Request) {
+	claims, ok := middleware.GetClaims(r.Context())
+	if !ok {
+		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		return
+	}
+
+	if claims.Role != "admin" {
+		http.Error(w, "Forbidden: admin role required", http.StatusForbidden)
+		return
+	}
+
+	var req UpdateKioskConfigRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, "Invalid request body", http.StatusBadRequest)
+		return
+	}
+
+	config := &KioskConfig{
+		Enabled:         req.Enabled,
+		QuickAmounts:    req.QuickAmounts,
+		DefaultFundID:   req.DefaultFundID,
+		ThankYouMessage: req.ThankYouMessage,
+	}
+
+	if err := h.service.UpdateKioskConfig(r.Context(), claims.TenantID, config); err != nil {
+		http.Error(w, "Failed to update kiosk config: "+err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(config)
+}
+
+// Public kiosk endpoints (no auth required)
+
+func (h *Handler) GetPublicKioskConfig(w http.ResponseWriter, r *http.Request) {
+	tenantID := r.URL.Query().Get("tenant_id")
+	if tenantID == "" {
+		http.Error(w, "tenant_id is required", http.StatusBadRequest)
+		return
+	}
+
+	config, err := h.service.GetKioskConfig(r.Context(), tenantID)
+	if err != nil {
+		http.Error(w, "Failed to get kiosk config: "+err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	// Get list of funds
+	funds, err := h.service.ListFunds(r.Context(), tenantID)
+	if err != nil {
+		http.Error(w, "Failed to get funds: "+err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	// Filter to active funds only
+	var activeFunds []Fund
+	for _, f := range funds {
+		if f.IsActive {
+			activeFunds = append(activeFunds, f)
+		}
+	}
+
+	response := map[string]interface{}{
+		"config": config,
+		"funds":  activeFunds,
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(response)
+}
+
+type PublicCheckoutRequest struct {
+	TenantID    string  `json:"tenant_id"`
+	FundID      string  `json:"fund_id"`
+	AmountCents int     `json:"amount_cents"`
+	Name        *string `json:"name"`
+	Email       *string `json:"email"`
+}
+
+func (h *Handler) CreatePublicCheckout(w http.ResponseWriter, r *http.Request) {
+	var req PublicCheckoutRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, "Invalid request body", http.StatusBadRequest)
+		return
+	}
+
+	// Validate tenant has kiosk enabled
+	config, err := h.service.GetKioskConfig(r.Context(), req.TenantID)
+	if err != nil {
+		http.Error(w, "Invalid tenant", http.StatusBadRequest)
+		return
+	}
+
+	if !config.Enabled {
+		http.Error(w, "Kiosk not enabled for this organization", http.StatusForbidden)
+		return
+	}
+
+	// Create checkout session
+	url, err := h.stripeService.CreatePublicCheckoutSession(
+		r.Context(),
+		req.TenantID,
+		req.FundID,
+		req.AmountCents,
+		req.Name,
+		req.Email,
+	)
+	if err != nil {
+		http.Error(w, "Failed to create checkout: "+err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	resp := map[string]string{"url": url}
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(resp)
+}
