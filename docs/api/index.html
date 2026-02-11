@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Pews API Documentation</title>
+  <link rel="stylesheet" type="text/css" href="https://unpkg.com/swagger-ui-dist@5.10.5/swagger-ui.css" />
+  <style>
+    html {
+      box-sizing: border-box;
+      overflow: -moz-scrollbars-vertical;
+      overflow-y: scroll;
+    }
+
+    *,
+    *:before,
+    *:after {
+      box-sizing: inherit;
+    }
+
+    body {
+      margin: 0;
+      padding: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    }
+
+    .topbar {
+      background-color: #4A8B8C;
+    }
+
+    .topbar .download-url-wrapper .select-label {
+      color: #fff;
+    }
+
+    .topbar .download-url-wrapper input[type=text] {
+      border: 2px solid #4A8B8C;
+    }
+
+    .swagger-ui .info {
+      margin: 50px 0;
+    }
+
+    .swagger-ui .info .title {
+      font-size: 36px;
+      color: #4A8B8C;
+    }
+
+    .custom-header {
+      background: linear-gradient(135deg, #4A8B8C 0%, #357B7C 100%);
+      color: white;
+      padding: 40px;
+      text-align: center;
+      box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+    }
+
+    .custom-header h1 {
+      margin: 0 0 10px 0;
+      font-size: 42px;
+      font-weight: 600;
+    }
+
+    .custom-header p {
+      margin: 0;
+      font-size: 18px;
+      opacity: 0.9;
+    }
+
+    .doc-links {
+      background: #f7f7f7;
+      padding: 20px;
+      text-align: center;
+      border-bottom: 1px solid #ddd;
+    }
+
+    .doc-links a {
+      display: inline-block;
+      margin: 0 15px;
+      padding: 10px 20px;
+      background: white;
+      border: 2px solid #4A8B8C;
+      color: #4A8B8C;
+      text-decoration: none;
+      border-radius: 5px;
+      font-weight: 600;
+      transition: all 0.3s;
+    }
+
+    .doc-links a:hover {
+      background: #4A8B8C;
+      color: white;
+    }
+  </style>
+</head>
+
+<body>
+  <div class="custom-header">
+    <h1>🏛️ Pews API Documentation</h1>
+    <p>Complete REST API Reference for Church Management Platform</p>
+  </div>
+
+  <div class="doc-links">
+    <a href="../API_DOCUMENTATION.md" target="_blank">📖 API Guide</a>
+    <a href="../API_ENDPOINTS.md" target="_blank">📋 All Endpoints (130+)</a>
+    <a href="../openapi.yaml" download>⬇️ Download OpenAPI Spec</a>
+    <a href="https://github.com/warpapaya/Pews" target="_blank">💻 GitHub Repository</a>
+  </div>
+
+  <div id="swagger-ui"></div>
+
+  <script src="https://unpkg.com/swagger-ui-dist@5.10.5/swagger-ui-bundle.js" charset="UTF-8"></script>
+  <script src="https://unpkg.com/swagger-ui-dist@5.10.5/swagger-ui-standalone-preset.js" charset="UTF-8"></script>
+  <script>
+    window.onload = function() {
+      // Begin Swagger UI call region
+      const ui = SwaggerUIBundle({
+        url: "../openapi.yaml",
+        dom_id: '#swagger-ui',
+        deepLinking: true,
+        presets: [
+          SwaggerUIBundle.presets.apis,
+          SwaggerUIStandalonePreset
+        ],
+        plugins: [
+          SwaggerUIBundle.plugins.DownloadUrl
+        ],
+        layout: "StandaloneLayout",
+        defaultModelsExpandDepth: 1,
+        defaultModelExpandDepth: 1,
+        docExpansion: "list",
+        filter: true,
+        persistAuthorization: true,
+        tryItOutEnabled: true,
+        validatorUrl: null
+      });
+      // End Swagger UI call region
+
+      window.ui = ui;
+    };
+  </script>
+</body>
+</html>
