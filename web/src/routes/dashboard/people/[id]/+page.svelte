@@ -12,6 +12,7 @@
 	let availableTags = [];
 	let showAddTag = false;
 	let selectedTagId = '';
+	let engagementScore = null;
 
 	$: personId = $page.params.id;
 
@@ -136,6 +137,24 @@
 		};
 		return colors[status] || 'status-inactive';
 	}
+
+	function formatPhone(phone) {
+		if (!phone) return '';
+		const cleaned = phone.replace(/\D/g, '');
+		if (cleaned.length === 10) {
+			return `(${cleaned.slice(0, 3)}) ${cleaned.slice(3, 6)}-${cleaned.slice(6)}`;
+		}
+		return phone;
+	}
+
+	function handlePhoneInput(e) {
+		const input = e.target;
+		const cleaned = input.value.replace(/\D/g, '');
+		if (cleaned.length <= 10) {
+			editForm.phone = cleaned;
+			input.value = formatPhone(cleaned);
+		}
+	}
 </script>
 
 {#if loading}
@@ -222,7 +241,10 @@
 							<label class="block text-sm font-medium text-primary">Phone</label>
 							<input
 								type="tel"
-								bind:value={editForm.phone}
+								on:input={handlePhoneInput}
+								value={formatPhone(editForm.phone)}
+								placeholder="(555) 555-5555"
+								maxlength="14"
 								class="mt-1 block w-full px-3 py-2 border input-border rounded-md focus:outline-none focus:ring-2 focus:ring-[var(--teal)] bg-[var(--input-bg)] text-primary"
 							/>
 						</div>
@@ -313,7 +335,7 @@
 						</div>
 						<div>
 							<dt class="text-sm font-medium text-secondary">Phone</dt>
-							<dd class="mt-1 text-sm text-primary">{person.phone || '—'}</dd>
+							<dd class="mt-1 text-sm text-primary">{formatPhone(person.phone) || '—'}</dd>
 						</div>
 						{#if person.address_line1}
 							<div>
