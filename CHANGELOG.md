@@ -2,6 +2,9 @@
 
 ## [Unreleased]
 
+### Changed
+- Pricing updated from $29/mo to $100/mo (still 50-70% cheaper than PlanningCenter + Gloo combined at $300-500/mo)
+
 ### Added
 - Initial repository setup
 - Project README and documentation

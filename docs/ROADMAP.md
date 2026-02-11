@@ -33,7 +33,7 @@ Churches don't need more software. They need less — that actually works.
 - Basic communication (email)
 - 1 admin user
 
-### Pews Pro — $29/month
+### Pews Pro — $100/month
 - All modules available (enable what you need)
 - Unlimited admin users
 - SMS included (fair use)
@@ -49,13 +49,13 @@ Churches don't need more software. They need less — that actually works.
 - Tax-deductible receipts generated automatically
 
 ### Why This Works Financially
-| Metric | Per Church | At 100 Churches | At 500 Churches |
-|--------|-----------|-----------------|-----------------|
-| Monthly subscription | $29 | $2,900 | $14,500 |
-| Avg annual giving | $200K | — | — |
-| 1% platform fee/yr | $2,000 | $200,000 | $1,000,000 |
-| SMS/email cost/mo | ~$10 | ~$1,000 | ~$5,000 |
-| **Net monthly revenue** | ~$186 | ~$18,567 | ~$92,833 |
+| Metric | Per Church | At 100 Churches | At 500 Churches | At 1000 Churches |
+|--------|-----------|-----------------|-----------------|------------------|
+| Monthly subscription | $100 | $10,000 | $50,000 | $100,000 |
+| Avg annual giving | $200K | — | — | — |
+| 1% platform fee/yr | $2,000 | $200,000 | $1,000,000 | $2,000,000 |
+| SMS/email cost/mo | ~$10 | ~$1,000 | ~$5,000 | ~$10,000 |
+| **Net monthly revenue** | ~$267 | ~$26,667 | ~$133,333 | ~$266,667 |
 
 The giving fee is the real business. Subscriptions cover infrastructure. Giving fees scale linearly with church size — bigger churches pay more naturally without tiered pricing.
 
@@ -186,7 +186,7 @@ Member-facing PWA.
 
 | | PlanningCenter | Pews |
 |---|---|---|
-| **Pricing** | $50-200+/mo (per module) | $29/mo flat (all modules) |
+| **Pricing** | $300-500+/mo (PCO + Gloo combined) | $100/mo flat (all modules) |
 | **Modules** | Pay for each | Enable what you need, included |
 | **Giving fees** | 2.15% + $0.30 | 3.15% + $0.30 (covers platform) |
 | **SMS** | $0.02/text extra | Included |

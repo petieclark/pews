@@ -191,7 +191,7 @@
 						on:click={upgradeToPro}
 						class="bg-[var(--teal)] text-white py-2 px-6 rounded-lg font-medium hover:opacity-90"
 					>
-						Upgrade to Pro - $29/mo
+						Upgrade to Pro - $100/mo
 					</button>
 				{:else}
 					<button
