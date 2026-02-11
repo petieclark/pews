@@ -19,9 +19,7 @@ func NewService(db *pgxpool.Pool) *Service {
 }
 
 func (s *Service) setTenant(ctx context.Context, tenantID string) error {
-	if err != nil {
-		return fmt.Errorf("failed to set tenant context: %w", err)
-	}
+	// RLS removed - no longer needed
 	return nil
 }
 

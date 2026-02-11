@@ -21,10 +21,6 @@ func NewService(db *pgxpool.Pool) *Service {
 // ServiceType operations
 
 func (s *Service) ListServiceTypes(ctx context.Context, tenantID string) ([]ServiceType, error) {
-	if err != nil {
-		return nil, fmt.Errorf("failed to set tenant context: %w", err)
-	}
-
 	rows, err := s.db.Query(ctx, `
 		SELECT id, tenant_id, name, default_time, default_day, color, is_active, created_at, updated_at
 		FROM service_types
@@ -49,14 +45,10 @@ func (s *Service) ListServiceTypes(ctx context.Context, tenantID string) ([]Serv
 }
 
 func (s *Service) CreateServiceType(ctx context.Context, tenantID string, st *ServiceType) (*ServiceType, error) {
-	if err != nil {
-		return nil, fmt.Errorf("failed to set tenant context: %w", err)
-	}
-
 	st.ID = uuid.New().String()
 	st.TenantID = tenantID
 
-	err = s.db.QueryRow(ctx, `
+	err := s.db.QueryRow(ctx, `
 		INSERT INTO service_types (id, tenant_id, name, default_time, default_day, color, is_active)
 		VALUES ($1, $2, $3, $4, $5, $6, $7)
 		RETURNING created_at, updated_at`,
@@ -71,11 +63,7 @@ func (s *Service) CreateServiceType(ctx context.Context, tenantID string, st *Se
 }
 
 func (s *Service) UpdateServiceType(ctx context.Context, tenantID, typeID string, st *ServiceType) (*ServiceType, error) {
-	if err != nil {
-		return nil, fmt.Errorf("failed to set tenant context: %w", err)
-	}
-
-	err = s.db.QueryRow(ctx, `
+	err := s.db.QueryRow(ctx, `
 		UPDATE service_types SET 
 			name = $1, default_time = $2, default_day = $3, color = $4, is_active = $5
 		WHERE id = $6
@@ -106,10 +94,6 @@ func (s *Service) ListServices(ctx context.Context, tenantID, fromDate, toDate, 
 		limit = 50
 	}
 	offset := (page - 1) * limit
-
-	if err != nil {
-		return nil, 0, fmt.Errorf("failed to set tenant context: %w", err)
-	}
 
 	whereClause := "WHERE 1=1"
 	args := []interface{}{}
@@ -142,7 +126,7 @@ func (s *Service) ListServices(ctx context.Context, tenantID, fromDate, toDate, 
 	// Count total
 	var total int
 	countQuery := "SELECT COUNT(*) FROM services " + whereClause
-	err = s.db.QueryRow(ctx, countQuery, args...).Scan(&total)
+	err := s.db.QueryRow(ctx, countQuery, args...).Scan(&total)
 	if err != nil {
 		return nil, 0, fmt.Errorf("failed to count services: %w", err)
 	}
@@ -194,10 +178,6 @@ func (s *Service) GetUpcomingServices(ctx context.Context, tenantID string, limi
 		limit = 4
 	}
 
-	if err != nil {
-		return nil, fmt.Errorf("failed to set tenant context: %w", err)
-	}
-
 	today := time.Now().Format("2006-01-02")
 
 	rows, err := s.db.Query(ctx, `
@@ -233,12 +213,8 @@ func (s *Service) GetUpcomingServices(ctx context.Context, tenantID string, limi
 }
 
 func (s *Service) GetServiceByID(ctx context.Context, tenantID, serviceID string) (*ChurchService, error) {
-	if err != nil {
-		return nil, fmt.Errorf("failed to set tenant context: %w", err)
-	}
-
 	var svc ChurchService
-	err = s.db.QueryRow(ctx, `
+	err := s.db.QueryRow(ctx, `
 		SELECT id, tenant_id, service_type_id, name, service_date, service_time, notes, status, created_at, updated_at
 		FROM services WHERE id = $1`, serviceID).Scan(
 		&svc.ID, &svc.TenantID, &svc.ServiceTypeID, &svc.Name, &svc.ServiceDate,
@@ -253,25 +229,25 @@ func (s *Service) GetServiceByID(ctx context.Context, tenantID, serviceID string
 
 	// Load service type
 	var st ServiceType
-	err = s.db.QueryRow(ctx, `
+	err2 := s.db.QueryRow(ctx, `
 		SELECT id, tenant_id, name, default_time, default_day, color, is_active, created_at, updated_at
 		FROM service_types WHERE id = $1`, svc.ServiceTypeID).Scan(
 		&st.ID, &st.TenantID, &st.Name, &st.DefaultTime, &st.DefaultDay,
 		&st.Color, &st.IsActive, &st.CreatedAt, &st.UpdatedAt,
 	)
-	if err == nil {
+	if err2 == nil {
 		svc.ServiceType = &st
 	}
 
 	// Load items
-	items, err := s.GetServiceItems(ctx, tenantID, serviceID)
-	if err == nil {
+	items, err2 := s.GetServiceItems(ctx, tenantID, serviceID)
+	if err2 == nil {
 		svc.Items = items
 	}
 
 	// Load team
-	team, err := s.GetServiceTeam(ctx, tenantID, serviceID)
-	if err == nil {
+	team, err2 := s.GetServiceTeam(ctx, tenantID, serviceID)
+	if err2 == nil {
 		svc.Team = team
 	}
 
@@ -279,14 +255,10 @@ func (s *Service) GetServiceByID(ctx context.Context, tenantID, serviceID string
 }
 
 func (s *Service) CreateService(ctx context.Context, tenantID string, svc *ChurchService) (*ChurchService, error) {
-	if err != nil {
-		return nil, fmt.Errorf("failed to set tenant context: %w", err)
-	}
-
 	svc.ID = uuid.New().String()
 	svc.TenantID = tenantID
 
-	err = s.db.QueryRow(ctx, `
+	err := s.db.QueryRow(ctx, `
 		INSERT INTO services (id, tenant_id, service_type_id, name, service_date, service_time, notes, status)
 		VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
 		RETURNING created_at, updated_at`,
@@ -301,11 +273,7 @@ func (s *Service) CreateService(ctx context.Context, tenantID string, svc *Churc
 }
 
 func (s *Service) UpdateService(ctx context.Context, tenantID, serviceID string, svc *ChurchService) (*ChurchService, error) {
-	if err != nil {
-		return nil, fmt.Errorf("failed to set tenant context: %w", err)
-	}
-
-	err = s.db.QueryRow(ctx, `
+	err := s.db.QueryRow(ctx, `
 		UPDATE services SET 
 			service_type_id = $1, name = $2, service_date = $3, service_time = $4, notes = $5, status = $6
 		WHERE id = $7
@@ -327,10 +295,6 @@ func (s *Service) UpdateService(ctx context.Context, tenantID, serviceID string,
 }
 
 func (s *Service) DeleteService(ctx context.Context, tenantID, serviceID string) error {
-	if err != nil {
-		return fmt.Errorf("failed to set tenant context: %w", err)
-	}
-
 	result, err := s.db.Exec(ctx, "DELETE FROM services WHERE id = $1", serviceID)
 	if err != nil {
 		return fmt.Errorf("failed to delete service: %w", err)
@@ -346,10 +310,6 @@ func (s *Service) DeleteService(ctx context.Context, tenantID, serviceID string)
 // Service Items operations
 
 func (s *Service) GetServiceItems(ctx context.Context, tenantID, serviceID string) ([]ServiceItem, error) {
-	if err != nil {
-		return nil, fmt.Errorf("failed to set tenant context: %w", err)
-	}
-
 	rows, err := s.db.Query(ctx, `
 		SELECT id, service_id, item_type, title, song_id, song_key, position, duration_minutes, notes, assigned_to
 		FROM service_items
@@ -384,13 +344,9 @@ func (s *Service) GetServiceItems(ctx context.Context, tenantID, serviceID strin
 }
 
 func (s *Service) AddServiceItem(ctx context.Context, tenantID string, item *ServiceItem) (*ServiceItem, error) {
-	if err != nil {
-		return nil, fmt.Errorf("failed to set tenant context: %w", err)
-	}
-
 	item.ID = uuid.New().String()
 
-	_, err = s.db.Exec(ctx, `
+	_, err := s.db.Exec(ctx, `
 		INSERT INTO service_items (id, service_id, item_type, title, song_id, song_key, position, duration_minutes, notes, assigned_to)
 		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)`,
 		item.ID, item.ServiceID, item.ItemType, item.Title, item.SongID, item.SongKey, item.Position, item.DurationMinutes, item.Notes, item.AssignedTo,
@@ -411,10 +367,6 @@ func (s *Service) AddServiceItem(ctx context.Context, tenantID string, item *Ser
 }
 
 func (s *Service) UpdateServiceItem(ctx context.Context, tenantID, itemID string, item *ServiceItem) (*ServiceItem, error) {
-	if err != nil {
-		return nil, fmt.Errorf("failed to set tenant context: %w", err)
-	}
-
 	result, err := s.db.Exec(ctx, `
 		UPDATE service_items SET 
 			item_type = $1, title = $2, song_id = $3, song_key = $4, position = $5, duration_minutes = $6, notes = $7, assigned_to = $8
@@ -436,10 +388,6 @@ func (s *Service) UpdateServiceItem(ctx context.Context, tenantID, itemID string
 }
 
 func (s *Service) DeleteServiceItem(ctx context.Context, tenantID, itemID string) error {
-	if err != nil {
-		return fmt.Errorf("failed to set tenant context: %w", err)
-	}
-
 	result, err := s.db.Exec(ctx, "DELETE FROM service_items WHERE id = $1", itemID)
 	if err != nil {
 		return fmt.Errorf("failed to delete service item: %w", err)
@@ -455,10 +403,6 @@ func (s *Service) DeleteServiceItem(ctx context.Context, tenantID, itemID string
 // Service Team operations
 
 func (s *Service) GetServiceTeam(ctx context.Context, tenantID, serviceID string) ([]ServiceTeam, error) {
-	if err != nil {
-		return nil, fmt.Errorf("failed to set tenant context: %w", err)
-	}
-
 	rows, err := s.db.Query(ctx, `
 		SELECT st.id, st.service_id, st.person_id, st.role, st.status, st.notes,
 		       p.first_name, p.last_name
@@ -486,13 +430,9 @@ func (s *Service) GetServiceTeam(ctx context.Context, tenantID, serviceID string
 }
 
 func (s *Service) AddServiceTeamMember(ctx context.Context, tenantID string, member *ServiceTeam) (*ServiceTeam, error) {
-	if err != nil {
-		return nil, fmt.Errorf("failed to set tenant context: %w", err)
-	}
-
 	member.ID = uuid.New().String()
 
-	_, err = s.db.Exec(ctx, `
+	_, err := s.db.Exec(ctx, `
 		INSERT INTO service_teams (id, service_id, person_id, role, status, notes)
 		VALUES ($1, $2, $3, $4, $5, $6)`,
 		member.ID, member.ServiceID, member.PersonID, member.Role, member.Status, member.Notes,
@@ -506,10 +446,6 @@ func (s *Service) AddServiceTeamMember(ctx context.Context, tenantID string, mem
 }
 
 func (s *Service) UpdateServiceTeamMember(ctx context.Context, tenantID, teamID string, member *ServiceTeam) (*ServiceTeam, error) {
-	if err != nil {
-		return nil, fmt.Errorf("failed to set tenant context: %w", err)
-	}
-
 	result, err := s.db.Exec(ctx, `
 		UPDATE service_teams SET role = $1, status = $2, notes = $3
 		WHERE id = $4`,
@@ -530,10 +466,6 @@ func (s *Service) UpdateServiceTeamMember(ctx context.Context, tenantID, teamID 
 }
 
 func (s *Service) DeleteServiceTeamMember(ctx context.Context, tenantID, teamID string) error {
-	if err != nil {
-		return fmt.Errorf("failed to set tenant context: %w", err)
-	}
-
 	result, err := s.db.Exec(ctx, "DELETE FROM service_teams WHERE id = $1", teamID)
 	if err != nil {
 		return fmt.Errorf("failed to delete service team member: %w", err)
@@ -557,10 +489,6 @@ func (s *Service) ListSongs(ctx context.Context, tenantID, query string, page, l
 	}
 	offset := (page - 1) * limit
 
-	if err != nil {
-		return nil, 0, fmt.Errorf("failed to set tenant context: %w", err)
-	}
-
 	whereClause := "WHERE 1=1"
 	args := []interface{}{}
 	argPos := 1
@@ -574,7 +502,7 @@ func (s *Service) ListSongs(ctx context.Context, tenantID, query string, page, l
 	// Count total
 	var total int
 	countQuery := "SELECT COUNT(*) FROM songs " + whereClause
-	err = s.db.QueryRow(ctx, countQuery, args...).Scan(&total)
+	err := s.db.QueryRow(ctx, countQuery, args...).Scan(&total)
 	if err != nil {
 		return nil, 0, fmt.Errorf("failed to count songs: %w", err)
 	}
@@ -611,12 +539,8 @@ func (s *Service) ListSongs(ctx context.Context, tenantID, query string, page, l
 }
 
 func (s *Service) GetSongByID(ctx context.Context, tenantID, songID string) (*Song, error) {
-	if err != nil {
-		return nil, fmt.Errorf("failed to set tenant context: %w", err)
-	}
-
 	var song Song
-	err = s.db.QueryRow(ctx, `
+	err := s.db.QueryRow(ctx, `
 		SELECT id, tenant_id, title, artist, default_key, tempo, ccli_number, lyrics, notes, tags, last_used, times_used, created_at, updated_at
 		FROM songs WHERE id = $1`, songID).Scan(
 		&song.ID, &song.TenantID, &song.Title, &song.Artist, &song.DefaultKey,
@@ -634,14 +558,10 @@ func (s *Service) GetSongByID(ctx context.Context, tenantID, songID string) (*So
 }
 
 func (s *Service) CreateSong(ctx context.Context, tenantID string, song *Song) (*Song, error) {
-	if err != nil {
-		return nil, fmt.Errorf("failed to set tenant context: %w", err)
-	}
-
 	song.ID = uuid.New().String()
 	song.TenantID = tenantID
 
-	err = s.db.QueryRow(ctx, `
+	err := s.db.QueryRow(ctx, `
 		INSERT INTO songs (id, tenant_id, title, artist, default_key, tempo, ccli_number, lyrics, notes, tags)
 		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
 		RETURNING created_at, updated_at`,
@@ -656,11 +576,7 @@ func (s *Service) CreateSong(ctx context.Context, tenantID string, song *Song) (
 }
 
 func (s *Service) UpdateSong(ctx context.Context, tenantID, songID string, song *Song) (*Song, error) {
-	if err != nil {
-		return nil, fmt.Errorf("failed to set tenant context: %w", err)
-	}
-
-	err = s.db.QueryRow(ctx, `
+	err := s.db.QueryRow(ctx, `
 		UPDATE songs SET 
 			title = $1, artist = $2, default_key = $3, tempo = $4, ccli_number = $5, lyrics = $6, notes = $7, tags = $8
 		WHERE id = $9
@@ -682,10 +598,6 @@ func (s *Service) UpdateSong(ctx context.Context, tenantID, songID string, song 
 }
 
 func (s *Service) DeleteSong(ctx context.Context, tenantID, songID string) error {
-	if err != nil {
-		return fmt.Errorf("failed to set tenant context: %w", err)
-	}
-
 	result, err := s.db.Exec(ctx, "DELETE FROM songs WHERE id = $1", songID)
 	if err != nil {
 		return fmt.Errorf("failed to delete song: %w", err)

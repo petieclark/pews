@@ -101,7 +101,6 @@ func run() error {
 	streamingHandler := streaming.NewHandler(streamingService)
 	communicationHandler := communication.NewHandler(communicationService)
 	checkinsHandler := checkins.NewHandler(checkinsService)
-<<<<<<< HEAD
 	reportsHandler := reports.NewHandler(reportsService)
 	calendarHandler := calendar.NewHandler(calendarService)
 	prayerHandler := prayer.NewHandler(prayerService)
@@ -125,7 +124,6 @@ func run() error {
 		streamingHandler,
 		communicationHandler,
 		checkinsHandler,
-<<<<<<< HEAD
 		reportsHandler,
 		calendarHandler,
 		prayerHandler,

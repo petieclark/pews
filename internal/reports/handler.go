@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"net/http"
 
+	"github.com/google/uuid"
 	"github.com/petieclark/pews/internal/middleware"
 )
 
@@ -23,7 +24,13 @@ func (h *Handler) GetAttendanceReport(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	report, err := h.service.GetAttendanceReport(r.Context(), claims.TenantID)
+	tenantUUID, err := uuid.Parse(claims.TenantID)
+	if err != nil {
+		http.Error(w, "Invalid tenant ID", http.StatusBadRequest)
+		return
+	}
+
+	report, err := h.service.GetAttendanceReport(r.Context(), tenantUUID)
 	if err != nil {
 		http.Error(w, "Failed to generate attendance report: "+err.Error(), http.StatusInternalServerError)
 		return
@@ -41,7 +48,13 @@ func (h *Handler) GetGivingReport(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	report, err := h.service.GetGivingReport(r.Context(), claims.TenantID)
+	tenantUUID, err := uuid.Parse(claims.TenantID)
+	if err != nil {
+		http.Error(w, "Invalid tenant ID", http.StatusBadRequest)
+		return
+	}
+
+	report, err := h.service.GetGivingReport(r.Context(), tenantUUID)
 	if err != nil {
 		http.Error(w, "Failed to generate giving report: "+err.Error(), http.StatusInternalServerError)
 		return
@@ -59,7 +72,13 @@ func (h *Handler) GetMembershipReport(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	report, err := h.service.GetMembershipReport(r.Context(), claims.TenantID)
+	tenantUUID, err := uuid.Parse(claims.TenantID)
+	if err != nil {
+		http.Error(w, "Invalid tenant ID", http.StatusBadRequest)
+		return
+	}
+
+	report, err := h.service.GetMembershipReport(r.Context(), tenantUUID)
 	if err != nil {
 		http.Error(w, "Failed to generate membership report: "+err.Error(), http.StatusInternalServerError)
 		return
@@ -77,7 +96,13 @@ func (h *Handler) GetGroupParticipationReport(w http.ResponseWriter, r *http.Req
 		return
 	}
 
-	report, err := h.service.GetGroupParticipationReport(r.Context(), claims.TenantID)
+	tenantUUID, err := uuid.Parse(claims.TenantID)
+	if err != nil {
+		http.Error(w, "Invalid tenant ID", http.StatusBadRequest)
+		return
+	}
+
+	report, err := h.service.GetGroupParticipationReport(r.Context(), tenantUUID)
 	if err != nil {
 		http.Error(w, "Failed to generate group participation report: "+err.Error(), http.StatusInternalServerError)
 		return

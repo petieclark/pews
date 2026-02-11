@@ -1,7 +1,5 @@
 package reports
 
-import "time"
-
 // AttendanceWeeklyData represents weekly attendance aggregations
 type AttendanceWeeklyData struct {
 	WeekStartDate string `json:"week_start_date"`

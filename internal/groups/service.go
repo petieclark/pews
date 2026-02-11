@@ -62,7 +62,7 @@ func (s *Service) ListGroups(ctx context.Context, tenantID string, groupType str
 
 	// Get total count
 	var total int
-	err = s.db.QueryRow(ctx, countQuery, args...).Scan(&total)
+	err := s.db.QueryRow(ctx, countQuery, args...).Scan(&total)
 	if err != nil {
 		return nil, 0, fmt.Errorf("failed to count groups: %w", err)
 	}
@@ -98,7 +98,7 @@ func (s *Service) ListGroups(ctx context.Context, tenantID string, groupType str
 
 func (s *Service) GetGroupByID(ctx context.Context, tenantID, groupID string) (*Group, error) {
 	var g Group
-	err = s.db.QueryRow(ctx, `
+	err := s.db.QueryRow(ctx, `
 		SELECT g.id, g.tenant_id, g.name, COALESCE(g.description, ''), g.group_type, 
 		       COALESCE(g.meeting_day, ''), COALESCE(g.meeting_time, ''), COALESCE(g.meeting_location, ''), 
 		       g.is_public, g.max_members, g.is_active, COALESCE(g.photo_url, ''), 
@@ -121,8 +121,8 @@ func (s *Service) GetGroupByID(ctx context.Context, tenantID, groupID string) (*
 	}
 
 	// Load members
-	members, err := s.GetGroupMembers(ctx, tenantID, groupID)
-	if err == nil {
+	members, err2 := s.GetGroupMembers(ctx, tenantID, groupID)
+	if err2 == nil {
 		g.Members = members
 	}
 
@@ -133,7 +133,7 @@ func (s *Service) CreateGroup(ctx context.Context, tenantID string, g *Group) (*
 	g.ID = uuid.New().String()
 	g.TenantID = tenantID
 
-	err = s.db.QueryRow(ctx, `
+	err := s.db.QueryRow(ctx, `
 		INSERT INTO groups (
 			id, tenant_id, name, description, group_type, 
 			meeting_day, meeting_time, meeting_location, 
@@ -153,7 +153,7 @@ func (s *Service) CreateGroup(ctx context.Context, tenantID string, g *Group) (*
 }
 
 func (s *Service) UpdateGroup(ctx context.Context, tenantID, groupID string, g *Group) (*Group, error) {
-	err = s.db.QueryRow(ctx, `
+	err := s.db.QueryRow(ctx, `
 		UPDATE groups SET 
 			name = $1, description = $2, group_type = $3, 
 			meeting_day = $4, meeting_time = $5, meeting_location = $6, 
@@ -234,7 +234,7 @@ func (s *Service) GetGroupMembers(ctx context.Context, tenantID, groupID string)
 func (s *Service) AddMemberToGroup(ctx context.Context, tenantID, groupID, personID, role string) (*Member, error) {
 	memberID := uuid.New().String()
 	var m Member
-	err = s.db.QueryRow(ctx, `
+	err := s.db.QueryRow(ctx, `
 		INSERT INTO group_members (id, group_id, person_id, role) 
 		VALUES ($1, $2, $3, $4)
 		RETURNING id, group_id, person_id, role, joined_at`,

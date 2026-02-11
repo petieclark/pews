@@ -58,7 +58,7 @@ func (s *Service) ListPeople(ctx context.Context, tenantID string, query string,
 
 	// Get total count
 	var total int
-	err = s.db.QueryRow(ctx, countQuery, args...).Scan(&total)
+	err := s.db.QueryRow(ctx, countQuery, args...).Scan(&total)
 	if err != nil {
 		return nil, 0, fmt.Errorf("failed to count people: %w", err)
 	}
@@ -93,7 +93,7 @@ func (s *Service) ListPeople(ctx context.Context, tenantID string, query string,
 
 func (s *Service) GetPersonByID(ctx context.Context, tenantID, personID string) (*Person, error) {
 	var p Person
-	err = s.db.QueryRow(ctx, `
+	err := s.db.QueryRow(ctx, `
 		SELECT id, tenant_id, first_name, last_name, 
 		       COALESCE(email, ''), COALESCE(phone, ''), 
 		       COALESCE(address_line1, ''), COALESCE(address_line2, ''), 
@@ -115,14 +115,14 @@ func (s *Service) GetPersonByID(ctx context.Context, tenantID, personID string) 
 	}
 
 	// Load tags
-	tags, err := s.GetPersonTags(ctx, tenantID, personID)
-	if err == nil {
+	tags, err2 := s.GetPersonTags(ctx, tenantID, personID)
+	if err2 == nil {
 		p.Tags = tags
 	}
 
 	// Load household
-	household, err := s.GetPersonHousehold(ctx, tenantID, personID)
-	if err == nil {
+	household, err2 := s.GetPersonHousehold(ctx, tenantID, personID)
+	if err2 == nil {
 		p.Household = household
 	}
 
@@ -133,7 +133,7 @@ func (s *Service) CreatePerson(ctx context.Context, tenantID string, p *Person) 
 	p.ID = uuid.New().String()
 	p.TenantID = tenantID
 
-	err = s.db.QueryRow(ctx, `
+	err := s.db.QueryRow(ctx, `
 		INSERT INTO people (
 			id, tenant_id, first_name, last_name, email, phone, 
 			address_line1, address_line2, city, state, zip, 
@@ -153,7 +153,7 @@ func (s *Service) CreatePerson(ctx context.Context, tenantID string, p *Person) 
 }
 
 func (s *Service) UpdatePerson(ctx context.Context, tenantID, personID string, p *Person) (*Person, error) {
-	err = s.db.QueryRow(ctx, `
+	err := s.db.QueryRow(ctx, `
 		UPDATE people SET 
 			first_name = $1, last_name = $2, email = $3, phone = $4,
 			address_line1 = $5, address_line2 = $6, city = $7, state = $8, zip = $9,
@@ -220,7 +220,7 @@ func (s *Service) GetPersonTags(ctx context.Context, tenantID, personID string) 
 }
 
 func (s *Service) AddTagToPerson(ctx context.Context, tenantID, personID, tagID string) error {
-	_, err = s.db.Exec(ctx, `
+	_, err := s.db.Exec(ctx, `
 		INSERT INTO person_tags (person_id, tag_id) 
 		VALUES ($1, $2) 
 		ON CONFLICT DO NOTHING`, personID, tagID)
@@ -232,7 +232,7 @@ func (s *Service) AddTagToPerson(ctx context.Context, tenantID, personID, tagID 
 }
 
 func (s *Service) RemoveTagFromPerson(ctx context.Context, tenantID, personID, tagID string) error {
-	_, err = s.db.Exec(ctx, "DELETE FROM person_tags WHERE person_id = $1 AND tag_id = $2", personID, tagID)
+	_, err := s.db.Exec(ctx, "DELETE FROM person_tags WHERE person_id = $1 AND tag_id = $2", personID, tagID)
 	if err != nil {
 		return fmt.Errorf("failed to remove tag from person: %w", err)
 	}
@@ -266,7 +266,7 @@ func (s *Service) CreateTag(ctx context.Context, tenantID string, tag *Tag) (*Ta
 	tag.ID = uuid.New().String()
 	tag.TenantID = tenantID
 
-	err = s.db.QueryRow(ctx, `
+	err := s.db.QueryRow(ctx, `
 		INSERT INTO tags (id, tenant_id, name, color) 
 		VALUES ($1, $2, $3, $4)
 		RETURNING created_at`,
@@ -284,7 +284,7 @@ func (s *Service) CreateTag(ctx context.Context, tenantID string, tag *Tag) (*Ta
 
 func (s *Service) GetPersonHousehold(ctx context.Context, tenantID, personID string) (*Household, error) {
 	var h Household
-	err = s.db.QueryRow(ctx, `
+	err := s.db.QueryRow(ctx, `
 		SELECT h.id, h.tenant_id, h.name, COALESCE(h.primary_contact_id, ''), 
 		       COALESCE(h.address_line1, ''), COALESCE(h.address_line2, ''), 
 		       COALESCE(h.city, ''), COALESCE(h.state, ''), COALESCE(h.zip, ''),
@@ -340,7 +340,7 @@ func (s *Service) CreateHousehold(ctx context.Context, tenantID string, h *House
 	h.ID = uuid.New().String()
 	h.TenantID = tenantID
 
-	err = s.db.QueryRow(ctx, `
+	err := s.db.QueryRow(ctx, `
 		INSERT INTO households (
 			id, tenant_id, name, primary_contact_id,
 			address_line1, address_line2, city, state, zip
@@ -358,7 +358,7 @@ func (s *Service) CreateHousehold(ctx context.Context, tenantID string, h *House
 }
 
 func (s *Service) UpdateHousehold(ctx context.Context, tenantID, householdID string, h *Household) (*Household, error) {
-	err = s.db.QueryRow(ctx, `
+	err := s.db.QueryRow(ctx, `
 		UPDATE households SET 
 			name = $1, primary_contact_id = $2,
 			address_line1 = $3, address_line2 = $4, city = $5, state = $6, zip = $7
@@ -383,7 +383,7 @@ func (s *Service) UpdateHousehold(ctx context.Context, tenantID, householdID str
 }
 
 func (s *Service) AddMemberToHousehold(ctx context.Context, tenantID, householdID, personID, role string) error {
-	_, err = s.db.Exec(ctx, `
+	_, err := s.db.Exec(ctx, `
 		INSERT INTO household_members (household_id, person_id, role) 
 		VALUES ($1, $2, $3)
 		ON CONFLICT (household_id, person_id) DO UPDATE SET role = $3`,
@@ -396,7 +396,7 @@ func (s *Service) AddMemberToHousehold(ctx context.Context, tenantID, householdI
 }
 
 func (s *Service) RemoveMemberFromHousehold(ctx context.Context, tenantID, householdID, personID string) error {
-	_, err = s.db.Exec(ctx, "DELETE FROM household_members WHERE household_id = $1 AND person_id = $2", householdID, personID)
+	_, err := s.db.Exec(ctx, "DELETE FROM household_members WHERE household_id = $1 AND person_id = $2", householdID, personID)
 	if err != nil {
 		return fmt.Errorf("failed to remove member from household: %w", err)
 	}

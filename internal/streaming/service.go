@@ -53,7 +53,7 @@ func (s *Service) ListStreams(ctx context.Context, tenantID string, status strin
 
 	// Get total count
 	var total int
-	err = s.db.QueryRow(ctx, countQuery, args...).Scan(&total)
+	err := s.db.QueryRow(ctx, countQuery, args...).Scan(&total)
 	if err != nil {
 		return nil, 0, fmt.Errorf("failed to count streams: %w", err)
 	}
@@ -89,7 +89,7 @@ func (s *Service) ListStreams(ctx context.Context, tenantID string, status strin
 
 func (s *Service) GetStreamByID(ctx context.Context, tenantID, streamID string) (*Stream, error) {
 	var st Stream
-	err = s.db.QueryRow(ctx, `
+	err := s.db.QueryRow(ctx, `
 		SELECT id, tenant_id, title, description, service_id, status, 
 		       scheduled_start, actual_start, actual_end, stream_type, 
 		       stream_url, stream_key, embed_url, chat_enabled, giving_enabled, 
@@ -148,7 +148,7 @@ func (s *Service) CreateStream(ctx context.Context, tenantID string, stream *Str
 	stream.ID = uuid.New().String()
 	stream.TenantID = tenantID
 
-	_, err = s.db.Exec(ctx, `
+	_, err := s.db.Exec(ctx, `
 		INSERT INTO streams (
 			id, tenant_id, title, description, service_id, status, 
 			scheduled_start, stream_type, stream_url, stream_key, embed_url,
@@ -167,7 +167,7 @@ func (s *Service) CreateStream(ctx context.Context, tenantID string, stream *Str
 }
 
 func (s *Service) UpdateStream(ctx context.Context, tenantID, streamID string, stream *Stream) error {
-	_, err = s.db.Exec(ctx, `
+	_, err := s.db.Exec(ctx, `
 		UPDATE streams SET
 			title = $1, description = $2, service_id = $3, status = $4,
 			scheduled_start = $5, stream_type = $6, stream_url = $7, 
@@ -187,7 +187,7 @@ func (s *Service) UpdateStream(ctx context.Context, tenantID, streamID string, s
 }
 
 func (s *Service) DeleteStream(ctx context.Context, tenantID, streamID string) error {
-	_, err = s.db.Exec(ctx, "DELETE FROM streams WHERE id = $1", streamID)
+	_, err := s.db.Exec(ctx, "DELETE FROM streams WHERE id = $1", streamID)
 	if err != nil {
 		return fmt.Errorf("failed to delete stream: %w", err)
 	}
@@ -197,7 +197,7 @@ func (s *Service) DeleteStream(ctx context.Context, tenantID, streamID string) e
 
 func (s *Service) GoLive(ctx context.Context, tenantID, streamID string) error {
 	now := time.Now()
-	_, err = s.db.Exec(ctx, `
+	_, err := s.db.Exec(ctx, `
 		UPDATE streams 
 		SET status = 'live', actual_start = $1
 		WHERE id = $2
@@ -212,7 +212,7 @@ func (s *Service) GoLive(ctx context.Context, tenantID, streamID string) error {
 
 func (s *Service) EndStream(ctx context.Context, tenantID, streamID string) error {
 	now := time.Now()
-	_, err = s.db.Exec(ctx, `
+	_, err := s.db.Exec(ctx, `
 		UPDATE streams 
 		SET status = 'ended', actual_end = $1
 		WHERE id = $2
@@ -227,7 +227,7 @@ func (s *Service) EndStream(ctx context.Context, tenantID, streamID string) erro
 
 func (s *Service) GetLiveStream(ctx context.Context, tenantID string) (*Stream, error) {
 	var st Stream
-	err = s.db.QueryRow(ctx, `
+	err := s.db.QueryRow(ctx, `
 		SELECT id, tenant_id, title, description, service_id, status, 
 		       scheduled_start, actual_start, actual_end, stream_type, 
 		       stream_url, stream_key, embed_url, chat_enabled, giving_enabled, 
@@ -260,16 +260,6 @@ func (s *Service) GetLiveStream(ctx context.Context, tenantID string) (*Stream, 
 func (s *Service) GetChatMessages(ctx context.Context, streamID string, after string, limit int) ([]ChatMessage, error) {
 	if limit < 1 || limit > 100 {
 		limit = 50
-	}
-
-	// Get stream to set tenant context
-	stream, err := s.GetStreamByIDPublic(ctx, streamID)
-	if err != nil {
-		return nil, err
-	}
-
-	if err != nil {
-		return nil, fmt.Errorf("failed to set tenant context: %w", err)
 	}
 
 	sqlQuery := `
@@ -313,16 +303,6 @@ func (s *Service) GetChatMessages(ctx context.Context, streamID string, after st
 }
 
 func (s *Service) SendChatMessage(ctx context.Context, streamID string, personID *string, guestName, message string) (*ChatMessage, error) {
-	// Get stream to set tenant context
-	stream, err := s.GetStreamByIDPublic(ctx, streamID)
-	if err != nil {
-		return nil, err
-	}
-
-	if err != nil {
-		return nil, fmt.Errorf("failed to set tenant context: %w", err)
-	}
-
 	msg := &ChatMessage{
 		ID:        uuid.New().String(),
 		StreamID:  streamID,
@@ -332,7 +312,7 @@ func (s *Service) SendChatMessage(ctx context.Context, streamID string, personID
 		CreatedAt: time.Now(),
 	}
 
-	_, err = s.db.Exec(ctx, `
+	_, err := s.db.Exec(ctx, `
 		INSERT INTO stream_chat (id, stream_id, person_id, guest_name, message)
 		VALUES ($1, $2, $3, $4, $5)
 	`, msg.ID, msg.StreamID, msg.PersonID, msg.GuestName, msg.Message)
@@ -345,11 +325,7 @@ func (s *Service) SendChatMessage(ctx context.Context, streamID string, personID
 }
 
 func (s *Service) PinChatMessage(ctx context.Context, tenantID, messageID string) error {
-	if err != nil {
-		return fmt.Errorf("failed to set tenant context: %w", err)
-	}
-
-	_, err = s.db.Exec(ctx, `
+	_, err := s.db.Exec(ctx, `
 		UPDATE stream_chat SET is_pinned = true WHERE id = $1
 	`, messageID)
 
@@ -361,11 +337,7 @@ func (s *Service) PinChatMessage(ctx context.Context, tenantID, messageID string
 }
 
 func (s *Service) DeleteChatMessage(ctx context.Context, tenantID, messageID string) error {
-	if err != nil {
-		return fmt.Errorf("failed to set tenant context: %w", err)
-	}
-
-	_, err = s.db.Exec(ctx, `
+	_, err := s.db.Exec(ctx, `
 		UPDATE stream_chat SET is_deleted = true WHERE id = $1
 	`, messageID)
 
@@ -379,16 +351,6 @@ func (s *Service) DeleteChatMessage(ctx context.Context, tenantID, messageID str
 // Viewer operations
 
 func (s *Service) JoinStream(ctx context.Context, streamID string, personID *string, guestName string) (*StreamViewer, error) {
-	// Get stream to set tenant context
-	stream, err := s.GetStreamByIDPublic(ctx, streamID)
-	if err != nil {
-		return nil, err
-	}
-
-	if err != nil {
-		return nil, fmt.Errorf("failed to set tenant context: %w", err)
-	}
-
 	viewer := &StreamViewer{
 		ID:        uuid.New().String(),
 		StreamID:  streamID,
@@ -397,7 +359,7 @@ func (s *Service) JoinStream(ctx context.Context, streamID string, personID *str
 		JoinedAt:  time.Now(),
 	}
 
-	_, err = s.db.Exec(ctx, `
+	_, err := s.db.Exec(ctx, `
 		INSERT INTO stream_viewers (id, stream_id, person_id, guest_name, joined_at)
 		VALUES ($1, $2, $3, $4, $5)
 	`, viewer.ID, viewer.StreamID, viewer.PersonID, viewer.GuestName, viewer.JoinedAt)
@@ -407,7 +369,7 @@ func (s *Service) JoinStream(ctx context.Context, streamID string, personID *str
 	}
 
 	// Update viewer count
-	_, err = s.db.Exec(ctx, `
+	_, _ = s.db.Exec(ctx, `
 		UPDATE streams 
 		SET viewer_count = (
 			SELECT COUNT(*) FROM stream_viewers 
@@ -424,18 +386,8 @@ func (s *Service) JoinStream(ctx context.Context, streamID string, personID *str
 }
 
 func (s *Service) LeaveStream(ctx context.Context, streamID, viewerID string) error {
-	// Get stream to set tenant context
-	stream, err := s.GetStreamByIDPublic(ctx, streamID)
-	if err != nil {
-		return err
-	}
-
-	if err != nil {
-		return fmt.Errorf("failed to set tenant context: %w", err)
-	}
-
 	now := time.Now()
-	_, err = s.db.Exec(ctx, `
+	_, err := s.db.Exec(ctx, `
 		UPDATE stream_viewers 
 		SET left_at = $1,
 		    duration_seconds = EXTRACT(EPOCH FROM ($1 - joined_at))::INTEGER
@@ -447,7 +399,7 @@ func (s *Service) LeaveStream(ctx context.Context, streamID, viewerID string) er
 	}
 
 	// Update viewer count
-	_, err = s.db.Exec(ctx, `
+	_, _ = s.db.Exec(ctx, `
 		UPDATE streams 
 		SET viewer_count = (
 			SELECT COUNT(*) FROM stream_viewers 
@@ -460,10 +412,6 @@ func (s *Service) LeaveStream(ctx context.Context, streamID, viewerID string) er
 }
 
 func (s *Service) GetViewers(ctx context.Context, tenantID, streamID string) ([]StreamViewer, int, error) {
-	if err != nil {
-		return nil, 0, fmt.Errorf("failed to set tenant context: %w", err)
-	}
-
 	rows, err := s.db.Query(ctx, `
 		SELECT id, stream_id, person_id, guest_name, joined_at, left_at, duration_seconds
 		FROM stream_viewers
@@ -495,12 +443,8 @@ func (s *Service) GetViewers(ctx context.Context, tenantID, streamID string) ([]
 // Notes operations
 
 func (s *Service) GetStreamNotes(ctx context.Context, tenantID, streamID, personID string) (*StreamNote, error) {
-	if err != nil {
-		return nil, fmt.Errorf("failed to set tenant context: %w", err)
-	}
-
 	var note StreamNote
-	err = s.db.QueryRow(ctx, `
+	err := s.db.QueryRow(ctx, `
 		SELECT id, stream_id, person_id, content, created_at, updated_at
 		FROM stream_notes
 		WHERE stream_id = $1 AND person_id = $2
@@ -520,10 +464,6 @@ func (s *Service) GetStreamNotes(ctx context.Context, tenantID, streamID, person
 }
 
 func (s *Service) SaveStreamNotes(ctx context.Context, tenantID, streamID, personID, content string) (*StreamNote, error) {
-	if err != nil {
-		return nil, fmt.Errorf("failed to set tenant context: %w", err)
-	}
-
 	// Check if notes already exist
 	existing, err := s.GetStreamNotes(ctx, tenantID, streamID, personID)
 	if err != nil {

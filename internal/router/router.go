@@ -45,7 +45,6 @@ func New(
 	streamingHandler *streaming.Handler,
 	communicationHandler *communication.Handler,
 	checkinsHandler *checkins.Handler,
-<<<<<<< HEAD
 	reportsHandler *reports.Handler,
 	calendarHandler *calendar.Handler,
 	prayerHandler *prayer.Handler,
@@ -84,7 +83,6 @@ func New(
 	// Public communication route - connection card submission (no auth required)
 	r.Post("/api/communication/cards", communicationHandler.SubmitConnectionCard)
 
-<<<<<<< HEAD
 	// Public prayer routes (no auth required)
 	r.Post("/api/prayer-requests", prayerHandler.CreatePrayerRequestPublic)
 	r.Get("/api/prayer-requests/public", prayerHandler.ListPublicPrayerRequests)
