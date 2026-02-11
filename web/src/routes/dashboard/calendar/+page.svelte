@@ -355,6 +355,7 @@
 	h1 {
 		margin: 0;
 		font-size: 2rem;
+		color: var(--text-primary);
 	}
 
 	.toolbar {
@@ -366,15 +367,16 @@
 
 	.view-toggle button {
 		padding: 0.5rem 1rem;
-		border: 1px solid #ddd;
-		background: white;
+		border: 1px solid var(--border);
+		background: var(--surface);
+		color: var(--text-secondary);
 		cursor: pointer;
 	}
 
 	.view-toggle button.active {
-		background: #4A8B8C;
+		background: var(--teal);
 		color: white;
-		border-color: #4A8B8C;
+		border-color: var(--teal);
 	}
 
 	.month-nav {
@@ -387,36 +389,39 @@
 		font-weight: 600;
 		min-width: 150px;
 		text-align: center;
+		color: var(--text-primary);
 	}
 
 	.calendar-grid {
 		display: grid;
 		grid-template-columns: repeat(7, 1fr);
 		gap: 1px;
-		background: #ddd;
-		border: 1px solid #ddd;
+		background: var(--border);
+		border: 1px solid var(--border);
 	}
 
 	.day-header {
-		background: #f5f5f5;
+		background: var(--surface-hover);
 		padding: 0.75rem;
 		font-weight: 600;
 		text-align: center;
+		color: var(--text-primary);
 	}
 
 	.day-cell {
-		background: white;
+		background: var(--surface);
 		min-height: 100px;
 		padding: 0.5rem;
 	}
 
 	.day-cell.empty {
-		background: #fafafa;
+		background: var(--bg);
 	}
 
 	.day-number {
 		font-weight: 600;
 		margin-bottom: 0.25rem;
+		color: var(--text-primary);
 	}
 
 	.event-pill {
@@ -442,8 +447,8 @@
 		display: flex;
 		gap: 1rem;
 		padding: 1rem;
-		background: white;
-		border: 1px solid #ddd;
+		background: var(--surface);
+		border: 1px solid var(--border);
 		border-radius: 8px;
 	}
 
@@ -458,11 +463,12 @@
 
 	.event-info h3 {
 		margin: 0 0 0.5rem 0;
+		color: var(--text-primary);
 	}
 
 	.event-time, .event-location, .event-desc {
 		margin: 0.25rem 0;
-		color: #666;
+		color: var(--text-secondary);
 		font-size: 0.9rem;
 	}
 
@@ -473,7 +479,7 @@
 	}
 
 	.btn-primary {
-		background: #4A8B8C;
+		background: var(--teal);
 		color: white;
 		border: none;
 		padding: 0.5rem 1rem;
@@ -495,7 +501,7 @@
 	}
 
 	.modal {
-		background: white;
+		background: var(--surface);
 		padding: 2rem;
 		border-radius: 8px;
 		max-width: 500px;
@@ -506,12 +512,14 @@
 
 	.modal h2 {
 		margin: 0 0 1.5rem 0;
+		color: var(--text-primary);
 	}
 
 	form label {
 		display: block;
 		margin-bottom: 1rem;
 		font-weight: 500;
+		color: var(--text-primary);
 	}
 
 	form input[type="text"],
@@ -522,8 +530,10 @@
 		width: 100%;
 		padding: 0.5rem;
 		margin-top: 0.25rem;
-		border: 1px solid #ddd;
+		border: 1px solid var(--border);
 		border-radius: 4px;
+		background: var(--input-bg);
+		color: var(--text-primary);
 	}
 
 	form input[type="checkbox"] {
@@ -533,7 +543,7 @@
 	form input[type="color"] {
 		width: 60px;
 		height: 40px;
-		border: 1px solid #ddd;
+		border: 1px solid var(--border);
 		border-radius: 4px;
 		cursor: pointer;
 	}
@@ -547,14 +557,15 @@
 
 	button {
 		padding: 0.5rem 1rem;
-		border: 1px solid #ddd;
-		background: white;
+		border: 1px solid var(--border);
+		background: var(--surface);
+		color: var(--text-primary);
 		border-radius: 4px;
 		cursor: pointer;
 	}
 
 	button:hover {
-		background: #f5f5f5;
+		background: var(--surface-hover);
 	}
 
 	button.delete {
@@ -563,7 +574,7 @@
 
 	.empty {
 		text-align: center;
-		color: #999;
+		color: var(--text-secondary);
 		padding: 2rem;
 	}
 </style>
