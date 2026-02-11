@@ -1,6 +1,7 @@
 <script>
 	import { onMount } from 'svelte';
 	import { api } from '$lib/api';
+	import { t, localeNames } from '$lib/i18n.js';
 
 	let tenant = {};
 	let modules = [];
@@ -9,6 +10,13 @@
 	let saving = false;
 	let error = '';
 	let success = '';
+	let translate;
+	let supportedLocales = ['en', 'es', 'pt', 'ko'];
+
+	// Subscribe to translation updates
+	const unsubscribe = t.subscribe(value => {
+		translate = value;
+	});
 
 	onMount(async () => {
 		try {
@@ -35,9 +43,13 @@
 		try {
 			await api('/api/tenant', {
 				method: 'PUT',
-				body: JSON.stringify({ name: tenant.name, domain: tenant.domain || '' })
+				body: JSON.stringify({ 
+					name: tenant.name, 
+					domain: tenant.domain || '',
+					default_locale: tenant.default_locale || 'en'
+				})
 			});
-			success = 'Settings updated successfully';
+			success = translate ? translate('common.success') : 'Settings updated successfully';
 		} catch (err) {
 			error = err.message;
 		} finally {
@@ -77,7 +89,7 @@
 </script>
 
 <div class="max-w-4xl">
-	<h1 class="text-3xl font-bold text-primary mb-6">Settings</h1>
+	<h1 class="text-3xl font-bold text-primary mb-6">{translate ? translate('settings.title') : 'Settings'}</h1>
 
 	{#if loading}
 		<div class="text-center py-12">
@@ -128,6 +140,22 @@
 					/>
 				</div>
 
+				<div>
+					<label for="locale" class="block text-sm font-medium text-primary mb-1">
+						{translate ? translate('settings.language') : 'Language'}
+					</label>
+					<select
+						id="locale"
+						bind:value={tenant.default_locale}
+						class="w-full px-4 py-2 border input-border rounded-lg focus:ring-2 focus:ring-[var(--teal)] focus:border-transparent bg-[var(--input-bg)] text-primary"
+					>
+						{#each supportedLocales as loc}
+							<option value={loc}>{localeNames[loc] || loc}</option>
+						{/each}
+					</select>
+					<p class="text-xs text-secondary mt-1">Default language for your church</p>
+				</div>
+
 				{#if error}
 					<div class="bg-[var(--error-bg)] border border-[var(--error-border)] text-[var(--error-text)] px-4 py-3 rounded-lg">
 						{error}
@@ -145,7 +173,7 @@
 					disabled={saving}
 					class="bg-[var(--teal)] text-white py-2 px-6 rounded-lg font-medium hover:opacity-90 disabled:opacity-50"
 				>
-					{saving ? 'Saving...' : 'Save Changes'}
+					{saving ? (translate ? translate('common.loading') : 'Saving...') : (translate ? translate('common.save') : 'Save Changes')}
 				</button>
 			</form>
 		</div>
