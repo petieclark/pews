@@ -643,6 +643,24 @@ func (h *Handler) UpdateSong(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(updatedSong)
 }
 
+func (h *Handler) GetSong(w http.ResponseWriter, r *http.Request) {
+	claims, ok := middleware.GetClaims(r.Context())
+	if !ok {
+		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		return
+	}
+
+	songID := chi.URLParam(r, "id")
+	song, err := h.service.GetSongByID(r.Context(), claims.TenantID, songID)
+	if err != nil {
+		http.Error(w, "Song not found: "+err.Error(), http.StatusNotFound)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(song)
+}
+
 func (h *Handler) DeleteSong(w http.ResponseWriter, r *http.Request) {
 	claims, ok := middleware.GetClaims(r.Context())
 	if !ok {
@@ -658,4 +676,22 @@ func (h *Handler) DeleteSong(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.WriteHeader(http.StatusNoContent)
+}
+
+func (h *Handler) GetSongUsage(w http.ResponseWriter, r *http.Request) {
+	claims, ok := middleware.GetClaims(r.Context())
+	if !ok {
+		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		return
+	}
+
+	songID := chi.URLParam(r, "id")
+	usage, err := h.service.GetSongUsage(r.Context(), claims.TenantID, songID)
+	if err != nil {
+		http.Error(w, "Failed to get song usage: "+err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(usage)
 }
