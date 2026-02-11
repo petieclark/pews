@@ -94,6 +94,20 @@ func (h *Handler) GetDashboardKPIs(w http.ResponseWriter, r *http.Request) {
 
 // RecalculateAllScores triggers recalculation for all people
 // POST /api/engagement/recalculate
+// GetDashboardActivity returns recent activity across all modules
+func (h *Handler) GetDashboardActivity(w http.ResponseWriter, r *http.Request) {
+	tenantID, ok := r.Context().Value("tenant_id").(string); if !ok { http.Error(w, "unauthorized", http.StatusUnauthorized); return }
+
+	activities, err := h.service.GetDashboardActivity(r.Context(), tenantID)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(activities)
+}
+
 func (h *Handler) RecalculateAllScores(w http.ResponseWriter, r *http.Request) {
 	tenantID, ok := r.Context().Value("tenant_id").(string); if !ok { http.Error(w, "unauthorized", http.StatusUnauthorized); return }
 

@@ -27,7 +27,7 @@ func (s *Service) GetDB() *pgxpool.Pool {
 
 func (s *Service) ListFunds(ctx context.Context, tenantID string) ([]Fund, error) {
 	rows, err := s.db.Query(ctx,
-		`SELECT id, tenant_id, name, description, is_default, is_active, created_at, updated_at 
+		`SELECT id, tenant_id, name, COALESCE(description, ''), is_default, is_active, created_at, updated_at 
 		 FROM funds WHERE tenant_id = $1 ORDER BY is_default DESC, name ASC`,
 		tenantID,
 	)
@@ -104,7 +104,7 @@ func (s *Service) UpdateFund(ctx context.Context, tenantID, fundID, name, descri
 func (s *Service) GetFund(ctx context.Context, tenantID, fundID string) (*Fund, error) {
 	var f Fund
 	err := s.db.QueryRow(ctx,
-		`SELECT id, tenant_id, name, description, is_default, is_active, created_at, updated_at 
+		`SELECT id, tenant_id, name, COALESCE(description, ''), is_default, is_active, created_at, updated_at 
 		 FROM funds WHERE id = $1 AND tenant_id = $2`,
 		fundID, tenantID,
 	).Scan(&f.ID, &f.TenantID, &f.Name, &f.Description, &f.IsDefault, &f.IsActive, &f.CreatedAt, &f.UpdatedAt)
@@ -128,7 +128,7 @@ func (s *Service) ListDonations(ctx context.Context, tenantID, personID, fundID,
 		       d.is_recurring, d.recurring_frequency, d.stripe_subscription_id, d.memo,
 		       d.donated_at, d.created_at, d.updated_at,
 		       COALESCE(p.first_name || ' ' || p.last_name, 'Anonymous') as person_name,
-		       f.name as fund_name
+		       COALESCE(f.name, 'Unknown Fund') as fund_name
 		FROM donations d
 		LEFT JOIN people p ON d.person_id = p.id
 		LEFT JOIN funds f ON d.fund_id = f.id
@@ -214,7 +214,7 @@ func (s *Service) GetDonation(ctx context.Context, tenantID, donationID string) 
 		        d.is_recurring, d.recurring_frequency, d.stripe_subscription_id, d.memo,
 		        d.donated_at, d.created_at, d.updated_at,
 		        COALESCE(p.first_name || ' ' || p.last_name, 'Anonymous') as person_name,
-		        f.name as fund_name
+		        COALESCE(f.name, 'Unknown Fund') as fund_name
 		 FROM donations d
 		 LEFT JOIN people p ON d.person_id = p.id
 		 LEFT JOIN funds f ON d.fund_id = f.id
@@ -338,6 +338,16 @@ func (s *Service) GetGivingStats(ctx context.Context, tenantID string) (*GivingS
 		stats.AverageDonation = stats.TotalAllTime / count
 	}
 
+	// Unique donor count
+	err = s.db.QueryRow(ctx,
+		`SELECT COUNT(DISTINCT person_id) FROM donations 
+		 WHERE tenant_id = $1 AND status = 'completed' AND person_id IS NOT NULL`,
+		tenantID,
+	).Scan(&stats.DonorCount)
+	if err != nil {
+		return nil, err
+	}
+
 	// Fund breakdown
 	rows, err := s.db.Query(ctx,
 		`SELECT f.id, f.name, COALESCE(SUM(d.amount_cents), 0) as total, COUNT(DISTINCT d.person_id) as donors
@@ -441,7 +451,7 @@ func (s *Service) ListRecurringDonations(ctx context.Context, tenantID string) (
 		        d.payment_method, d.stripe_subscription_id, d.recurring_frequency, d.status,
 		        d.created_at, d.updated_at,
 		        COALESCE(p.first_name || ' ' || p.last_name, 'Anonymous') as person_name,
-		        f.name as fund_name
+		        COALESCE(f.name, 'Unknown Fund') as fund_name
 		 FROM donations d
 		 LEFT JOIN people p ON d.person_id = p.id
 		 LEFT JOIN funds f ON d.fund_id = f.id

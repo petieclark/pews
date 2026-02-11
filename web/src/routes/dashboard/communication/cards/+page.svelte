@@ -65,7 +65,7 @@
 	<div class="flex items-center justify-between mb-6">
 		<div>
 			<a href="/dashboard/communication" class="text-sm font-medium" style="color: var(--teal)">← Communication</a>
-			<h1 class="text-3xl font-bold mt-1" style="color: var(--text)">Connection Cards</h1>
+			<h1 class="text-3xl font-bold mt-1" style="color: var(--text-primary)">Connection Cards</h1>
 		</div>
 		<label class="flex items-center gap-2 cursor-pointer">
 			<input bind:checked={showProcessed} type="checkbox" class="rounded" />
@@ -84,7 +84,7 @@
 	{:else if filteredCards.length === 0}
 		<div class="rounded-lg shadow border p-12 text-center" style="background: var(--surface); border-color: var(--border)">
 			<div class="text-5xl mb-4">💳</div>
-			<h2 class="text-xl font-semibold mb-2" style="color: var(--text)">
+			<h2 class="text-xl font-semibold mb-2" style="color: var(--text-primary)">
 				{showProcessed ? 'No connection cards' : 'All caught up!'}
 			</h2>
 			<p style="color: var(--text-secondary)">
@@ -98,7 +98,7 @@
 					<div class="flex items-start justify-between">
 						<div class="flex-1">
 							<div class="flex items-center gap-3 mb-2">
-								<h3 class="text-lg font-semibold" style="color: var(--text)">
+								<h3 class="text-lg font-semibold" style="color: var(--text-primary)">
 									{card.first_name} {card.last_name || ''}
 								</h3>
 								{#if card.is_first_visit}
@@ -123,7 +123,7 @@
 								{/if}
 							</div>
 							{#if card.prayer_request}
-								<div class="mt-3 p-3 rounded-lg text-sm" style="background: var(--bg); color: var(--text)">
+								<div class="mt-3 p-3 rounded-lg text-sm" style="background: var(--bg); color: var(--text-primary)">
 									<span class="font-medium">🙏 Prayer Request:</span> {card.prayer_request}
 								</div>
 							{/if}

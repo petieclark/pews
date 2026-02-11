@@ -72,6 +72,40 @@ func (h *Handler) ListPublicPrayerRequests(w http.ResponseWriter, r *http.Reques
 	json.NewEncoder(w).Encode(requests)
 }
 
+func (h *Handler) CreatePrayerRequestAuth(w http.ResponseWriter, r *http.Request) {
+	claims, ok := middleware.GetClaims(r.Context())
+	if !ok {
+		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		return
+	}
+
+	var input CreatePrayerRequestInput
+	if err := json.NewDecoder(r.Body).Decode(&input); err != nil {
+		http.Error(w, "Invalid request body", http.StatusBadRequest)
+		return
+	}
+
+	if input.Name == "" || input.RequestText == "" {
+		http.Error(w, "Name and request text are required", http.StatusBadRequest)
+		return
+	}
+
+	var personID *string
+	if pid := r.URL.Query().Get("person_id"); pid != "" {
+		personID = &pid
+	}
+
+	pr, err := h.service.CreatePrayerRequest(r.Context(), claims.TenantID, input, personID)
+	if err != nil {
+		http.Error(w, "Failed to create prayer request: "+err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusCreated)
+	json.NewEncoder(w).Encode(pr)
+}
+
 func (h *Handler) ListPrayerRequests(w http.ResponseWriter, r *http.Request) {
 	claims, ok := middleware.GetClaims(r.Context())
 	if !ok {

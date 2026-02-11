@@ -53,7 +53,8 @@
 	const roles = [
 		{ value: 'leader', label: 'Leader' },
 		{ value: 'co_leader', label: 'Co-Leader' },
-		{ value: 'member', label: 'Member' }
+		{ value: 'member', label: 'Member' },
+		{ value: 'pending', label: 'Pending' }
 	];
 
 	$: groupId = $page.params.id;
@@ -193,6 +194,7 @@
 	function getRoleBadgeClass(role) {
 		if (role === 'leader') return 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-100';
 		if (role === 'co_leader') return 'bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-100';
+		if (role === 'pending') return 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-100';
 		return 'bg-[var(--surface-hover)] text-primary dark:bg-gray-700 dark:text-gray-300';
 	}
 

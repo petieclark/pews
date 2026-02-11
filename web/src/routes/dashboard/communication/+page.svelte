@@ -32,7 +32,7 @@
 
 <div>
 	<div class="flex items-center justify-between mb-6">
-		<h1 class="text-3xl font-bold" style="color: var(--text)">Communication</h1>
+		<h1 class="text-3xl font-bold" style="color: var(--text-primary)">Communication</h1>
 		<div class="flex gap-3">
 			<button
 				on:click={() => goto('/dashboard/communication/campaigns/new')}
@@ -44,7 +44,7 @@
 			<button
 				on:click={() => goto('/dashboard/communication/journeys')}
 				class="px-4 py-2 rounded-lg font-medium border"
-				style="background: var(--surface); border-color: var(--border); color: var(--text)"
+				style="background: var(--surface); border-color: var(--border); color: var(--text-primary)"
 			>
 				Manage Journeys
 			</button>
@@ -64,11 +64,11 @@
 		<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
 			<div class="rounded-lg shadow p-6 border" style="background: var(--surface); border-color: var(--border)">
 				<div class="text-sm font-medium" style="color: var(--text-secondary)">Emails Sent This Month</div>
-				<div class="text-3xl font-bold mt-2" style="color: var(--text)">{stats.emails_sent_this_month}</div>
+				<div class="text-3xl font-bold mt-2" style="color: var(--text-primary)">{stats.emails_sent_this_month}</div>
 			</div>
 			<div class="rounded-lg shadow p-6 border" style="background: var(--surface); border-color: var(--border)">
 				<div class="text-sm font-medium" style="color: var(--text-secondary)">SMS Sent This Month</div>
-				<div class="text-3xl font-bold mt-2" style="color: var(--text)">{stats.sms_sent_this_month}</div>
+				<div class="text-3xl font-bold mt-2" style="color: var(--text-primary)">{stats.sms_sent_this_month}</div>
 			</div>
 			<div class="rounded-lg shadow p-6 border" style="background: var(--surface); border-color: var(--border)">
 				<div class="text-sm font-medium" style="color: var(--text-secondary)">Open Rate</div>
@@ -76,7 +76,7 @@
 			</div>
 			<div class="rounded-lg shadow p-6 border" style="background: var(--surface); border-color: var(--border)">
 				<div class="text-sm font-medium" style="color: var(--text-secondary)">Active Journeys</div>
-				<div class="text-3xl font-bold mt-2" style="color: var(--text)">{stats.active_journeys}</div>
+				<div class="text-3xl font-bold mt-2" style="color: var(--text-primary)">{stats.active_journeys}</div>
 			</div>
 		</div>
 
@@ -98,7 +98,7 @@
 		<!-- Recent Campaigns -->
 		<div class="rounded-lg shadow border" style="background: var(--surface); border-color: var(--border)">
 			<div class="px-6 py-4 border-b flex items-center justify-between" style="border-color: var(--border)">
-				<h2 class="text-lg font-semibold" style="color: var(--text)">Recent Campaigns</h2>
+				<h2 class="text-lg font-semibold" style="color: var(--text-primary)">Recent Campaigns</h2>
 				<a href="/dashboard/communication/campaigns" class="text-sm font-medium" style="color: var(--teal)">View All</a>
 			</div>
 			{#if campaigns.length === 0}
@@ -117,7 +117,7 @@
 					{#each campaigns as campaign}
 						<div class="px-6 py-4 flex items-center justify-between hover:bg-opacity-50" style="background: var(--surface-hover)">
 							<div>
-								<div class="font-medium" style="color: var(--text)">{campaign.name}</div>
+								<div class="font-medium" style="color: var(--text-primary)">{campaign.name}</div>
 								<div class="text-sm" style="color: var(--text-secondary)">
 									{campaign.channel === 'email' ? '📧' : '💬'} {campaign.recipient_count} recipients
 									{#if campaign.channel === 'email'}
@@ -142,7 +142,7 @@
 				style="background: var(--surface); border-color: var(--border)"
 			>
 				<div class="text-2xl mb-2">📝</div>
-				<div class="font-semibold mb-1" style="color: var(--text)">Message Templates</div>
+				<div class="font-semibold mb-1" style="color: var(--text-primary)">Message Templates</div>
 				<div class="text-sm" style="color: var(--text-secondary)">Create reusable message templates</div>
 			</button>
 			<button
@@ -151,7 +151,7 @@
 				style="background: var(--surface); border-color: var(--border)"
 			>
 				<div class="text-2xl mb-2">🗺️</div>
-				<div class="font-semibold mb-1" style="color: var(--text)">Automated Journeys</div>
+				<div class="font-semibold mb-1" style="color: var(--text-primary)">Automated Journeys</div>
 				<div class="text-sm" style="color: var(--text-secondary)">Set up automated message sequences</div>
 			</button>
 			<button
@@ -160,7 +160,7 @@
 				style="background: var(--surface); border-color: var(--border)"
 			>
 				<div class="text-2xl mb-2">💳</div>
-				<div class="font-semibold mb-1" style="color: var(--text)">Connection Cards</div>
+				<div class="font-semibold mb-1" style="color: var(--text-primary)">Connection Cards</div>
 				<div class="text-sm" style="color: var(--text-secondary)">View and process visitor submissions</div>
 			</button>
 		</div>

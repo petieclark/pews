@@ -297,3 +297,20 @@ func (h *Handler) GetPersonGroups(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(groups)
 }
+
+func (h *Handler) ListPublicGroups(w http.ResponseWriter, r *http.Request) {
+	tenantID := r.URL.Query().Get("tenant_id")
+	if tenantID == "" {
+		http.Error(w, "tenant_id is required", http.StatusBadRequest)
+		return
+	}
+
+	groups, err := h.service.ListPublicGroups(r.Context(), tenantID)
+	if err != nil {
+		http.Error(w, "Failed to list groups: "+err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(groups)
+}

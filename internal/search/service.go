@@ -83,12 +83,13 @@ func (s *Service) Search(ctx context.Context, tenantID string, query string) (*S
 		}
 	}
 
-	// Search Songs (title, artist)
+	// Search Songs (title, artist, CCLI)
 	songRows, err := s.db.Query(ctx, `
-		SELECT id, title, artist
+		SELECT id, title, COALESCE(artist, '')
 		FROM songs
 		WHERE title ILIKE $1 
 		   OR artist ILIKE $1
+		   OR ccli_number ILIKE $1
 		ORDER BY title
 		LIMIT 5
 	`, searchPattern)

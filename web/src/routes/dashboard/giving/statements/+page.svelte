@@ -1,11 +1,11 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 
-	let people = [];
+	let people: any[] = [];
 	let loading = false;
 	let selectedPerson = '';
 	let selectedYear = new Date().getFullYear();
-	let generatingFor = null;
+	let generatingPDF = false;
 
 	const currentYear = new Date().getFullYear();
 	const years = Array.from({ length: 5 }, (_, i) => currentYear - i);
@@ -17,60 +17,52 @@
 	async function loadPeople() {
 		try {
 			const response = await fetch('/api/people?per_page=200', {
-				headers: {
-					'Authorization': `Bearer ${localStorage.getItem('token')}`
-				}
+				headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
 			});
 			if (response.ok) {
 				const data = await response.json();
 				people = data.people || [];
 			}
-		} catch (error) {
-			console.error('Failed to load people:', error);
-		}
+		} catch (error) { console.error('Failed to load people:', error); }
 	}
 
-	async function generateStatement() {
+	async function downloadPDF() {
 		if (!selectedPerson) {
 			alert('Please select a person');
 			return;
 		}
 
-		generatingFor = selectedPerson;
-		loading = true;
-
+		generatingPDF = true;
 		try {
-			const response = await fetch(`/api/giving/statements/${selectedYear}`, {
-				method: 'POST',
-				headers: {
-					'Authorization': `Bearer ${localStorage.getItem('token')}`,
-					'Content-Type': 'application/json'
-				},
-				body: JSON.stringify({
-					person_id: selectedPerson
-				})
+			const response = await fetch(`/api/giving/statements/${selectedYear}/${selectedPerson}`, {
+				headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
 			});
 
 			if (response.ok) {
-				const statement = await response.json();
-				alert(`Statement generated! Total: $${(statement.total_cents / 100).toFixed(2)}`);
+				const blob = await response.blob();
+				const url = window.URL.createObjectURL(blob);
+				const a = document.createElement('a');
+				a.href = url;
+				a.download = `giving-statement-${selectedYear}.pdf`;
+				document.body.appendChild(a);
+				a.click();
+				document.body.removeChild(a);
+				window.URL.revokeObjectURL(url);
 			} else {
-				alert('Failed to generate statement');
+				const text = await response.text();
+				alert(text || 'Failed to generate statement. This person may have no donations for this year.');
 			}
 		} catch (error) {
 			console.error('Failed to generate statement:', error);
 			alert('An error occurred');
 		} finally {
-			loading = false;
-			generatingFor = null;
+			generatingPDF = false;
 		}
 	}
 
-	function formatCurrency(cents: number): string {
-		return new Intl.NumberFormat('en-US', {
-			style: 'currency',
-			currency: 'USD'
-		}).format(cents / 100);
+	function getPersonName(id: string): string {
+		const p = people.find(p => p.id === id);
+		return p ? `${p.first_name} ${p.last_name}` : '';
 	}
 </script>
 
@@ -80,8 +72,8 @@
 		<p class="text-secondary mt-1">Generate annual giving statements for tax purposes</p>
 	</div>
 
-	<div class="bg-surface rounded-lg shadow p-6 mb-6">
-		<h2 class="text-xl font-semibold text-primary mb-4">Generate Statement</h2>
+	<div class="bg-surface rounded-lg shadow p-6 mb-6 border border-custom">
+		<h2 class="text-xl font-semibold text-primary mb-4">Generate PDF Statement</h2>
 		
 		<div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
 			<div class="md:col-span-2">
@@ -100,9 +92,7 @@
 			</div>
 
 			<div>
-				<label class="block text-sm font-medium text-primary mb-1">
-					Year
-				</label>
+				<label class="block text-sm font-medium text-primary mb-1">Year</label>
 				<select
 					bind:value={selectedYear}
 					class="w-full px-3 py-2 border input-border bg-[var(--input-bg)] text-primary rounded-lg focus:ring-2 focus:ring-[var(--teal)] focus:border-transparent"
@@ -115,22 +105,26 @@
 		</div>
 
 		<button
-			on:click={generateStatement}
-			disabled={loading || !selectedPerson}
-			class="w-full px-4 py-2 bg-[var(--teal)] text-white rounded-lg hover:opacity-90 transition disabled:opacity-50 disabled:cursor-not-allowed"
+			on:click={downloadPDF}
+			disabled={generatingPDF || !selectedPerson}
+			class="w-full px-4 py-3 bg-[var(--teal)] text-white rounded-lg hover:opacity-90 transition disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
 		>
-			{loading ? 'Generating...' : 'Generate Statement'}
+			{#if generatingPDF}
+				<div class="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+				Generating PDF...
+			{:else}
+				📄 Download PDF Statement
+			{/if}
 		</button>
 	</div>
 
-	<div class="bg-blue-50 border border-blue-200 rounded-lg p-6">
-		<h3 class="font-semibold text-blue-900 mb-2">📄 About Giving Statements</h3>
-		<ul class="text-sm text-blue-800 space-y-2">
-			<li>• Giving statements show total donations for a calendar year</li>
-			<li>• Only completed donations are included (pending/failed excluded)</li>
-			<li>• Statements are required for tax-deductible contributions</li>
-			<li>• Generate statements by January 31st for the previous tax year</li>
-			<li>• Future update: PDF generation and email delivery</li>
+	<div class="bg-surface rounded-lg shadow p-6 border border-custom">
+		<h3 class="font-semibold text-primary mb-3">📄 About Giving Statements</h3>
+		<ul class="text-sm text-secondary space-y-2">
+			<li>• Statements include all completed donations for a calendar year</li>
+			<li>• PDF includes church info, donor info, and itemized contributions</li>
+			<li>• Statements are required for tax-deductible contributions over $250</li>
+			<li>• Generate by January 31st for the previous tax year</li>
 		</ul>
 	</div>
 </div>

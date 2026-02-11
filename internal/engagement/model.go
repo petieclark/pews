@@ -17,6 +17,16 @@ type EngagementScore struct {
 	PersonEmail      string    `json:"person_email,omitempty"`
 }
 
+type DashboardActivity struct {
+	ID          string    `json:"id"`
+	Type        string    `json:"type"`
+	Icon        string    `json:"icon"`
+	Title       string    `json:"title"`
+	Description string    `json:"description"`
+	Link        string    `json:"link,omitempty"`
+	Timestamp   time.Time `json:"timestamp"`
+}
+
 type EngagementScoreHistory struct {
 	ID              string    `json:"id"`
 	TenantID        string    `json:"tenant_id"`

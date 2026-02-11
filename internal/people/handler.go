@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net/http"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/go-chi/chi/v5"
@@ -55,10 +56,12 @@ func (h *Handler) ListPeople(w http.ResponseWriter, r *http.Request) {
 	}
 
 	query := r.URL.Query().Get("q")
+	status := r.URL.Query().Get("status")
+	sort := r.URL.Query().Get("sort")
 	page, _ := strconv.Atoi(r.URL.Query().Get("page"))
 	limit, _ := strconv.Atoi(r.URL.Query().Get("limit"))
 
-	people, total, err := h.service.ListPeople(r.Context(), claims.TenantID, query, page, limit)
+	people, total, err := h.service.ListPeople(r.Context(), claims.TenantID, query, status, sort, page, limit)
 	if err != nil {
 		http.Error(w, "Failed to list people: "+err.Error(), http.StatusInternalServerError)
 		return
@@ -73,6 +76,100 @@ func (h *Handler) ListPeople(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(response)
+}
+
+// BulkUpdateStatus handles POST /api/people/bulk/status
+func (h *Handler) BulkUpdateStatus(w http.ResponseWriter, r *http.Request) {
+	claims, ok := middleware.GetClaims(r.Context())
+	if !ok {
+		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		return
+	}
+
+	var req struct {
+		PersonIDs []string `json:"person_ids"`
+		Status    string   `json:"status"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, "Invalid request body", http.StatusBadRequest)
+		return
+	}
+
+	if len(req.PersonIDs) == 0 || req.Status == "" {
+		http.Error(w, "person_ids and status are required", http.StatusBadRequest)
+		return
+	}
+
+	count, err := h.service.BulkUpdateStatus(r.Context(), claims.TenantID, req.PersonIDs, req.Status)
+	if err != nil {
+		http.Error(w, "Failed to update: "+err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]interface{}{"updated": count})
+}
+
+// ExportCSV handles GET /api/people/export
+func (h *Handler) ExportCSV(w http.ResponseWriter, r *http.Request) {
+	claims, ok := middleware.GetClaims(r.Context())
+	if !ok {
+		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		return
+	}
+
+	query := r.URL.Query().Get("q")
+	status := r.URL.Query().Get("status")
+	ids := r.URL.Query().Get("ids") // comma-separated IDs for selected export
+
+	people, _, err := h.service.ListPeople(r.Context(), claims.TenantID, query, status, "name", 1, 10000)
+	if err != nil {
+		http.Error(w, "Failed to export: "+err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	// Filter by IDs if provided
+	if ids != "" {
+		idSet := make(map[string]bool)
+		for _, id := range splitCSV(ids) {
+			idSet[id] = true
+		}
+		filtered := make([]Person, 0)
+		for _, p := range people {
+			if idSet[p.ID] {
+				filtered = append(filtered, p)
+			}
+		}
+		people = filtered
+	}
+
+	w.Header().Set("Content-Type", "text/csv")
+	w.Header().Set("Content-Disposition", "attachment; filename=people.csv")
+	w.Write([]byte("First Name,Last Name,Email,Phone,Status,City,State\n"))
+	for _, p := range people {
+		line := fmt.Sprintf("%s,%s,%s,%s,%s,%s,%s\n",
+			csvEscape(p.FirstName), csvEscape(p.LastName), csvEscape(p.Email),
+			csvEscape(p.Phone), csvEscape(p.MembershipStatus), csvEscape(p.City), csvEscape(p.State))
+		w.Write([]byte(line))
+	}
+}
+
+func splitCSV(s string) []string {
+	parts := []string{}
+	for _, p := range strings.Split(s, ",") {
+		p = strings.TrimSpace(p)
+		if p != "" {
+			parts = append(parts, p)
+		}
+	}
+	return parts
+}
+
+func csvEscape(s string) string {
+	if strings.ContainsAny(s, ",\"\n") {
+		return "\"" + strings.ReplaceAll(s, "\"", "\"\"") + "\""
+	}
+	return s
 }
 
 func (h *Handler) GetPerson(w http.ResponseWriter, r *http.Request) {

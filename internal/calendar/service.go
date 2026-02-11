@@ -17,8 +17,22 @@ func NewService(db *pgxpool.Pool) *Service {
 	return &Service{db: db}
 }
 
+const selectFields = `e.id, e.tenant_id, e.title, COALESCE(e.description, ''), COALESCE(e.location, ''),
+	e.start_time, e.end_time, e.all_day, COALESCE(e.recurring, 'none'), COALESCE(e.event_type, 'other'),
+	COALESCE(e.color, '#4A8B8C'), e.room_id, r.name as room_name,
+	COALESCE(e.created_by::text, ''), e.created_at, e.updated_at`
+
+func scanEvent(scan func(dest ...interface{}) error) (Event, error) {
+	var e Event
+	err := scan(&e.ID, &e.TenantID, &e.Title, &e.Description, &e.Location,
+		&e.StartTime, &e.EndTime, &e.AllDay, &e.Recurring, &e.EventType,
+		&e.Color, &e.RoomID, &e.RoomName,
+		&e.CreatedBy, &e.CreatedAt, &e.UpdatedAt)
+	return e, err
+}
+
 // ListEvents returns events within an optional date range
-func (s *Service) ListEvents(ctx context.Context, tenantID, fromDate, toDate string, page, limit int) ([]Event, int, error) {
+func (s *Service) ListEvents(ctx context.Context, tenantID, fromDate, toDate, eventType string, page, limit int) ([]Event, int, error) {
 	if page < 1 {
 		page = 1
 	}
@@ -27,26 +41,27 @@ func (s *Service) ListEvents(ctx context.Context, tenantID, fromDate, toDate str
 	}
 	offset := (page - 1) * limit
 
-	query := `SELECT id, tenant_id, title, description, location, start_time, end_time, 
-	          all_day, recurring, color, created_by, created_at, updated_at
-	          FROM events WHERE tenant_id = $1`
-	
+	query := fmt.Sprintf(`SELECT %s FROM events e LEFT JOIN rooms r ON e.room_id = r.id WHERE e.tenant_id = $1`, selectFields)
 	args := []interface{}{tenantID}
 	argCount := 1
 
 	if fromDate != "" {
 		argCount++
-		query += fmt.Sprintf(" AND start_time >= $%d", argCount)
+		query += fmt.Sprintf(" AND e.start_time >= $%d", argCount)
 		args = append(args, fromDate)
 	}
-
 	if toDate != "" {
 		argCount++
-		query += fmt.Sprintf(" AND start_time <= $%d", argCount)
+		query += fmt.Sprintf(" AND e.start_time <= $%d", argCount)
 		args = append(args, toDate)
 	}
+	if eventType != "" {
+		argCount++
+		query += fmt.Sprintf(" AND e.event_type = $%d", argCount)
+		args = append(args, eventType)
+	}
 
-	query += " ORDER BY start_time ASC"
+	query += " ORDER BY e.start_time ASC"
 	query += fmt.Sprintf(" LIMIT $%d OFFSET $%d", argCount+1, argCount+2)
 	args = append(args, limit, offset)
 
@@ -58,69 +73,69 @@ func (s *Service) ListEvents(ctx context.Context, tenantID, fromDate, toDate str
 
 	var events []Event
 	for rows.Next() {
-		var e Event
-		err := rows.Scan(&e.ID, &e.TenantID, &e.Title, &e.Description, &e.Location,
-			&e.StartTime, &e.EndTime, &e.AllDay, &e.Recurring, &e.Color,
-			&e.CreatedBy, &e.CreatedAt, &e.UpdatedAt)
+		e, err := scanEvent(rows.Scan)
 		if err != nil {
 			return nil, 0, fmt.Errorf("failed to scan event: %w", err)
 		}
 		events = append(events, e)
 	}
 
-	// Get total count
-	var total int
-	countQuery := `SELECT COUNT(*) FROM events WHERE tenant_id = $1`
+	// Count
+	countQuery := `SELECT COUNT(*) FROM events e WHERE e.tenant_id = $1`
 	countArgs := []interface{}{tenantID}
+	cN := 1
 	if fromDate != "" {
-		countQuery += " AND start_time >= $2"
+		cN++
+		countQuery += fmt.Sprintf(" AND e.start_time >= $%d", cN)
 		countArgs = append(countArgs, fromDate)
-		if toDate != "" {
-			countQuery += " AND start_time <= $3"
-			countArgs = append(countArgs, toDate)
-		}
-	} else if toDate != "" {
-		countQuery += " AND start_time <= $2"
+	}
+	if toDate != "" {
+		cN++
+		countQuery += fmt.Sprintf(" AND e.start_time <= $%d", cN)
 		countArgs = append(countArgs, toDate)
 	}
-
-	err = s.db.QueryRow(ctx, countQuery, countArgs...).Scan(&total)
-	if err != nil {
-		return nil, 0, fmt.Errorf("failed to count events: %w", err)
+	if eventType != "" {
+		cN++
+		countQuery += fmt.Sprintf(" AND e.event_type = $%d", cN)
+		countArgs = append(countArgs, eventType)
 	}
+
+	var total int
+	_ = s.db.QueryRow(ctx, countQuery, countArgs...).Scan(&total)
 
 	return events, total, nil
 }
 
-// GetEventByID retrieves a single event
 func (s *Service) GetEventByID(ctx context.Context, tenantID, eventID string) (*Event, error) {
-	query := `SELECT id, tenant_id, title, description, location, start_time, end_time,
-	          all_day, recurring, color, created_by, created_at, updated_at
-	          FROM events WHERE id = $1 AND tenant_id = $2`
-
-	var e Event
-	err := s.db.QueryRow(ctx, query, eventID, tenantID).Scan(
-		&e.ID, &e.TenantID, &e.Title, &e.Description, &e.Location,
-		&e.StartTime, &e.EndTime, &e.AllDay, &e.Recurring, &e.Color,
-		&e.CreatedBy, &e.CreatedAt, &e.UpdatedAt)
+	query := fmt.Sprintf(`SELECT %s FROM events e LEFT JOIN rooms r ON e.room_id = r.id WHERE e.id = $1 AND e.tenant_id = $2`, selectFields)
+	e, err := scanEvent(s.db.QueryRow(ctx, query, eventID, tenantID).Scan)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get event: %w", err)
 	}
-
 	return &e, nil
 }
 
-// CreateEvent creates a new event
 func (s *Service) CreateEvent(ctx context.Context, tenantID, userID string, event *Event) (*Event, error) {
+	if event.Color == "" {
+		if c, ok := EventTypeColors[event.EventType]; ok {
+			event.Color = c
+		} else {
+			event.Color = "#4A8B8C"
+		}
+	}
+	if event.EventType == "" {
+		event.EventType = "other"
+	}
+
 	query := `INSERT INTO events (tenant_id, title, description, location, start_time, end_time,
-	          all_day, recurring, color, created_by)
-	          VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+	          all_day, recurring, event_type, color, room_id, created_by)
+	          VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
 	          RETURNING id, created_at, updated_at`
 
 	err := s.db.QueryRow(ctx, query,
 		tenantID, event.Title, event.Description, event.Location,
 		event.StartTime, event.EndTime, event.AllDay, event.Recurring,
-		event.Color, userID,
+		event.EventType, event.Color, event.RoomID, userID,
 	).Scan(&event.ID, &event.CreatedAt, &event.UpdatedAt)
 
 	if err != nil {
@@ -132,23 +147,32 @@ func (s *Service) CreateEvent(ctx context.Context, tenantID, userID string, even
 	return event, nil
 }
 
-// UpdateEvent updates an existing event
 func (s *Service) UpdateEvent(ctx context.Context, tenantID, eventID string, event *Event) (*Event, error) {
+	if event.Color == "" {
+		if c, ok := EventTypeColors[event.EventType]; ok {
+			event.Color = c
+		} else {
+			event.Color = "#4A8B8C"
+		}
+	}
+
 	query := `UPDATE events SET title = $1, description = $2, location = $3,
-	          start_time = $4, end_time = $5, all_day = $6, recurring = $7, color = $8,
-	          updated_at = NOW()
-	          WHERE id = $9 AND tenant_id = $10
-	          RETURNING id, tenant_id, title, description, location, start_time, end_time,
-	          all_day, recurring, color, created_by, created_at, updated_at`
+	          start_time = $4, end_time = $5, all_day = $6, recurring = $7,
+	          event_type = $8, color = $9, room_id = $10, updated_at = NOW()
+	          WHERE id = $11 AND tenant_id = $12
+	          RETURNING id, tenant_id, title, COALESCE(description, ''), COALESCE(location, ''),
+	          start_time, end_time, all_day, COALESCE(recurring, 'none'), COALESCE(event_type, 'other'),
+	          COALESCE(color, '#4A8B8C'), room_id, COALESCE(created_by::text, ''), created_at, updated_at`
 
 	var e Event
 	err := s.db.QueryRow(ctx, query,
 		event.Title, event.Description, event.Location,
-		event.StartTime, event.EndTime, event.AllDay, event.Recurring, event.Color,
+		event.StartTime, event.EndTime, event.AllDay, event.Recurring,
+		event.EventType, event.Color, event.RoomID,
 		eventID, tenantID,
 	).Scan(&e.ID, &e.TenantID, &e.Title, &e.Description, &e.Location,
-		&e.StartTime, &e.EndTime, &e.AllDay, &e.Recurring, &e.Color,
-		&e.CreatedBy, &e.CreatedAt, &e.UpdatedAt)
+		&e.StartTime, &e.EndTime, &e.AllDay, &e.Recurring, &e.EventType,
+		&e.Color, &e.RoomID, &e.CreatedBy, &e.CreatedAt, &e.UpdatedAt)
 
 	if err != nil {
 		return nil, fmt.Errorf("failed to update event: %w", err)
@@ -157,26 +181,19 @@ func (s *Service) UpdateEvent(ctx context.Context, tenantID, eventID string, eve
 	return &e, nil
 }
 
-// DeleteEvent deletes an event
 func (s *Service) DeleteEvent(ctx context.Context, tenantID, eventID string) error {
-	query := `DELETE FROM events WHERE id = $1 AND tenant_id = $2`
-	_, err := s.db.Exec(ctx, query, eventID, tenantID)
-	if err != nil {
-		return fmt.Errorf("failed to delete event: %w", err)
-	}
-	return nil
+	_, err := s.db.Exec(ctx, `DELETE FROM events WHERE id = $1 AND tenant_id = $2`, eventID, tenantID)
+	return err
 }
 
-// GetUpcomingEvents returns the next N upcoming events
 func (s *Service) GetUpcomingEvents(ctx context.Context, tenantID string, limit int) ([]Event, error) {
 	if limit < 1 || limit > 50 {
 		limit = 10
 	}
 
-	query := `SELECT id, tenant_id, title, description, location, start_time, end_time,
-	          all_day, recurring, color, created_by, created_at, updated_at
-	          FROM events WHERE tenant_id = $1 AND start_time >= NOW()
-	          ORDER BY start_time ASC LIMIT $2`
+	query := fmt.Sprintf(`SELECT %s FROM events e LEFT JOIN rooms r ON e.room_id = r.id
+	          WHERE e.tenant_id = $1 AND e.start_time >= NOW()
+	          ORDER BY e.start_time ASC LIMIT $2`, selectFields)
 
 	rows, err := s.db.Query(ctx, query, tenantID, limit)
 	if err != nil {
@@ -186,12 +203,9 @@ func (s *Service) GetUpcomingEvents(ctx context.Context, tenantID string, limit 
 
 	var events []Event
 	for rows.Next() {
-		var e Event
-		err := rows.Scan(&e.ID, &e.TenantID, &e.Title, &e.Description, &e.Location,
-			&e.StartTime, &e.EndTime, &e.AllDay, &e.Recurring, &e.Color,
-			&e.CreatedBy, &e.CreatedAt, &e.UpdatedAt)
+		e, err := scanEvent(rows.Scan)
 		if err != nil {
-			return nil, fmt.Errorf("failed to scan event: %w", err)
+			return nil, err
 		}
 		events = append(events, e)
 	}
@@ -199,9 +213,8 @@ func (s *Service) GetUpcomingEvents(ctx context.Context, tenantID string, limit 
 	return events, nil
 }
 
-// GenerateICal generates an iCalendar format (.ics) for all tenant events
 func (s *Service) GenerateICal(ctx context.Context, tenantID string) (string, error) {
-	events, _, err := s.ListEvents(ctx, tenantID, "", "", 1, 1000)
+	events, _, err := s.ListEvents(ctx, tenantID, "", "", "", 1, 1000)
 	if err != nil {
 		return "", err
 	}
@@ -217,7 +230,7 @@ func (s *Service) GenerateICal(ctx context.Context, tenantID string) (string, er
 		ical.WriteString("BEGIN:VEVENT\r\n")
 		ical.WriteString(fmt.Sprintf("UID:%s\r\n", event.ID))
 		ical.WriteString(fmt.Sprintf("DTSTAMP:%s\r\n", event.CreatedAt.UTC().Format("20060102T150405Z")))
-		
+
 		if event.AllDay {
 			ical.WriteString(fmt.Sprintf("DTSTART;VALUE=DATE:%s\r\n", event.StartTime.Format("20060102")))
 			ical.WriteString(fmt.Sprintf("DTEND;VALUE=DATE:%s\r\n", event.EndTime.Format("20060102")))
@@ -234,7 +247,6 @@ func (s *Service) GenerateICal(ctx context.Context, tenantID string) (string, er
 			ical.WriteString(fmt.Sprintf("LOCATION:%s\r\n", escapeICalText(event.Location)))
 		}
 
-		// Handle recurring events
 		if event.Recurring == "weekly" {
 			ical.WriteString("RRULE:FREQ=WEEKLY\r\n")
 		} else if event.Recurring == "monthly" {
@@ -248,7 +260,6 @@ func (s *Service) GenerateICal(ctx context.Context, tenantID string) (string, er
 	return ical.String(), nil
 }
 
-// escapeICalText escapes special characters in iCal text fields
 func escapeICalText(text string) string {
 	text = strings.ReplaceAll(text, "\\", "\\\\")
 	text = strings.ReplaceAll(text, ";", "\\;")
@@ -257,7 +268,6 @@ func escapeICalText(text string) string {
 	return text
 }
 
-// CreateEventFromService creates a calendar event from a service
 func (s *Service) CreateEventFromService(ctx context.Context, tenantID, userID, serviceID, title, location string, startTime, endTime time.Time) (*Event, error) {
 	event := &Event{
 		Title:       title,
@@ -267,8 +277,44 @@ func (s *Service) CreateEventFromService(ctx context.Context, tenantID, userID, 
 		EndTime:     endTime,
 		AllDay:      false,
 		Recurring:   "none",
+		EventType:   "service",
 		Color:       "#4A8B8C",
 	}
 
 	return s.CreateEvent(ctx, tenantID, userID, event)
+}
+
+// ListAvailableRooms returns rooms not booked during the given time range
+func (s *Service) ListAvailableRooms(ctx context.Context, tenantID, startTime, endTime string) ([]map[string]interface{}, error) {
+	query := `
+		SELECT r.id, r.name, r.capacity, COALESCE(r.description, '')
+		FROM rooms r
+		WHERE r.tenant_id = $1 AND r.is_active = true
+		AND r.id NOT IN (
+			SELECT DISTINCT e.room_id FROM events e
+			WHERE e.tenant_id = $1 AND e.room_id IS NOT NULL
+			AND e.start_time < $3 AND e.end_time > $2
+		)
+		ORDER BY r.name`
+
+	rows, err := s.db.Query(ctx, query, tenantID, startTime, endTime)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var rooms []map[string]interface{}
+	for rows.Next() {
+		var id, name, desc string
+		var capacity *int
+		if err := rows.Scan(&id, &name, &capacity, &desc); err != nil {
+			return nil, err
+		}
+		room := map[string]interface{}{"id": id, "name": name, "description": desc}
+		if capacity != nil {
+			room["capacity"] = *capacity
+		}
+		rooms = append(rooms, room)
+	}
+	return rooms, rows.Err()
 }

@@ -1,7 +1,8 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
+	import { api } from '$lib/api';
 
-	interface Event {
+	interface CalendarEvent {
 		id: string;
 		title: string;
 		description?: string;
@@ -10,18 +11,33 @@
 		end_time: string;
 		all_day: boolean;
 		recurring: string;
+		event_type: string;
 		color: string;
+		room_id?: string;
+		room_name?: string;
 	}
 
-	let events: Event[] = [];
+	let events: CalendarEvent[] = [];
 	let currentDate = new Date();
 	let currentYear = currentDate.getFullYear();
 	let currentMonth = currentDate.getMonth();
 	let viewMode: 'month' | 'list' = 'month';
-	let showModal = false;
-	let editingEvent: Event | null = null;
+	let showCreateModal = false;
+	let showDetailModal = false;
+	let selectedEvent: CalendarEvent | null = null;
+	let editingEvent: CalendarEvent | null = null;
+	let availableRooms: any[] = [];
+	let typeFilter = '';
 
-	// Form data
+	const eventTypes = [
+		{ value: 'service', label: 'Service', color: '#4A8B8C' },
+		{ value: 'meeting', label: 'Meeting', color: '#1B3A4B' },
+		{ value: 'class', label: 'Class', color: '#8B5CF6' },
+		{ value: 'social', label: 'Social', color: '#F59E0B' },
+		{ value: 'outreach', label: 'Outreach', color: '#10B981' },
+		{ value: 'other', label: 'Other', color: '#6B7280' }
+	];
+
 	let formData = {
 		title: '',
 		description: '',
@@ -30,7 +46,9 @@
 		end_time: '',
 		all_day: false,
 		recurring: 'none',
-		color: '#4A8B8C'
+		event_type: 'other',
+		color: '',
+		room_id: ''
 	};
 
 	const monthNames = [
@@ -38,31 +56,30 @@
 		'July', 'August', 'September', 'October', 'November', 'December'
 	];
 
-	onMount(() => {
-		loadEvents();
-	});
+	onMount(() => { loadEvents(); });
 
 	async function loadEvents() {
 		const firstDay = new Date(currentYear, currentMonth, 1);
-		const lastDay = new Date(currentYear, currentMonth + 1, 0);
-		
-		const from = firstDay.toISOString().split('T')[0];
-		const to = lastDay.toISOString().split('T')[0];
+		const lastDay = new Date(currentYear, currentMonth + 1, 0, 23, 59, 59);
+		const from = firstDay.toISOString();
+		const to = lastDay.toISOString();
 
 		try {
-			const response = await fetch(`/api/events?from=${from}&to=${to}`, {
-				headers: {
-					'Authorization': `Bearer ${localStorage.getItem('token')}`
-				}
-			});
-
-			if (response.ok) {
-				const data = await response.json();
-				events = data.events || [];
-			}
+			let url = `/api/events?from=${from}&to=${to}&limit=100`;
+			if (typeFilter) url += `&type=${typeFilter}`;
+			const data = await api(url);
+			events = data.events || [];
 		} catch (error) {
 			console.error('Failed to load events:', error);
 		}
+	}
+
+	function getTypeColor(type: string) {
+		return eventTypes.find(t => t.value === type)?.color || '#6B7280';
+	}
+
+	function getTypeLabel(type: string) {
+		return eventTypes.find(t => t.value === type)?.label || 'Other';
 	}
 
 	function getDaysInMonth() {
@@ -70,65 +87,59 @@
 		const lastDay = new Date(currentYear, currentMonth + 1, 0);
 		const daysInMonth = lastDay.getDate();
 		const startingDayOfWeek = firstDay.getDay();
-		
-		const days = [];
-		
-		// Add empty cells for days before the first day
+		const days: { day: number | null; events: CalendarEvent[]; isToday: boolean }[] = [];
+
 		for (let i = 0; i < startingDayOfWeek; i++) {
-			days.push({ day: null, events: [] });
+			days.push({ day: null, events: [], isToday: false });
 		}
-		
-		// Add days of the month
+
+		const today = new Date();
 		for (let day = 1; day <= daysInMonth; day++) {
-			const date = new Date(currentYear, currentMonth, day);
+			const isToday = today.getFullYear() === currentYear && today.getMonth() === currentMonth && today.getDate() === day;
 			const dayEvents = events.filter(event => {
-				const eventDate = new Date(event.start_time);
-				return eventDate.getFullYear() === currentYear &&
-				       eventDate.getMonth() === currentMonth &&
-				       eventDate.getDate() === day;
+				const d = new Date(event.start_time);
+				return d.getFullYear() === currentYear && d.getMonth() === currentMonth && d.getDate() === day;
 			});
-			days.push({ day, events: dayEvents });
+			days.push({ day, events: dayEvents, isToday });
 		}
-		
+
 		return days;
 	}
 
 	function prevMonth() {
-		if (currentMonth === 0) {
-			currentMonth = 11;
-			currentYear--;
-		} else {
-			currentMonth--;
-		}
+		if (currentMonth === 0) { currentMonth = 11; currentYear--; }
+		else { currentMonth--; }
 		loadEvents();
 	}
 
 	function nextMonth() {
-		if (currentMonth === 11) {
-			currentMonth = 0;
-			currentYear++;
-		} else {
-			currentMonth++;
-		}
+		if (currentMonth === 11) { currentMonth = 0; currentYear++; }
+		else { currentMonth++; }
+		loadEvents();
+	}
+
+	function goToToday() {
+		const now = new Date();
+		currentYear = now.getFullYear();
+		currentMonth = now.getMonth();
 		loadEvents();
 	}
 
 	function openCreateModal() {
 		editingEvent = null;
+		const now = new Date();
+		const later = new Date(now.getTime() + 3600000);
 		formData = {
-			title: '',
-			description: '',
-			location: '',
-			start_time: new Date().toISOString().slice(0, 16),
-			end_time: new Date(Date.now() + 3600000).toISOString().slice(0, 16),
-			all_day: false,
-			recurring: 'none',
-			color: '#4A8B8C'
+			title: '', description: '', location: '',
+			start_time: now.toISOString().slice(0, 16),
+			end_time: later.toISOString().slice(0, 16),
+			all_day: false, recurring: 'none', event_type: 'other', color: '', room_id: ''
 		};
-		showModal = true;
+		showCreateModal = true;
+		loadRooms();
 	}
 
-	function openEditModal(event: Event) {
+	function openEditModal(event: CalendarEvent) {
 		editingEvent = event;
 		formData = {
 			title: event.title,
@@ -137,10 +148,33 @@
 			start_time: new Date(event.start_time).toISOString().slice(0, 16),
 			end_time: new Date(event.end_time).toISOString().slice(0, 16),
 			all_day: event.all_day,
-			recurring: event.recurring,
-			color: event.color
+			recurring: event.recurring || 'none',
+			event_type: event.event_type || 'other',
+			color: event.color || '',
+			room_id: event.room_id || ''
 		};
-		showModal = true;
+		showDetailModal = false;
+		showCreateModal = true;
+		loadRooms();
+	}
+
+	function openDetailModal(event: CalendarEvent) {
+		selectedEvent = event;
+		showDetailModal = true;
+	}
+
+	async function loadRooms() {
+		if (!formData.start_time || !formData.end_time) return;
+		try {
+			const start = new Date(formData.start_time).toISOString();
+			const end = new Date(formData.end_time).toISOString();
+			availableRooms = await api(`/api/events/available-rooms?start=${start}&end=${end}`) || [];
+		} catch { availableRooms = []; }
+	}
+
+	function onTypeChange() {
+		const t = eventTypes.find(t => t.value === formData.event_type);
+		if (t) formData.color = t.color;
 	}
 
 	async function saveEvent() {
@@ -148,132 +182,161 @@
 		const method = editingEvent ? 'PUT' : 'POST';
 
 		try {
-			const response = await fetch(url, {
+			await api(url, {
 				method,
-				headers: {
-					'Content-Type': 'application/json',
-					'Authorization': `Bearer ${localStorage.getItem('token')}`
-				},
 				body: JSON.stringify({
 					...formData,
 					start_time: new Date(formData.start_time).toISOString(),
-					end_time: new Date(formData.end_time).toISOString()
+					end_time: new Date(formData.end_time).toISOString(),
+					color: formData.color || getTypeColor(formData.event_type),
+					room_id: formData.room_id || null
 				})
 			});
-
-			if (response.ok) {
-				showModal = false;
-				loadEvents();
-			} else {
-				alert('Failed to save event');
-			}
+			showCreateModal = false;
+			loadEvents();
 		} catch (error) {
 			console.error('Failed to save event:', error);
-			alert('Failed to save event');
 		}
 	}
 
 	async function deleteEvent(id: string) {
 		if (!confirm('Delete this event?')) return;
-
 		try {
-			const response = await fetch(`/api/events/${id}`, {
-				method: 'DELETE',
-				headers: {
-					'Authorization': `Bearer ${localStorage.getItem('token')}`
-				}
-			});
-
-			if (response.ok) {
-				loadEvents();
-			} else {
-				alert('Failed to delete event');
-			}
+			await api(`/api/events/${id}`, { method: 'DELETE' });
+			showDetailModal = false;
+			showCreateModal = false;
+			loadEvents();
 		} catch (error) {
 			console.error('Failed to delete event:', error);
 		}
 	}
 
 	function formatTime(dateStr: string) {
-		const date = new Date(dateStr);
-		return date.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+		return new Date(dateStr).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
 	}
 
 	function formatDate(dateStr: string) {
-		const date = new Date(dateStr);
-		return date.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
+		return new Date(dateStr).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
+	}
+
+	function formatFullDate(dateStr: string) {
+		return new Date(dateStr).toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' });
+	}
+
+	function recurringLabel(r: string) {
+		return { weekly: 'Weekly', monthly: 'Monthly', none: 'One-time' }[r] || r;
 	}
 
 	$: days = getDaysInMonth();
 </script>
 
-<div class="calendar-page">
-	<header>
-		<h1>📅 Calendar</h1>
-		<div class="actions">
-			<button on:click={openCreateModal} class="btn-primary">+ New Event</button>
-		</div>
-	</header>
+<div class="space-y-6">
+	<!-- Header -->
+	<div class="flex justify-between items-center">
+		<h1 class="text-3xl font-bold text-[var(--text-primary)]">📅 Calendar</h1>
+		<button on:click={openCreateModal} class="px-4 py-2 bg-[var(--teal)] text-white rounded-lg hover:opacity-90 font-medium">
+			+ New Event
+		</button>
+	</div>
 
-	<div class="toolbar">
-		<div class="view-toggle">
-			<button class:active={viewMode === 'month'} on:click={() => viewMode = 'month'}>Month</button>
-			<button class:active={viewMode === 'list'} on:click={() => viewMode = 'list'}>List</button>
+	<!-- Toolbar -->
+	<div class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-4 flex flex-wrap justify-between items-center gap-4">
+		<div class="flex items-center gap-2">
+			<!-- View toggle -->
+			<div class="flex rounded-lg overflow-hidden border border-[var(--border)]">
+				<button class="px-4 py-2 text-sm font-medium transition-colors {viewMode === 'month' ? 'bg-[var(--teal)] text-white' : 'bg-[var(--surface)] text-[var(--text-secondary)] hover:text-[var(--text-primary)]'}" on:click={() => viewMode = 'month'}>
+					Month
+				</button>
+				<button class="px-4 py-2 text-sm font-medium transition-colors {viewMode === 'list' ? 'bg-[var(--teal)] text-white' : 'bg-[var(--surface)] text-[var(--text-secondary)] hover:text-[var(--text-primary)]'}" on:click={() => viewMode = 'list'}>
+					List
+				</button>
+			</div>
+
+			<!-- Type filter -->
+			<select bind:value={typeFilter} on:change={loadEvents} class="px-3 py-2 rounded-lg border border-[var(--border)] bg-[var(--surface)] text-[var(--text-primary)] text-sm">
+				<option value="">All Types</option>
+				{#each eventTypes as t}
+					<option value={t.value}>{t.label}</option>
+				{/each}
+			</select>
 		</div>
-		
-		<div class="month-nav">
-			<button on:click={prevMonth}>◀</button>
-			<span>{monthNames[currentMonth]} {currentYear}</span>
-			<button on:click={nextMonth}>▶</button>
+
+		<!-- Month navigation -->
+		<div class="flex items-center gap-3">
+			<button on:click={prevMonth} class="p-2 rounded-lg border border-[var(--border)] bg-[var(--surface)] text-[var(--text-primary)] hover:bg-[var(--surface-hover)]">◀</button>
+			<span class="font-semibold text-[var(--text-primary)] min-w-[160px] text-center">{monthNames[currentMonth]} {currentYear}</span>
+			<button on:click={nextMonth} class="p-2 rounded-lg border border-[var(--border)] bg-[var(--surface)] text-[var(--text-primary)] hover:bg-[var(--surface-hover)]">▶</button>
+			<button on:click={goToToday} class="px-3 py-2 text-sm rounded-lg border border-[var(--border)] bg-[var(--surface)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--surface-hover)]">Today</button>
+		</div>
+
+		<!-- Type legend -->
+		<div class="flex items-center gap-3 text-xs">
+			{#each eventTypes as t}
+				<span class="flex items-center gap-1">
+					<span class="w-3 h-3 rounded-full inline-block" style="background-color: {t.color}"></span>
+					{t.label}
+				</span>
+			{/each}
 		</div>
 	</div>
 
+	<!-- Calendar Grid -->
 	{#if viewMode === 'month'}
-		<div class="calendar-grid">
-			<div class="day-header">Sun</div>
-			<div class="day-header">Mon</div>
-			<div class="day-header">Tue</div>
-			<div class="day-header">Wed</div>
-			<div class="day-header">Thu</div>
-			<div class="day-header">Fri</div>
-			<div class="day-header">Sat</div>
+		<div class="bg-[var(--surface)] border border-[var(--border)] rounded-lg overflow-hidden">
+			<div class="grid grid-cols-7">
+				{#each ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'] as dayName}
+					<div class="px-3 py-2 text-center text-sm font-semibold text-[var(--text-secondary)] bg-[var(--surface-hover)] border-b border-[var(--border)]">{dayName}</div>
+				{/each}
 
-			{#each days as dayData}
-				<div class="day-cell" class:empty={!dayData.day}>
-					{#if dayData.day}
-						<div class="day-number">{dayData.day}</div>
-						{#each dayData.events as event}
-							<button class="event-pill" style="background-color: {event.color}" on:click={() => openEditModal(event)}>
-								{event.title}
-							</button>
-						{/each}
-					{/if}
-				</div>
-			{/each}
+				{#each days as dayData, i}
+					<div class="min-h-[110px] p-1.5 border-b border-r border-[var(--border)] {!dayData.day ? 'bg-[var(--bg)]' : ''} {dayData.isToday ? 'bg-[var(--teal)]/5' : ''}">
+						{#if dayData.day}
+							<div class="text-sm font-medium mb-1 {dayData.isToday ? 'text-[var(--teal)] font-bold' : 'text-[var(--text-primary)]'}">{dayData.day}</div>
+							{#each dayData.events.slice(0, 3) as event}
+								<button class="block w-full text-left px-1.5 py-0.5 mb-0.5 rounded text-xs text-white truncate cursor-pointer hover:opacity-80 transition-opacity" style="background-color: {event.color || getTypeColor(event.event_type)}" on:click={() => openDetailModal(event)}>
+									{event.title}
+								</button>
+							{/each}
+							{#if dayData.events.length > 3}
+								<div class="text-xs text-[var(--text-secondary)] pl-1">+{dayData.events.length - 3} more</div>
+							{/if}
+						{/if}
+					</div>
+				{/each}
+			</div>
 		</div>
+
 	{:else}
-		<div class="list-view">
+		<!-- List View -->
+		<div class="space-y-3">
 			{#if events.length === 0}
-				<p class="empty">No events this month</p>
+				<div class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-12 text-center">
+					<div class="text-4xl mb-3">📅</div>
+					<h3 class="text-lg font-semibold text-[var(--text-primary)] mb-2">No events this month</h3>
+					<p class="text-[var(--text-secondary)] mb-4">Create your first event to get started.</p>
+					<button on:click={openCreateModal} class="px-4 py-2 bg-[var(--teal)] text-white rounded-lg hover:opacity-90">+ New Event</button>
+				</div>
 			{:else}
 				{#each events as event}
-					<div class="event-card">
-						<div class="event-color" style="background-color: {event.color}"></div>
-						<div class="event-info">
-							<h3>{event.title}</h3>
-							<p class="event-time">
-								{formatDate(event.start_time)} at {formatTime(event.start_time)}
+					<div class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-4 flex gap-4 hover:border-[var(--teal)] transition-colors cursor-pointer" on:click={() => openDetailModal(event)}>
+						<div class="w-1 rounded-full flex-shrink-0" style="background-color: {event.color || getTypeColor(event.event_type)}"></div>
+						<div class="flex-1 min-w-0">
+							<div class="flex items-center gap-2 mb-1">
+								<h3 class="font-semibold text-[var(--text-primary)] truncate">{event.title}</h3>
+								<span class="px-2 py-0.5 text-xs rounded-full text-white flex-shrink-0" style="background-color: {getTypeColor(event.event_type)}">{getTypeLabel(event.event_type)}</span>
+								{#if event.recurring !== 'none'}
+									<span class="text-xs text-[var(--text-secondary)]">🔄 {recurringLabel(event.recurring)}</span>
+								{/if}
+							</div>
+							<p class="text-sm text-[var(--text-secondary)]">
+								{formatDate(event.start_time)} · {formatTime(event.start_time)} – {formatTime(event.end_time)}
 							</p>
 							{#if event.location}
-								<p class="event-location">📍 {event.location}</p>
+								<p class="text-sm text-[var(--text-secondary)] mt-0.5">📍 {event.location}</p>
 							{/if}
-							{#if event.description}
-								<p class="event-desc">{event.description}</p>
+							{#if event.room_name}
+								<p class="text-sm text-[var(--text-secondary)] mt-0.5">🏠 {event.room_name}</p>
 							{/if}
-						</div>
-						<div class="event-actions">
-							<button on:click={() => openEditModal(event)}>Edit</button>
-							<button on:click={() => deleteEvent(event.id)} class="delete">Delete</button>
 						</div>
 					</div>
 				{/each}
@@ -282,299 +345,143 @@
 	{/if}
 </div>
 
-{#if showModal}
-	<div class="modal-overlay" on:click={() => showModal = false}>
-		<div class="modal" on:click|stopPropagation>
-			<h2>{editingEvent ? 'Edit Event' : 'New Event'}</h2>
-			<form on:submit|preventDefault={saveEvent}>
-				<label>
-					Title *
-					<input type="text" bind:value={formData.title} required />
-				</label>
+<!-- Event Detail Modal -->
+{#if showDetailModal && selectedEvent}
+	<div class="fixed inset-0 bg-black/50 flex items-center justify-center z-50" on:click={() => showDetailModal = false}>
+		<div class="bg-[var(--surface)] rounded-xl p-6 w-full max-w-lg border border-[var(--border)] shadow-xl" on:click|stopPropagation>
+			<div class="flex items-start justify-between mb-4">
+				<div>
+					<div class="flex items-center gap-2 mb-1">
+						<span class="w-3 h-3 rounded-full" style="background-color: {selectedEvent.color || getTypeColor(selectedEvent.event_type)}"></span>
+						<span class="text-xs font-medium px-2 py-0.5 rounded-full text-white" style="background-color: {getTypeColor(selectedEvent.event_type)}">{getTypeLabel(selectedEvent.event_type)}</span>
+						{#if selectedEvent.recurring !== 'none'}
+							<span class="text-xs text-[var(--text-secondary)]">🔄 {recurringLabel(selectedEvent.recurring)}</span>
+						{/if}
+					</div>
+					<h2 class="text-xl font-bold text-[var(--text-primary)]">{selectedEvent.title}</h2>
+				</div>
+				<button on:click={() => showDetailModal = false} class="text-[var(--text-secondary)] hover:text-[var(--text-primary)] text-xl">✕</button>
+			</div>
 
-				<label>
-					Description
-					<textarea bind:value={formData.description} rows="3"></textarea>
-				</label>
+			<div class="space-y-3 text-sm">
+				<div class="flex items-center gap-2 text-[var(--text-secondary)]">
+					<span>📅</span>
+					<span>{formatFullDate(selectedEvent.start_time)}</span>
+				</div>
+				<div class="flex items-center gap-2 text-[var(--text-secondary)]">
+					<span>🕐</span>
+					<span>{formatTime(selectedEvent.start_time)} – {formatTime(selectedEvent.end_time)}</span>
+				</div>
+				{#if selectedEvent.location}
+					<div class="flex items-center gap-2 text-[var(--text-secondary)]">
+						<span>📍</span>
+						<span>{selectedEvent.location}</span>
+					</div>
+				{/if}
+				{#if selectedEvent.room_name}
+					<div class="flex items-center gap-2 text-[var(--text-secondary)]">
+						<span>🏠</span>
+						<span>{selectedEvent.room_name}</span>
+					</div>
+				{/if}
+				{#if selectedEvent.description}
+					<div class="pt-3 border-t border-[var(--border)]">
+						<p class="text-[var(--text-primary)] whitespace-pre-wrap">{selectedEvent.description}</p>
+					</div>
+				{/if}
+			</div>
 
-				<label>
-					Location
-					<input type="text" bind:value={formData.location} />
-				</label>
+			<div class="flex gap-2 justify-end mt-6 pt-4 border-t border-[var(--border)]">
+				<button on:click={() => deleteEvent(selectedEvent.id)} class="px-4 py-2 text-sm text-red-500 hover:bg-red-500/10 rounded-lg transition-colors">Delete</button>
+				<button on:click={() => openEditModal(selectedEvent)} class="px-4 py-2 text-sm bg-[var(--teal)] text-white rounded-lg hover:opacity-90">Edit</button>
+			</div>
+		</div>
+	</div>
+{/if}
 
-				<label>
-					Start Time *
-					<input type="datetime-local" bind:value={formData.start_time} required />
-				</label>
+<!-- Create/Edit Event Modal -->
+{#if showCreateModal}
+	<div class="fixed inset-0 bg-black/50 flex items-center justify-center z-50" on:click={() => showCreateModal = false}>
+		<div class="bg-[var(--surface)] rounded-xl p-6 w-full max-w-lg border border-[var(--border)] shadow-xl max-h-[90vh] overflow-y-auto" on:click|stopPropagation>
+			<h2 class="text-xl font-bold text-[var(--text-primary)] mb-4">{editingEvent ? 'Edit Event' : 'New Event'}</h2>
+			<form on:submit|preventDefault={saveEvent} class="space-y-4">
+				<div>
+					<label class="block text-sm font-medium text-[var(--text-primary)] mb-1">Title *</label>
+					<input type="text" bind:value={formData.title} required class="w-full px-3 py-2 rounded-lg border border-[var(--border)] bg-[var(--bg)] text-[var(--text-primary)]" />
+				</div>
 
-				<label>
-					End Time *
-					<input type="datetime-local" bind:value={formData.end_time} required />
-				</label>
-
-				<label>
-					<input type="checkbox" bind:checked={formData.all_day} />
-					All Day Event
-				</label>
-
-				<label>
-					Recurring
-					<select bind:value={formData.recurring}>
-						<option value="none">None</option>
-						<option value="weekly">Weekly</option>
-						<option value="monthly">Monthly</option>
+				<div>
+					<label class="block text-sm font-medium text-[var(--text-primary)] mb-1">Event Type</label>
+					<select bind:value={formData.event_type} on:change={onTypeChange} class="w-full px-3 py-2 rounded-lg border border-[var(--border)] bg-[var(--bg)] text-[var(--text-primary)]">
+						{#each eventTypes as t}
+							<option value={t.value}>{t.label}</option>
+						{/each}
 					</select>
-				</label>
+				</div>
 
-				<label>
-					Color
-					<input type="color" bind:value={formData.color} />
-				</label>
+				<div>
+					<label class="block text-sm font-medium text-[var(--text-primary)] mb-1">Description</label>
+					<textarea bind:value={formData.description} rows="3" class="w-full px-3 py-2 rounded-lg border border-[var(--border)] bg-[var(--bg)] text-[var(--text-primary)]"></textarea>
+				</div>
 
-				<div class="modal-actions">
-					<button type="button" on:click={() => showModal = false}>Cancel</button>
-					<button type="submit" class="btn-primary">Save</button>
+				<div>
+					<label class="block text-sm font-medium text-[var(--text-primary)] mb-1">Location</label>
+					<input type="text" bind:value={formData.location} class="w-full px-3 py-2 rounded-lg border border-[var(--border)] bg-[var(--bg)] text-[var(--text-primary)]" />
+				</div>
+
+				<div class="grid grid-cols-2 gap-4">
+					<div>
+						<label class="block text-sm font-medium text-[var(--text-primary)] mb-1">Start *</label>
+						<input type="datetime-local" bind:value={formData.start_time} on:change={loadRooms} required class="w-full px-3 py-2 rounded-lg border border-[var(--border)] bg-[var(--bg)] text-[var(--text-primary)]" />
+					</div>
+					<div>
+						<label class="block text-sm font-medium text-[var(--text-primary)] mb-1">End *</label>
+						<input type="datetime-local" bind:value={formData.end_time} on:change={loadRooms} required class="w-full px-3 py-2 rounded-lg border border-[var(--border)] bg-[var(--bg)] text-[var(--text-primary)]" />
+					</div>
+				</div>
+
+				<div class="flex items-center gap-4">
+					<label class="flex items-center gap-2 text-sm text-[var(--text-primary)]">
+						<input type="checkbox" bind:checked={formData.all_day} class="rounded" />
+						All Day
+					</label>
+				</div>
+
+				<div class="grid grid-cols-2 gap-4">
+					<div>
+						<label class="block text-sm font-medium text-[var(--text-primary)] mb-1">Recurring</label>
+						<select bind:value={formData.recurring} class="w-full px-3 py-2 rounded-lg border border-[var(--border)] bg-[var(--bg)] text-[var(--text-primary)]">
+							<option value="none">None</option>
+							<option value="weekly">Weekly</option>
+							<option value="monthly">Monthly</option>
+						</select>
+					</div>
+					<div>
+						<label class="block text-sm font-medium text-[var(--text-primary)] mb-1">Color</label>
+						<input type="color" bind:value={formData.color} class="w-full h-10 rounded-lg border border-[var(--border)] cursor-pointer" />
+					</div>
+				</div>
+
+				{#if availableRooms && availableRooms.length > 0}
+					<div>
+						<label class="block text-sm font-medium text-[var(--text-primary)] mb-1">Room</label>
+						<select bind:value={formData.room_id} class="w-full px-3 py-2 rounded-lg border border-[var(--border)] bg-[var(--bg)] text-[var(--text-primary)]">
+							<option value="">No room</option>
+							{#each availableRooms as room}
+								<option value={room.id}>{room.name}{room.capacity ? ` (capacity: ${room.capacity})` : ''}</option>
+							{/each}
+						</select>
+					</div>
+				{/if}
+
+				<div class="flex gap-2 justify-end pt-4 border-t border-[var(--border)]">
+					{#if editingEvent}
+						<button type="button" on:click={() => deleteEvent(editingEvent.id)} class="px-4 py-2 text-sm text-red-500 hover:bg-red-500/10 rounded-lg mr-auto">Delete</button>
+					{/if}
+					<button type="button" on:click={() => showCreateModal = false} class="px-4 py-2 text-sm border border-[var(--border)] rounded-lg text-[var(--text-secondary)] hover:text-[var(--text-primary)]">Cancel</button>
+					<button type="submit" class="px-6 py-2 text-sm bg-[var(--teal)] text-white rounded-lg hover:opacity-90 font-medium">Save</button>
 				</div>
 			</form>
 		</div>
 	</div>
 {/if}
-
-<style>
-	.calendar-page {
-		padding: 2rem;
-	}
-
-	header {
-		display: flex;
-		justify-content: space-between;
-		align-items: center;
-		margin-bottom: 2rem;
-	}
-
-	h1 {
-		margin: 0;
-		font-size: 2rem;
-		color: var(--text-primary);
-	}
-
-	.toolbar {
-		display: flex;
-		justify-content: space-between;
-		align-items: center;
-		margin-bottom: 1.5rem;
-	}
-
-	.view-toggle button {
-		padding: 0.5rem 1rem;
-		border: 1px solid var(--border);
-		background: var(--surface);
-		color: var(--text-secondary);
-		cursor: pointer;
-	}
-
-	.view-toggle button.active {
-		background: var(--teal);
-		color: white;
-		border-color: var(--teal);
-	}
-
-	.month-nav {
-		display: flex;
-		gap: 1rem;
-		align-items: center;
-	}
-
-	.month-nav span {
-		font-weight: 600;
-		min-width: 150px;
-		text-align: center;
-		color: var(--text-primary);
-	}
-
-	.calendar-grid {
-		display: grid;
-		grid-template-columns: repeat(7, 1fr);
-		gap: 1px;
-		background: var(--border);
-		border: 1px solid var(--border);
-	}
-
-	.day-header {
-		background: var(--surface-hover);
-		padding: 0.75rem;
-		font-weight: 600;
-		text-align: center;
-		color: var(--text-primary);
-	}
-
-	.day-cell {
-		background: var(--surface);
-		min-height: 100px;
-		padding: 0.5rem;
-	}
-
-	.day-cell.empty {
-		background: var(--bg);
-	}
-
-	.day-number {
-		font-weight: 600;
-		margin-bottom: 0.25rem;
-		color: var(--text-primary);
-	}
-
-	.event-pill {
-		display: block;
-		width: 100%;
-		padding: 0.25rem;
-		margin-bottom: 0.25rem;
-		border: none;
-		border-radius: 3px;
-		color: white;
-		font-size: 0.75rem;
-		text-align: left;
-		cursor: pointer;
-	}
-
-	.list-view {
-		display: flex;
-		flex-direction: column;
-		gap: 1rem;
-	}
-
-	.event-card {
-		display: flex;
-		gap: 1rem;
-		padding: 1rem;
-		background: var(--surface);
-		border: 1px solid var(--border);
-		border-radius: 8px;
-	}
-
-	.event-color {
-		width: 4px;
-		border-radius: 2px;
-	}
-
-	.event-info {
-		flex: 1;
-	}
-
-	.event-info h3 {
-		margin: 0 0 0.5rem 0;
-		color: var(--text-primary);
-	}
-
-	.event-time, .event-location, .event-desc {
-		margin: 0.25rem 0;
-		color: var(--text-secondary);
-		font-size: 0.9rem;
-	}
-
-	.event-actions {
-		display: flex;
-		gap: 0.5rem;
-		align-items: flex-start;
-	}
-
-	.btn-primary {
-		background: var(--teal);
-		color: white;
-		border: none;
-		padding: 0.5rem 1rem;
-		border-radius: 4px;
-		cursor: pointer;
-	}
-
-	.modal-overlay {
-		position: fixed;
-		top: 0;
-		left: 0;
-		right: 0;
-		bottom: 0;
-		background: rgba(0, 0, 0, 0.5);
-		display: flex;
-		align-items: center;
-		justify-content: center;
-		z-index: 1000;
-	}
-
-	.modal {
-		background: var(--surface);
-		padding: 2rem;
-		border-radius: 8px;
-		max-width: 500px;
-		width: 90%;
-		max-height: 90vh;
-		overflow-y: auto;
-	}
-
-	.modal h2 {
-		margin: 0 0 1.5rem 0;
-		color: var(--text-primary);
-	}
-
-	form label {
-		display: block;
-		margin-bottom: 1rem;
-		font-weight: 500;
-		color: var(--text-primary);
-	}
-
-	form input[type="text"],
-	form input[type="datetime-local"],
-	form textarea,
-	form select {
-		display: block;
-		width: 100%;
-		padding: 0.5rem;
-		margin-top: 0.25rem;
-		border: 1px solid var(--border);
-		border-radius: 4px;
-		background: var(--input-bg);
-		color: var(--text-primary);
-	}
-
-	form input[type="checkbox"] {
-		margin-right: 0.5rem;
-	}
-
-	form input[type="color"] {
-		width: 60px;
-		height: 40px;
-		border: 1px solid var(--border);
-		border-radius: 4px;
-		cursor: pointer;
-	}
-
-	.modal-actions {
-		display: flex;
-		justify-content: flex-end;
-		gap: 0.5rem;
-		margin-top: 1.5rem;
-	}
-
-	button {
-		padding: 0.5rem 1rem;
-		border: 1px solid var(--border);
-		background: var(--surface);
-		color: var(--text-primary);
-		border-radius: 4px;
-		cursor: pointer;
-	}
-
-	button:hover {
-		background: var(--surface-hover);
-	}
-
-	button.delete {
-		color: #e53e3e;
-	}
-
-	.empty {
-		text-align: center;
-		color: var(--text-secondary);
-		padding: 2rem;
-	}
-</style>

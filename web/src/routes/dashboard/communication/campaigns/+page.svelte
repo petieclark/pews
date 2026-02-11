@@ -52,7 +52,7 @@
 
 <div>
 	<div class="flex items-center justify-between mb-6">
-		<h1 class="text-3xl font-bold" style="color: var(--text)">Campaigns</h1>
+		<h1 class="text-3xl font-bold" style="color: var(--text-primary)">Campaigns</h1>
 		<button
 			on:click={() => goto('/dashboard/communication/campaigns/new')}
 			class="px-4 py-2 rounded-lg font-medium"
@@ -68,7 +68,7 @@
 			<button
 				on:click={() => statusFilter = status}
 				class="px-4 py-2 rounded-lg font-medium transition capitalize"
-				style="background: {statusFilter === status ? 'var(--teal)' : 'var(--surface)'}; color: {statusFilter === status ? 'white' : 'var(--text)'}; border: 1px solid {statusFilter === status ? 'var(--teal)' : 'var(--border)'}"
+				style="background: {statusFilter === status ? 'var(--teal)' : 'var(--surface)'}; color: {statusFilter === status ? 'white' : 'var(--text-primary)'}; border: 1px solid {statusFilter === status ? 'var(--teal)' : 'var(--border)'}"
 			>
 				{status}
 			</button>
@@ -86,7 +86,7 @@
 	{:else if filteredCampaigns.length === 0}
 		<div class="rounded-lg shadow border p-12 text-center" style="background: var(--surface); border-color: var(--border)">
 			<div class="text-5xl mb-4">📣</div>
-			<h2 class="text-xl font-semibold mb-2" style="color: var(--text)">No campaigns yet</h2>
+			<h2 class="text-xl font-semibold mb-2" style="color: var(--text-primary)">No campaigns yet</h2>
 			<p class="mb-6" style="color: var(--text-secondary)">Create your first campaign to reach your members</p>
 			<button
 				on:click={() => goto('/dashboard/communication/campaigns/new')}
@@ -117,7 +117,7 @@
 							style="background: var(--surface); hover:background: var(--surface-hover)"
 						>
 							<td class="px-6 py-4">
-								<div class="font-medium" style="color: var(--text)">{campaign.name}</div>
+								<div class="font-medium" style="color: var(--text-primary)">{campaign.name}</div>
 							</td>
 							<td class="px-6 py-4">
 								<span class="text-lg">{campaign.channel === 'email' ? '📧' : '💬'}</span>
@@ -130,10 +130,10 @@
 									</span>
 								{/if}
 							</td>
-							<td class="px-6 py-4" style="color: var(--text)">
+							<td class="px-6 py-4" style="color: var(--text-primary)">
 								{campaign.recipient_count || 0}
 							</td>
-							<td class="px-6 py-4" style="color: var(--text)">
+							<td class="px-6 py-4" style="color: var(--text-primary)">
 								{#if campaign.channel === 'email' && campaign.recipient_count > 0}
 									{((campaign.opened_count / campaign.recipient_count) * 100).toFixed(1)}%
 								{:else}

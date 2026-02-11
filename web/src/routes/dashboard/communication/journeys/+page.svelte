@@ -37,7 +37,7 @@
 
 <div>
 	<div class="flex items-center justify-between mb-6">
-		<h1 class="text-3xl font-bold" style="color: var(--text)">Automated Journeys</h1>
+		<h1 class="text-3xl font-bold" style="color: var(--text-primary)">Automated Journeys</h1>
 		<button
 			on:click={() => goto('/dashboard/communication/journeys/new')}
 			class="px-4 py-2 rounded-lg font-medium"
@@ -58,7 +58,7 @@
 	{:else if journeys.length === 0}
 		<div class="rounded-lg shadow border p-12 text-center" style="background: var(--surface); border-color: var(--border)">
 			<div class="text-5xl mb-4">🗺️</div>
-			<h2 class="text-xl font-semibold mb-2" style="color: var(--text)">No journeys yet</h2>
+			<h2 class="text-xl font-semibold mb-2" style="color: var(--text-primary)">No journeys yet</h2>
 			<p class="mb-6" style="color: var(--text-secondary)">Create automated message sequences to nurture visitors and members</p>
 			<button
 				on:click={() => goto('/dashboard/communication/journeys/new')}
@@ -74,7 +74,7 @@
 				<div class="rounded-lg shadow border p-6" style="background: var(--surface); border-color: var(--border)">
 					<div class="flex items-start justify-between mb-4">
 						<div class="flex-1">
-							<h3 class="font-semibold text-lg mb-1" style="color: var(--text)">{journey.name}</h3>
+							<h3 class="font-semibold text-lg mb-1" style="color: var(--text-primary)">{journey.name}</h3>
 							<p class="text-sm" style="color: var(--text-secondary)">{journey.description || 'No description'}</p>
 						</div>
 						<button
@@ -100,7 +100,7 @@
 					<button
 						on:click={() => goto(`/dashboard/communication/journeys/${journey.id}`)}
 						class="w-full px-4 py-2 rounded-lg font-medium border"
-						style="background: var(--bg); border-color: var(--border); color: var(--text)"
+						style="background: var(--bg); border-color: var(--border); color: var(--text-primary)"
 					>
 						Edit Journey
 					</button>

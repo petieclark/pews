@@ -4,16 +4,23 @@
 
 	let kpis = null;
 	let atRisk = [];
+	let activities = [];
+	let upcomingEvents = [];
 	let loading = true;
 	let error = '';
 
 	onMount(async () => {
 		try {
-			// Fetch dashboard KPIs
-			kpis = await api('/api/dashboard/kpis');
-			
-			// Fetch at-risk people
-			atRisk = await api('/api/engagement/at-risk');
+			const [kpiData, atRiskData, activityData, eventsData] = await Promise.allSettled([
+				api('/api/dashboard/kpis'),
+				api('/api/engagement/at-risk'),
+				api('/api/dashboard/activity'),
+				api('/api/events/upcoming')
+			]);
+			kpis = kpiData.status === 'fulfilled' ? kpiData.value : null;
+			atRisk = atRiskData.status === 'fulfilled' ? atRiskData.value : [];
+			activities = activityData.status === 'fulfilled' ? activityData.value : [];
+			upcomingEvents = eventsData.status === 'fulfilled' ? (eventsData.value || []).slice(0, 5) : [];
 		} catch (err) {
 			error = err.message;
 		} finally {
@@ -22,268 +29,300 @@
 	});
 
 	function formatCurrency(cents) {
-		return new Intl.NumberFormat('en-US', {
-			style: 'currency',
-			currency: 'USD'
-		}).format(cents / 100);
+		return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(cents / 100);
 	}
 
 	function formatPercent(value) {
 		return (value >= 0 ? '+' : '') + value.toFixed(1) + '%';
 	}
+
+	function timeAgo(date) {
+		const seconds = Math.floor((new Date() - new Date(date)) / 1000);
+		if (seconds < 60) return 'just now';
+		if (seconds < 3600) return Math.floor(seconds / 60) + 'm ago';
+		if (seconds < 86400) return Math.floor(seconds / 3600) + 'h ago';
+		return Math.floor(seconds / 86400) + 'd ago';
+	}
+
+	function formatEventDate(d) {
+		return new Date(d).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
+	}
+
+	function getActivityIcon(type) {
+		const icons = {
+			'user-plus': '👤', 'user-edit': '✏️', 'user-minus': '🗑️',
+			'dollar': '💰', 'check-circle': '✅', 'activity': '📋'
+		};
+		return icons[type] || '📋';
+	}
+
+	const quickActions = [
+		{ href: '/dashboard/people', label: 'Add Person', icon: 'M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z', color: '#4A8B8C' },
+		{ href: '/dashboard/giving/donations/new', label: 'Record Donation', icon: 'M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z', color: '#10b981' },
+		{ href: '/dashboard/services', label: 'Plan Service', icon: 'M9 19V6l12-3v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zm12-3c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zM9 10l12-3', color: '#8b5cf6' },
+		{ href: '/dashboard/communication', label: 'Send Message', icon: 'M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z', color: '#3b82f6' },
+	];
 </script>
 
-<div>
-	<h1 class="text-3xl font-bold text-primary mb-6">Dashboard</h1>
+<div class="space-y-8">
+	<div>
+		<h1 class="text-3xl font-bold text-primary">Dashboard</h1>
+		<p class="text-secondary text-sm mt-1">Welcome back. Here's what's happening.</p>
+	</div>
 
 	{#if loading}
-		<div class="text-center py-12">
-			<div class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-[var(--teal)]"></div>
+		<div class="flex justify-center py-16">
+			<div class="animate-spin rounded-full h-8 w-8 border-b-2 border-[var(--teal)]"></div>
 		</div>
 	{:else if error}
-		<div class="bg-[var(--error-bg)] border border-[var(--error-border)] text-[var(--error-text)] px-4 py-3 rounded-lg">
-			{error}
-		</div>
-	{:else if kpis}
+		<div class="bg-red-500 bg-opacity-10 border border-red-500 text-red-400 px-4 py-3 rounded-xl">{error}</div>
+	{:else}
 		<!-- KPI Cards -->
-		<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-			<!-- Total Active Members -->
-			<div class="bg-surface rounded-lg shadow-md p-6 border border-custom">
-				<div class="flex items-center justify-between">
-					<div>
-						<p class="text-secondary text-sm uppercase tracking-wide">Active Members</p>
-						<p class="text-3xl font-bold text-primary mt-2">{kpis.total_active_members}</p>
-					</div>
-					<div class="bg-[var(--teal)] bg-opacity-10 rounded-full p-3">
-						<svg class="w-6 h-6 text-[var(--teal)]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-							<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
-						</svg>
-					</div>
-				</div>
-			</div>
-
-			<!-- Average Attendance -->
-			<div class="bg-surface rounded-lg shadow-md p-6 border border-custom">
-				<div class="flex items-center justify-between">
-					<div>
-						<p class="text-secondary text-sm uppercase tracking-wide">Avg Attendance (4wk)</p>
-						<p class="text-3xl font-bold text-primary mt-2">{Math.round(kpis.average_attendance)}</p>
-						{#if kpis.attendance_trend && kpis.attendance_trend.length > 0}
-							<p class="text-xs text-secondary mt-1">
-								<svg class="inline w-16 h-4" viewBox="0 0 100 20">
-									{#each kpis.attendance_trend as value, i}
-										<circle 
-											cx={i * (100 / (kpis.attendance_trend.length - 1))} 
-											cy={20 - (value / Math.max(...kpis.attendance_trend) * 15)} 
-											r="1.5" 
-											fill="var(--teal)" 
-										/>
-										{#if i > 0}
-											<line 
-												x1={(i - 1) * (100 / (kpis.attendance_trend.length - 1))} 
-												y1={20 - (kpis.attendance_trend[i - 1] / Math.max(...kpis.attendance_trend) * 15)} 
-												x2={i * (100 / (kpis.attendance_trend.length - 1))} 
-												y2={20 - (value / Math.max(...kpis.attendance_trend) * 15)} 
-												stroke="var(--teal)" 
-												stroke-width="2" 
-											/>
-										{/if}
-									{/each}
+		{#if kpis}
+			<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+				<!-- Active Members -->
+				<div class="kpi-card group">
+					<div class="kpi-accent" style="--accent: #4A8B8C"></div>
+					<div class="p-5">
+						<div class="flex items-center justify-between">
+							<div>
+								<p class="text-xs font-medium text-secondary uppercase tracking-wider">Active Members</p>
+								<p class="text-3xl font-bold text-primary mt-1">{kpis.total_active_members}</p>
+							</div>
+							<div class="w-11 h-11 rounded-xl bg-[#4A8B8C] bg-opacity-10 flex items-center justify-center group-hover:scale-110 transition-transform">
+								<svg class="w-5 h-5 text-[#4A8B8C]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+									<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
 								</svg>
-							</p>
-						{/if}
+							</div>
+						</div>
 					</div>
-					<div class="bg-[var(--sage)] bg-opacity-10 rounded-full p-3">
-						<svg class="w-6 h-6 text-[var(--sage)]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-							<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
-						</svg>
+				</div>
+
+				<!-- Avg Attendance -->
+				<div class="kpi-card group">
+					<div class="kpi-accent" style="--accent: #8FBCB0"></div>
+					<div class="p-5">
+						<div class="flex items-center justify-between">
+							<div>
+								<p class="text-xs font-medium text-secondary uppercase tracking-wider">Avg Attendance</p>
+								<p class="text-3xl font-bold text-primary mt-1">{Math.round(kpis.average_attendance)}</p>
+								<p class="text-xs text-secondary mt-1">4-week average</p>
+							</div>
+							<div class="w-11 h-11 rounded-xl bg-[#8FBCB0] bg-opacity-10 flex items-center justify-center group-hover:scale-110 transition-transform">
+								<svg class="w-5 h-5 text-[#8FBCB0]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+									<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
+								</svg>
+							</div>
+						</div>
+					</div>
+				</div>
+
+				<!-- Giving This Month -->
+				<div class="kpi-card group">
+					<div class="kpi-accent" style="--accent: #10b981"></div>
+					<div class="p-5">
+						<div class="flex items-center justify-between">
+							<div>
+								<p class="text-xs font-medium text-secondary uppercase tracking-wider">Giving This Month</p>
+								<p class="text-3xl font-bold text-primary mt-1">{formatCurrency(kpis.giving_this_month_cents)}</p>
+								<p class="text-xs mt-1" class:text-green-400={kpis.giving_percent_change >= 0} class:text-red-400={kpis.giving_percent_change < 0}>
+									{formatPercent(kpis.giving_percent_change)} vs last month
+								</p>
+							</div>
+							<div class="w-11 h-11 rounded-xl bg-green-500 bg-opacity-10 flex items-center justify-center group-hover:scale-110 transition-transform">
+								<svg class="w-5 h-5 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+									<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+								</svg>
+							</div>
+						</div>
+					</div>
+				</div>
+
+				<!-- New Visitors -->
+				<div class="kpi-card group">
+					<div class="kpi-accent" style="--accent: #3b82f6"></div>
+					<div class="p-5">
+						<div class="flex items-center justify-between">
+							<div>
+								<p class="text-xs font-medium text-secondary uppercase tracking-wider">New Visitors</p>
+								<p class="text-3xl font-bold text-primary mt-1">{kpis.new_visitors_this_month}</p>
+								<p class="text-xs text-secondary mt-1">This month</p>
+							</div>
+							<div class="w-11 h-11 rounded-xl bg-blue-500 bg-opacity-10 flex items-center justify-center group-hover:scale-110 transition-transform">
+								<svg class="w-5 h-5 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+									<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z" />
+								</svg>
+							</div>
+						</div>
 					</div>
 				</div>
 			</div>
+		{/if}
 
-			<!-- Giving This Month -->
-			<div class="bg-surface rounded-lg shadow-md p-6 border border-custom">
-				<div class="flex items-center justify-between">
-					<div>
-						<p class="text-secondary text-sm uppercase tracking-wide">Giving This Month</p>
-						<p class="text-3xl font-bold text-primary mt-2">{formatCurrency(kpis.giving_this_month_cents)}</p>
-						<p class="text-xs mt-1" class:text-green-600={kpis.giving_percent_change >= 0} class:text-red-600={kpis.giving_percent_change < 0}>
-							{formatPercent(kpis.giving_percent_change)} vs last month
-						</p>
-					</div>
-					<div class="bg-green-100 rounded-full p-3">
-						<svg class="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-							<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-						</svg>
-					</div>
-				</div>
-			</div>
-
-			<!-- New Visitors -->
-			<div class="bg-surface rounded-lg shadow-md p-6 border border-custom">
-				<div class="flex items-center justify-between">
-					<div>
-						<p class="text-secondary text-sm uppercase tracking-wide">New Visitors</p>
-						<p class="text-3xl font-bold text-primary mt-2">{kpis.new_visitors_this_month}</p>
-						<p class="text-xs text-secondary mt-1">This month</p>
-					</div>
-					<div class="bg-blue-100 rounded-full p-3">
-						<svg class="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-							<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z" />
-						</svg>
-					</div>
-				</div>
+		<!-- Quick Actions -->
+		<div>
+			<h2 class="text-lg font-semibold text-primary mb-3">Quick Actions</h2>
+			<div class="grid grid-cols-2 lg:grid-cols-4 gap-3">
+				{#each quickActions as action}
+					<a href={action.href}
+						class="bg-surface border border-custom rounded-xl p-4 hover:border-[var(--teal)] hover:shadow-md transition-all flex items-center gap-3 group">
+						<div class="w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0 group-hover:scale-110 transition-transform"
+							style="background-color: {action.color}15">
+							<svg class="w-5 h-5" style="color: {action.color}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+								<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d={action.icon} />
+							</svg>
+						</div>
+						<span class="text-sm font-medium text-primary">{action.label}</span>
+					</a>
+				{/each}
 			</div>
 		</div>
 
-		<!-- Engagement & At-Risk Widgets -->
-		<div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
-			<!-- Engagement Distribution -->
-			<div class="bg-surface rounded-lg shadow-md p-6 border border-custom">
-				<h2 class="text-xl font-semibold text-primary mb-4">Engagement Distribution</h2>
-				{#if kpis.engagement_distribution}
-					{@const total = kpis.engagement_distribution.high + kpis.engagement_distribution.medium + kpis.engagement_distribution.low + kpis.engagement_distribution.inactive}
-					{#if total === 0}
-						<!-- Empty State -->
-						<div class="text-center py-12">
-							<svg class="w-16 h-16 mx-auto mb-3 text-secondary opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-								<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
-							</svg>
-							<p class="text-secondary">No engagement data yet</p>
-							<p class="text-xs text-secondary mt-1">Track attendance and activities to see engagement metrics</p>
-						</div>
-					{:else}
-						{@const high = (kpis.engagement_distribution.high / total) * 100}
-						{@const medium = (kpis.engagement_distribution.medium / total) * 100}
-						{@const low = (kpis.engagement_distribution.low / total) * 100}
-						{@const inactive = (kpis.engagement_distribution.inactive / total) * 100}
-						
-						<div class="flex items-center justify-center mb-4">
-							<svg viewBox="0 0 100 100" class="w-48 h-48">
-								<!-- High (75-100) - Teal -->
-								<circle cx="50" cy="50" r="40" fill="none" stroke="var(--teal)" stroke-width="20" 
-									stroke-dasharray="{high * 2.51} 251.2" 
-									transform="rotate(-90 50 50)" />
-								
-								<!-- Medium (50-74) - Sage -->
-								<circle cx="50" cy="50" r="40" fill="none" stroke="var(--sage)" stroke-width="20" 
-									stroke-dasharray="{medium * 2.51} 251.2" 
-									stroke-dashoffset="{-high * 2.51}"
-									transform="rotate(-90 50 50)" />
-								
-								<!-- Low (25-49) - Orange -->
-								<circle cx="50" cy="50" r="40" fill="none" stroke="#f59e0b" stroke-width="20" 
-									stroke-dasharray="{low * 2.51} 251.2" 
-									stroke-dashoffset="{-(high + medium) * 2.51}"
-									transform="rotate(-90 50 50)" />
-								
-								<!-- Inactive (0-24) - Red -->
-								<circle cx="50" cy="50" r="40" fill="none" stroke="#ef4444" stroke-width="20" 
-									stroke-dasharray="{inactive * 2.51} 251.2" 
-									stroke-dashoffset="{-(high + medium + low) * 2.51}"
-									transform="rotate(-90 50 50)" />
-							</svg>
-						</div>
-						
-						<div class="grid grid-cols-2 gap-3">
-							<div class="flex items-center">
-								<div class="w-3 h-3 rounded-full bg-[var(--teal)] mr-2"></div>
-								<span class="text-sm text-secondary">High (75+): {kpis.engagement_distribution.high}</span>
-							</div>
-							<div class="flex items-center">
-								<div class="w-3 h-3 rounded-full bg-[var(--sage)] mr-2"></div>
-								<span class="text-sm text-secondary">Medium (50-74): {kpis.engagement_distribution.medium}</span>
-							</div>
-							<div class="flex items-center">
-								<div class="w-3 h-3 rounded-full bg-[#f59e0b] mr-2"></div>
-								<span class="text-sm text-secondary">Low (25-49): {kpis.engagement_distribution.low}</span>
-							</div>
-							<div class="flex items-center">
-								<div class="w-3 h-3 rounded-full bg-[#ef4444] mr-2"></div>
-								<span class="text-sm text-secondary">Inactive (0-24): {kpis.engagement_distribution.inactive}</span>
-							</div>
-						</div>
-					{/if}
-				{/if}
-			</div>
-
-			<!-- At-Risk Members -->
-			<div class="bg-surface rounded-lg shadow-md p-6 border border-custom">
-				<div class="flex items-center justify-between mb-4">
-					<h2 class="text-xl font-semibold text-primary">At-Risk Members</h2>
-					<span class="bg-red-100 text-red-700 text-sm px-3 py-1 rounded-full font-medium">
-						{atRisk.length} people
-					</span>
-				</div>
-				<p class="text-secondary text-sm mb-4">Engagement declined >20% in last 30 days</p>
-				{#if atRisk.length === 0}
-					<div class="text-center py-8 text-secondary">
-						<svg class="w-12 h-12 mx-auto mb-2 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-							<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+		<!-- Activity Feed + Sidebar -->
+		<div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+			<!-- Recent Activity -->
+			<div class="lg:col-span-2 bg-surface rounded-xl shadow-sm border border-custom p-6">
+				<h2 class="text-lg font-semibold text-primary mb-4">Recent Activity</h2>
+				{#if activities.length === 0}
+					<div class="text-center py-12">
+						<svg class="w-12 h-12 mx-auto mb-3 text-secondary opacity-40" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+							<path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
 						</svg>
-						<p>No at-risk members detected</p>
+						<p class="text-secondary">No recent activity yet.</p>
+						<p class="text-xs text-secondary mt-1">Activity will appear here as people are added, donations recorded, and check-ins happen.</p>
 					</div>
 				{:else}
-					<div class="space-y-2 max-h-64 overflow-y-auto">
-						{#each atRisk.slice(0, 5) as person}
-							<div class="flex items-center justify-between p-3 bg-[var(--surface-hover)] rounded-lg">
-								<div class="flex-1">
-									<p class="font-medium text-primary">{person.person_name}</p>
-									<p class="text-xs text-secondary">{person.person_email || 'No email'}</p>
+					<div class="space-y-3">
+						{#each activities as activity}
+							<a href={activity.link || '#'} class="flex items-start gap-3 p-3 rounded-lg hover:bg-[var(--surface-hover)] transition-colors">
+								<span class="text-xl flex-shrink-0 mt-0.5">{getActivityIcon(activity.icon)}</span>
+								<div class="flex-1 min-w-0">
+									<p class="text-sm font-medium text-primary">{activity.title}</p>
+									<p class="text-xs text-secondary truncate">{activity.description}</p>
 								</div>
-								<div class="text-right">
-									<p class="text-sm font-semibold text-red-600">{person.percent_change.toFixed(1)}%</p>
-									<p class="text-xs text-secondary">{person.current_score} → {person.previous_score}</p>
-								</div>
-							</div>
-						{/each}
-						{#if atRisk.length > 5}
-							<a href="/dashboard/engagement/at-risk" class="block text-center text-sm text-[var(--teal)] hover:underline mt-2">
-								View all {atRisk.length} at-risk members →
+								<span class="text-xs text-secondary whitespace-nowrap flex-shrink-0">{timeAgo(activity.timestamp)}</span>
 							</a>
+						{/each}
+					</div>
+				{/if}
+			</div>
+
+			<!-- Sidebar: At-Risk + Upcoming -->
+			<div class="space-y-6">
+				<!-- At-Risk Members -->
+				<div class="bg-surface rounded-xl shadow-sm border border-custom p-6">
+					<div class="flex items-center justify-between mb-3">
+						<h2 class="text-lg font-semibold text-primary">At-Risk</h2>
+						{#if atRisk.length > 0}
+							<span class="px-2 py-0.5 text-xs font-medium rounded-full bg-red-500 bg-opacity-15 text-red-400">{atRisk.length}</span>
+						{/if}
+					</div>
+					{#if atRisk.length === 0}
+						<div class="text-center py-6">
+							<svg class="w-10 h-10 mx-auto mb-2 text-green-500 opacity-60" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+								<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+							</svg>
+							<p class="text-sm text-secondary">No at-risk members</p>
+						</div>
+					{:else}
+						<div class="space-y-2">
+							{#each atRisk.slice(0, 5) as person}
+								<div class="flex items-center justify-between p-2 rounded-lg bg-[var(--surface-hover)]">
+									<div class="min-w-0">
+										<p class="text-sm font-medium text-primary truncate">{person.person_name}</p>
+										<p class="text-xs text-secondary truncate">{person.person_email || ''}</p>
+									</div>
+									<span class="text-xs font-semibold text-red-400 flex-shrink-0">{person.percent_change.toFixed(0)}%</span>
+								</div>
+							{/each}
+						</div>
+					{/if}
+				</div>
+
+				<!-- Upcoming Events -->
+				<div class="bg-surface rounded-xl shadow-sm border border-custom p-6">
+					<h2 class="text-lg font-semibold text-primary mb-3">Upcoming Events</h2>
+					{#if upcomingEvents.length === 0}
+						<div class="text-center py-6">
+							<svg class="w-10 h-10 mx-auto mb-2 text-secondary opacity-40" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+								<path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+							</svg>
+							<p class="text-sm text-secondary">No upcoming events.</p>
+							<a href="/dashboard/calendar" class="text-xs text-[var(--teal)] hover:underline mt-1 inline-block">Create an event →</a>
+						</div>
+					{:else}
+						<div class="space-y-2">
+							{#each upcomingEvents as event}
+								<a href="/dashboard/calendar" class="flex items-center gap-3 p-2 rounded-lg hover:bg-[var(--surface-hover)] transition-colors">
+									<div class="w-10 h-10 rounded-lg bg-[var(--teal)] bg-opacity-10 flex items-center justify-center flex-shrink-0">
+										<span class="text-xs font-bold text-[var(--teal)]">{new Date(event.start_time || event.date).getDate()}</span>
+									</div>
+									<div class="min-w-0">
+										<p class="text-sm font-medium text-primary truncate">{event.title || event.name}</p>
+										<p class="text-xs text-secondary">{formatEventDate(event.start_time || event.date)}</p>
+									</div>
+								</a>
+							{/each}
+						</div>
+					{/if}
+				</div>
+
+				<!-- Engagement Chart placeholder -->
+				{#if kpis && kpis.engagement_distribution}
+					{@const dist = kpis.engagement_distribution}
+					{@const total = (dist.high || 0) + (dist.medium || 0) + (dist.low || 0) + (dist.inactive || 0)}
+					<div class="bg-surface rounded-xl shadow-sm border border-custom p-6">
+						<h2 class="text-lg font-semibold text-primary mb-3">Engagement</h2>
+						{#if total === 0}
+							<div class="text-center py-6">
+								<p class="text-sm text-secondary">No engagement data yet.</p>
+								<a href="/dashboard/checkins" class="text-xs text-[var(--teal)] hover:underline mt-1 inline-block">Set up check-ins →</a>
+							</div>
+						{:else}
+							<div class="space-y-2">
+								{#each [
+									{ label: 'High', count: dist.high, color: '#4A8B8C' },
+									{ label: 'Medium', count: dist.medium, color: '#8FBCB0' },
+									{ label: 'Low', count: dist.low, color: '#f59e0b' },
+									{ label: 'Inactive', count: dist.inactive, color: '#ef4444' },
+								] as seg}
+									<div class="flex items-center gap-2">
+										<div class="w-2 h-2 rounded-full flex-shrink-0" style="background: {seg.color}"></div>
+										<span class="text-xs text-secondary flex-1">{seg.label}</span>
+										<span class="text-xs font-medium text-primary">{seg.count}</span>
+										<div class="w-16 bg-[var(--surface-hover)] rounded-full h-1.5">
+											<div class="h-1.5 rounded-full" style="width: {(seg.count / total) * 100}%; background: {seg.color}"></div>
+										</div>
+									</div>
+								{/each}
+							</div>
 						{/if}
 					</div>
 				{/if}
 			</div>
-		</div>
-
-		<!-- Action Items Widget -->
-		<div class="bg-surface rounded-lg shadow-md p-6 border border-custom">
-			<h2 class="text-xl font-semibold text-primary mb-4">Action Items</h2>
-			<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-				<div class="p-4 bg-[var(--surface-hover)] rounded-lg">
-					<p class="text-2xl font-bold text-primary">0</p>
-					<p class="text-sm text-secondary">Overdue Follow-ups</p>
-				</div>
-				<div class="p-4 bg-[var(--surface-hover)] rounded-lg">
-					<p class="text-2xl font-bold text-primary">0</p>
-					<p class="text-sm text-secondary">Unread Prayer Requests</p>
-				</div>
-				<div class="p-4 bg-[var(--surface-hover)] rounded-lg">
-					<p class="text-2xl font-bold text-primary">0</p>
-					<p class="text-sm text-secondary">Pending Volunteers</p>
-				</div>
-				<div class="p-4 bg-[var(--surface-hover)] rounded-lg">
-					<p class="text-2xl font-bold text-primary">{atRisk.length}</p>
-					<p class="text-sm text-secondary">At-Risk Members</p>
-				</div>
-			</div>
-		</div>
-
-		<!-- Quick Links -->
-		<div class="mt-8 grid grid-cols-1 md:grid-cols-3 gap-4">
-			<a href="/dashboard/people" class="bg-surface border border-custom rounded-lg p-6 hover:bg-[var(--surface-hover)] transition-colors">
-				<h3 class="text-lg font-semibold text-primary mb-2">People</h3>
-				<p class="text-sm text-secondary">Manage members and view engagement scores</p>
-			</a>
-			<a href="/dashboard/giving" class="bg-surface border border-custom rounded-lg p-6 hover:bg-[var(--surface-hover)] transition-colors">
-				<h3 class="text-lg font-semibold text-primary mb-2">Giving</h3>
-				<p class="text-sm text-secondary">View donations and giving trends</p>
-			</a>
-			<a href="/dashboard/checkins" class="bg-surface border border-custom rounded-lg p-6 hover:bg-[var(--surface-hover)] transition-colors">
-				<h3 class="text-lg font-semibold text-primary mb-2">Check-ins</h3>
-				<p class="text-sm text-secondary">Track attendance and check-in history</p>
-			</a>
 		</div>
 	{/if}
 </div>
+
+<style>
+	.kpi-card {
+		position: relative;
+		background: var(--surface);
+		border: 1px solid var(--border);
+		border-radius: 0.75rem;
+		overflow: hidden;
+		transition: all 0.2s;
+	}
+	.kpi-card:hover {
+		box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+		transform: translateY(-1px);
+	}
+	.kpi-accent {
+		position: absolute;
+		top: 0;
+		left: 0;
+		right: 0;
+		height: 3px;
+		background: var(--accent);
+	}
+</style>

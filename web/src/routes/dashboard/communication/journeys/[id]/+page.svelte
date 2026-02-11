@@ -139,17 +139,17 @@
 			<div>
 				<a href="/dashboard/communication/journeys" class="text-sm font-medium" style="color: var(--teal)">← Journeys</a>
 				{#if editing}
-					<input bind:value={editName} class="text-3xl font-bold mt-1 bg-transparent border-b-2 outline-none" style="color: var(--text); border-color: var(--teal)" />
+					<input bind:value={editName} class="text-3xl font-bold mt-1 bg-transparent border-b-2 outline-none" style="color: var(--text-primary); border-color: var(--teal)" />
 				{:else}
-					<h1 class="text-3xl font-bold mt-1" style="color: var(--text)">{journey.name}</h1>
+					<h1 class="text-3xl font-bold mt-1" style="color: var(--text-primary)">{journey.name}</h1>
 				{/if}
 			</div>
 			<div class="flex gap-3">
 				{#if editing}
 					<button on:click={saveJourney} class="px-4 py-2 rounded-lg font-medium" style="background: var(--teal); color: white">Save</button>
-					<button on:click={() => editing = false} class="px-4 py-2 rounded-lg font-medium border" style="background: var(--surface); border-color: var(--border); color: var(--text)">Cancel</button>
+					<button on:click={() => editing = false} class="px-4 py-2 rounded-lg font-medium border" style="background: var(--surface); border-color: var(--border); color: var(--text-primary)">Cancel</button>
 				{:else}
-					<button on:click={() => editing = true} class="px-4 py-2 rounded-lg font-medium border" style="background: var(--surface); border-color: var(--border); color: var(--text)">Edit</button>
+					<button on:click={() => editing = true} class="px-4 py-2 rounded-lg font-medium border" style="background: var(--surface); border-color: var(--border); color: var(--text-primary)">Edit</button>
 				{/if}
 			</div>
 		</div>
@@ -163,12 +163,12 @@
 			<div class="mb-6 rounded-lg shadow border p-6 space-y-4" style="background: var(--surface); border-color: var(--border)">
 				<div>
 					<label class="block text-sm font-medium mb-1" style="color: var(--text-secondary)">Description</label>
-					<input bind:value={editDescription} type="text" class="w-full px-3 py-2 rounded-lg border" style="background: var(--bg); border-color: var(--border); color: var(--text)" />
+					<input bind:value={editDescription} type="text" class="w-full px-3 py-2 rounded-lg border" style="background: var(--bg); border-color: var(--border); color: var(--text-primary)" />
 				</div>
 				<div class="grid grid-cols-2 gap-4">
 					<div>
 						<label class="block text-sm font-medium mb-1" style="color: var(--text-secondary)">Trigger</label>
-						<select bind:value={editTriggerType} class="w-full px-3 py-2 rounded-lg border" style="background: var(--bg); border-color: var(--border); color: var(--text)">
+						<select bind:value={editTriggerType} class="w-full px-3 py-2 rounded-lg border" style="background: var(--bg); border-color: var(--border); color: var(--text-primary)">
 							<option value="manual">Manual</option>
 							<option value="first_visit">First Visit</option>
 							<option value="tag_added">Tag Added</option>
@@ -178,12 +178,12 @@
 					</div>
 					<div>
 						<label class="block text-sm font-medium mb-1" style="color: var(--text-secondary)">Trigger Value</label>
-						<input bind:value={editTriggerValue} type="text" class="w-full px-3 py-2 rounded-lg border" style="background: var(--bg); border-color: var(--border); color: var(--text)" />
+						<input bind:value={editTriggerValue} type="text" class="w-full px-3 py-2 rounded-lg border" style="background: var(--bg); border-color: var(--border); color: var(--text-primary)" />
 					</div>
 				</div>
 				<label class="flex items-center gap-2 cursor-pointer">
 					<input bind:checked={editIsActive} type="checkbox" class="rounded" />
-					<span class="text-sm" style="color: var(--text)">Active</span>
+					<span class="text-sm" style="color: var(--text-primary)">Active</span>
 				</label>
 			</div>
 		{:else}
@@ -205,7 +205,7 @@
 			<!-- Steps Timeline -->
 			<div class="lg:col-span-2">
 				<div class="flex items-center justify-between mb-4">
-					<h2 class="text-lg font-semibold" style="color: var(--text)">Steps</h2>
+					<h2 class="text-lg font-semibold" style="color: var(--text-primary)">Steps</h2>
 					<button on:click={() => showAddStep = !showAddStep} class="px-3 py-1 rounded-lg text-sm font-medium" style="background: var(--teal); color: white">+ Add Step</button>
 				</div>
 
@@ -214,7 +214,7 @@
 						<div class="grid grid-cols-2 gap-3">
 							<div>
 								<label class="block text-xs font-medium mb-1" style="color: var(--text-secondary)">Step Type</label>
-								<select bind:value={stepType} class="w-full px-3 py-2 rounded-lg border text-sm" style="background: var(--bg); border-color: var(--border); color: var(--text)">
+								<select bind:value={stepType} class="w-full px-3 py-2 rounded-lg border text-sm" style="background: var(--bg); border-color: var(--border); color: var(--text-primary)">
 									<option value="send_email">Send Email</option>
 									<option value="send_sms">Send SMS</option>
 									<option value="wait">Wait</option>
@@ -225,7 +225,7 @@
 							{#if stepType === 'send_email' || stepType === 'send_sms'}
 								<div>
 									<label class="block text-xs font-medium mb-1" style="color: var(--text-secondary)">Template</label>
-									<select bind:value={stepTemplateId} class="w-full px-3 py-2 rounded-lg border text-sm" style="background: var(--bg); border-color: var(--border); color: var(--text)">
+									<select bind:value={stepTemplateId} class="w-full px-3 py-2 rounded-lg border text-sm" style="background: var(--bg); border-color: var(--border); color: var(--text-primary)">
 										<option value="">Select template...</option>
 										{#each templates.filter(t => stepType === 'send_email' ? t.channel === 'email' : t.channel === 'sms') as t}
 											<option value={t.id}>{t.name}</option>
@@ -237,22 +237,22 @@
 						<div class="grid grid-cols-2 gap-3">
 							<div>
 								<label class="block text-xs font-medium mb-1" style="color: var(--text-secondary)">Delay (days)</label>
-								<input bind:value={stepDelayDays} type="number" min="0" class="w-full px-3 py-2 rounded-lg border text-sm" style="background: var(--bg); border-color: var(--border); color: var(--text)" />
+								<input bind:value={stepDelayDays} type="number" min="0" class="w-full px-3 py-2 rounded-lg border text-sm" style="background: var(--bg); border-color: var(--border); color: var(--text-primary)" />
 							</div>
 							<div>
 								<label class="block text-xs font-medium mb-1" style="color: var(--text-secondary)">Delay (hours)</label>
-								<input bind:value={stepDelayHours} type="number" min="0" class="w-full px-3 py-2 rounded-lg border text-sm" style="background: var(--bg); border-color: var(--border); color: var(--text)" />
+								<input bind:value={stepDelayHours} type="number" min="0" class="w-full px-3 py-2 rounded-lg border text-sm" style="background: var(--bg); border-color: var(--border); color: var(--text-primary)" />
 							</div>
 						</div>
 						{#if stepType === 'add_tag' || stepType === 'add_to_group'}
 							<div>
 								<label class="block text-xs font-medium mb-1" style="color: var(--text-secondary)">Config (JSON)</label>
-								<input bind:value={stepConfig} type="text" placeholder="tag_name: followed-up" class="w-full px-3 py-2 rounded-lg border text-sm font-mono" style="background: var(--bg); border-color: var(--border); color: var(--text)" />
+								<input bind:value={stepConfig} type="text" placeholder="tag_name: followed-up" class="w-full px-3 py-2 rounded-lg border text-sm font-mono" style="background: var(--bg); border-color: var(--border); color: var(--text-primary)" />
 							</div>
 						{/if}
 						<div class="flex gap-2">
 							<button on:click={addStep} disabled={addingStep} class="px-3 py-1 rounded-lg text-sm font-medium" style="background: var(--teal); color: white">{addingStep ? 'Adding...' : 'Add Step'}</button>
-							<button on:click={() => showAddStep = false} class="px-3 py-1 rounded-lg text-sm border" style="background: var(--surface); border-color: var(--border); color: var(--text)">Cancel</button>
+							<button on:click={() => showAddStep = false} class="px-3 py-1 rounded-lg text-sm border" style="background: var(--surface); border-color: var(--border); color: var(--text-primary)">Cancel</button>
 						</div>
 					</div>
 				{/if}
@@ -279,7 +279,7 @@
 								<div class="flex-1 rounded-lg border p-4 mb-2" style="background: var(--surface); border-color: var(--border)">
 									<div class="flex items-center justify-between">
 										<div>
-											<span class="font-medium" style="color: var(--text)">{stepLabels[step.step_type] || step.step_type}</span>
+											<span class="font-medium" style="color: var(--text-primary)">{stepLabels[step.step_type] || step.step_type}</span>
 											{#if step.delay_days > 0 || step.delay_hours > 0}
 												<span class="text-sm ml-2" style="color: var(--text-secondary)">
 													after {step.delay_days > 0 ? `${step.delay_days}d` : ''}{step.delay_hours > 0 ? ` ${step.delay_hours}h` : ''}
@@ -304,7 +304,7 @@
 			<!-- Enrollments -->
 			<div>
 				<div class="flex items-center justify-between mb-4">
-					<h2 class="text-lg font-semibold" style="color: var(--text)">Enrollments</h2>
+					<h2 class="text-lg font-semibold" style="color: var(--text-primary)">Enrollments</h2>
 					<button on:click={() => showEnroll = !showEnroll} class="px-3 py-1 rounded-lg text-sm font-medium" style="background: var(--teal); color: white">+ Enroll</button>
 				</div>
 
@@ -312,11 +312,11 @@
 					<div class="mb-4 rounded-lg border p-4 space-y-3" style="background: var(--surface); border-color: var(--border)">
 						<div>
 							<label class="block text-xs font-medium mb-1" style="color: var(--text-secondary)">Person ID</label>
-							<input bind:value={enrollPersonId} type="text" placeholder="Person UUID" class="w-full px-3 py-2 rounded-lg border text-sm" style="background: var(--bg); border-color: var(--border); color: var(--text)" />
+							<input bind:value={enrollPersonId} type="text" placeholder="Person UUID" class="w-full px-3 py-2 rounded-lg border text-sm" style="background: var(--bg); border-color: var(--border); color: var(--text-primary)" />
 						</div>
 						<div class="flex gap-2">
 							<button on:click={enrollPerson} disabled={enrolling} class="px-3 py-1 rounded-lg text-sm font-medium" style="background: var(--teal); color: white">{enrolling ? '...' : 'Enroll'}</button>
-							<button on:click={() => showEnroll = false} class="px-3 py-1 rounded-lg text-sm border" style="background: var(--surface); border-color: var(--border); color: var(--text)">Cancel</button>
+							<button on:click={() => showEnroll = false} class="px-3 py-1 rounded-lg text-sm border" style="background: var(--surface); border-color: var(--border); color: var(--text-primary)">Cancel</button>
 						</div>
 					</div>
 				{/if}
@@ -328,7 +328,7 @@
 						<div class="divide-y" style="border-color: var(--border)">
 							{#each enrollments as enrollment}
 								<div class="px-4 py-3">
-									<div class="font-medium text-sm" style="color: var(--text)">{enrollment.person_name || enrollment.person_id}</div>
+									<div class="font-medium text-sm" style="color: var(--text-primary)">{enrollment.person_name || enrollment.person_id}</div>
 									<div class="flex items-center gap-2 mt-1">
 										<span class="text-xs px-2 py-0.5 rounded-full" style="background: {enrollment.status === 'active' ? '#d1fae5' : enrollment.status === 'completed' ? '#dbeafe' : '#e2e8f0'}; color: {enrollment.status === 'active' ? '#065f46' : enrollment.status === 'completed' ? '#1e40af' : '#475569'}">
 											{enrollment.status}

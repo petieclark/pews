@@ -23,11 +23,11 @@ func (s *Service) GetDB() *pgxpool.Pool {
 
 // People operations
 
-func (s *Service) ListPeople(ctx context.Context, tenantID string, query string, page, limit int) ([]Person, int, error) {
+func (s *Service) ListPeople(ctx context.Context, tenantID string, query string, status string, sortBy string, page, limit int) ([]Person, int, error) {
 	if page < 1 {
 		page = 1
 	}
-	if limit < 1 || limit > 100 {
+	if limit < 1 || limit > 10000 {
 		limit = 25
 	}
 	offset := (page - 1) * limit
@@ -49,10 +49,18 @@ func (s *Service) ListPeople(ctx context.Context, tenantID string, query string,
 	argPos := 2
 
 	if query != "" {
-		searchFilter := fmt.Sprintf(` AND (first_name ILIKE $%d OR last_name ILIKE $%d OR email ILIKE $%d OR phone ILIKE $%d)`, argPos, argPos, argPos, argPos)
+		searchFilter := fmt.Sprintf(` AND (first_name ILIKE $%d OR last_name ILIKE $%d OR email ILIKE $%d OR phone ILIKE $%d OR (first_name || ' ' || last_name) ILIKE $%d)`, argPos, argPos, argPos, argPos, argPos)
 		sqlQuery += searchFilter
 		countQuery += searchFilter
 		args = append(args, "%"+query+"%")
+		argPos++
+	}
+
+	if status != "" && status != "all" {
+		statusFilter := fmt.Sprintf(` AND membership_status = $%d`, argPos)
+		sqlQuery += statusFilter
+		countQuery += statusFilter
+		args = append(args, status)
 		argPos++
 	}
 
@@ -63,8 +71,18 @@ func (s *Service) ListPeople(ctx context.Context, tenantID string, query string,
 		return nil, 0, fmt.Errorf("failed to count people: %w", err)
 	}
 
-	// Add pagination
-	sqlQuery += fmt.Sprintf(` ORDER BY last_name, first_name LIMIT $%d OFFSET $%d`, argPos, argPos+1)
+	// Add sorting
+	orderBy := " ORDER BY last_name, first_name"
+	switch sortBy {
+	case "name_desc":
+		orderBy = " ORDER BY last_name DESC, first_name DESC"
+	case "newest":
+		orderBy = " ORDER BY created_at DESC"
+	case "oldest":
+		orderBy = " ORDER BY created_at ASC"
+	}
+
+	sqlQuery += fmt.Sprintf(`%s LIMIT $%d OFFSET $%d`, orderBy, argPos, argPos+1)
 	args = append(args, limit, offset)
 
 	rows, err := s.db.Query(ctx, sqlQuery, args...)
@@ -191,6 +209,17 @@ func (s *Service) DeletePerson(ctx context.Context, tenantID, personID string) e
 	}
 
 	return nil
+}
+
+func (s *Service) BulkUpdateStatus(ctx context.Context, tenantID string, personIDs []string, status string) (int64, error) {
+	result, err := s.db.Exec(ctx, `
+		UPDATE people SET membership_status = $1 
+		WHERE tenant_id = $2 AND id = ANY($3)`,
+		status, tenantID, personIDs)
+	if err != nil {
+		return 0, fmt.Errorf("failed to bulk update: %w", err)
+	}
+	return result.RowsAffected(), nil
 }
 
 // Tag operations

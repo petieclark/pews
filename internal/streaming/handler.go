@@ -2,6 +2,7 @@ package streaming
 
 import (
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"strconv"
 	"time"
@@ -17,6 +18,24 @@ type Handler struct {
 func NewHandler(service *Service) *Handler {
 	return &Handler{service: service}
 }
+
+// parseFlexibleTime parses time from various formats including datetime-local input
+func parseFlexibleTime(s string) (time.Time, error) {
+	formats := []string{
+		time.RFC3339,
+		"2006-01-02T15:04:05",
+		"2006-01-02T15:04",
+		"2006-01-02 15:04:05",
+		"2006-01-02 15:04",
+	}
+	for _, f := range formats {
+		if t, err := time.Parse(f, s); err == nil {
+			return t, nil
+		}
+	}
+	return time.Time{}, fmt.Errorf("unable to parse time: %s", s)
+}
+
 
 // Stream handlers
 
@@ -109,7 +128,7 @@ func (h *Handler) CreateStream(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if req.ScheduledStart != "" {
-		scheduledStart, err := time.Parse(time.RFC3339, req.ScheduledStart)
+		scheduledStart, err := parseFlexibleTime(req.ScheduledStart)
 		if err != nil {
 			http.Error(w, "Invalid scheduled_start format", http.StatusBadRequest)
 			return
@@ -157,7 +176,7 @@ func (h *Handler) UpdateStream(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if req.ScheduledStart != "" {
-		scheduledStart, err := time.Parse(time.RFC3339, req.ScheduledStart)
+		scheduledStart, err := parseFlexibleTime(req.ScheduledStart)
 		if err != nil {
 			http.Error(w, "Invalid scheduled_start format", http.StatusBadRequest)
 			return

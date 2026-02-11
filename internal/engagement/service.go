@@ -2,7 +2,9 @@ package engagement
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/google/uuid"
@@ -598,4 +600,97 @@ func (s *Service) RecalculateAllScores(ctx context.Context, tenantID string) err
 	}
 
 	return nil
+}
+
+// GetDashboardActivity returns recent activity across all modules
+func (s *Service) GetDashboardActivity(ctx context.Context, tenantID string) ([]DashboardActivity, error) {
+	_, err := s.db.Exec(ctx, "SELECT set_config('app.current_tenant_id', $1, TRUE)", tenantID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to set tenant context: %w", err)
+	}
+
+	activities := []DashboardActivity{}
+
+	// Recent activity log entries
+	rows, err := s.db.Query(ctx, `
+		SELECT al.id, al.action, al.entity_type, al.entity_id, al.details, al.created_at,
+		       COALESCE(u.email, 'System') as user_email
+		FROM activity_log al
+		LEFT JOIN users u ON al.user_id = u.id
+		ORDER BY al.created_at DESC
+		LIMIT 10
+	`)
+	if err == nil {
+		defer rows.Close()
+		for rows.Next() {
+			var id, action, entityType string
+			var entityID *string
+			var details []byte
+			var createdAt time.Time
+			var userEmail string
+			if err := rows.Scan(&id, &action, &entityType, &entityID, &details, &createdAt, &userEmail); err != nil {
+				continue
+			}
+
+			activity := DashboardActivity{
+				ID:        id,
+				Type:      entityType,
+				Timestamp: createdAt,
+			}
+
+			// Parse details for display name
+			var detailMap map[string]interface{}
+			if len(details) > 0 {
+				json.Unmarshal(details, &detailMap)
+			}
+			name := ""
+			if detailMap != nil {
+				if n, ok := detailMap["name"].(string); ok {
+					name = n
+				}
+			}
+
+			switch action {
+			case "person.created":
+				activity.Icon = "user-plus"
+				activity.Title = "New person added"
+				activity.Description = name + " was added by " + userEmail
+				if entityID != nil {
+					activity.Link = "/dashboard/people/" + *entityID
+				}
+			case "person.updated":
+				activity.Icon = "user-edit"
+				activity.Title = "Person updated"
+				activity.Description = name + " was updated"
+				if entityID != nil {
+					activity.Link = "/dashboard/people/" + *entityID
+				}
+			case "person.deleted":
+				activity.Icon = "user-minus"
+				activity.Title = "Person removed"
+				activity.Description = name + " was removed"
+			case "donation.created":
+				activity.Icon = "dollar"
+				activity.Title = "New donation"
+				if amt, ok := detailMap["amount"]; ok {
+					activity.Description = fmt.Sprintf("$%.2f received", amt)
+				} else {
+					activity.Description = "Donation received"
+				}
+				activity.Link = "/dashboard/giving"
+			case "checkin.created":
+				activity.Icon = "check-circle"
+				activity.Title = "Check-in"
+				activity.Description = name + " checked in"
+			default:
+				activity.Icon = "activity"
+				activity.Title = strings.ReplaceAll(action, ".", " ")
+				activity.Description = entityType + " activity"
+			}
+
+			activities = append(activities, activity)
+		}
+	}
+
+	return activities, nil
 }

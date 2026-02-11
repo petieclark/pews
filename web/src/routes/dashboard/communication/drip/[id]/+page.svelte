@@ -186,33 +186,33 @@
 			>
 				← Back to Campaigns
 			</button>
-			<h1 class="text-3xl font-bold" style="color: var(--text)">
+			<h1 class="text-3xl font-bold" style="color: var(--text-primary)">
 				{campaignId === 'new' ? 'Create Campaign' : campaign.name}
 			</h1>
 		</div>
 
 		<!-- Campaign Settings -->
 		<div class="rounded-lg shadow border p-6 mb-6" style="background: var(--surface); border-color: var(--border)">
-			<h2 class="text-xl font-semibold mb-4" style="color: var(--text)">Campaign Settings</h2>
+			<h2 class="text-xl font-semibold mb-4" style="color: var(--text-primary)">Campaign Settings</h2>
 			
 			<div class="space-y-4">
 				<div>
-					<label class="block text-sm font-medium mb-1" style="color: var(--text)">Name</label>
+					<label class="block text-sm font-medium mb-1" style="color: var(--text-primary)">Name</label>
 					<input
 						type="text"
 						bind:value={campaign.name}
 						class="w-full px-3 py-2 rounded-lg border"
-						style="background: var(--bg); border-color: var(--border); color: var(--text)"
+						style="background: var(--bg); border-color: var(--border); color: var(--text-primary)"
 						placeholder="e.g., New Visitor Welcome"
 					/>
 				</div>
 
 				<div>
-					<label class="block text-sm font-medium mb-1" style="color: var(--text)">Trigger Event</label>
+					<label class="block text-sm font-medium mb-1" style="color: var(--text-primary)">Trigger Event</label>
 					<select
 						bind:value={campaign.trigger_event}
 						class="w-full px-3 py-2 rounded-lg border"
-						style="background: var(--bg); border-color: var(--border); color: var(--text)"
+						style="background: var(--bg); border-color: var(--border); color: var(--text-primary)"
 					>
 						<option value="new_member">New Member</option>
 						<option value="connection_card">Connection Card Submitted</option>
@@ -228,7 +228,7 @@
 						class="w-4 h-4 rounded"
 						style="accent-color: var(--teal)"
 					/>
-					<label for="is_active" class="text-sm font-medium" style="color: var(--text)">
+					<label for="is_active" class="text-sm font-medium" style="color: var(--text-primary)">
 						Campaign is active
 					</label>
 				</div>
@@ -266,7 +266,7 @@
 			{#if activeTab === 'steps'}
 				<div class="rounded-lg shadow border p-6" style="background: var(--surface); border-color: var(--border)">
 					<div class="flex items-center justify-between mb-4">
-						<h2 class="text-xl font-semibold" style="color: var(--text)">Campaign Steps</h2>
+						<h2 class="text-xl font-semibold" style="color: var(--text-primary)">Campaign Steps</h2>
 						<button
 							on:click={() => openStepEditor()}
 							class="px-4 py-2 rounded-lg font-medium"
@@ -287,7 +287,7 @@
 									<div class="flex items-start justify-between">
 										<div class="flex-1">
 											<div class="flex items-center gap-2 mb-2">
-												<span class="font-semibold text-lg" style="color: var(--text)">
+												<span class="font-semibold text-lg" style="color: var(--text-primary)">
 													Step {step.step_order}: Day {step.delay_days}
 												</span>
 												<span class="px-2 py-1 rounded text-xs font-medium" style="background: var(--surface-hover); color: var(--text-secondary)">
@@ -295,7 +295,7 @@
 												</span>
 											</div>
 											{#if step.subject}
-												<div class="font-medium mb-1" style="color: var(--text)">{step.subject}</div>
+												<div class="font-medium mb-1" style="color: var(--text-primary)">{step.subject}</div>
 											{/if}
 											<div class="text-sm" style="color: var(--text-secondary)">{step.body.substring(0, 150)}{step.body.length > 150 ? '...' : ''}</div>
 										</div>
@@ -303,7 +303,7 @@
 											<button
 												on:click={() => openStepEditor(step)}
 												class="px-3 py-1 rounded text-sm"
-												style="background: var(--surface-hover); color: var(--text)"
+												style="background: var(--surface-hover); color: var(--text-primary)"
 											>
 												Edit
 											</button>
@@ -327,12 +327,12 @@
 			{#if activeTab === 'enrollments'}
 				<div class="rounded-lg shadow border p-6" style="background: var(--surface); border-color: var(--border)">
 					<div class="flex items-center justify-between mb-4">
-						<h2 class="text-xl font-semibold" style="color: var(--text)">Enrolled People</h2>
+						<h2 class="text-xl font-semibold" style="color: var(--text-primary)">Enrolled People</h2>
 						<div>
 							<select
 								on:change={(e) => enrollPerson(e.target.value)}
 								class="px-3 py-2 rounded-lg border"
-								style="background: var(--bg); border-color: var(--border); color: var(--text)"
+								style="background: var(--bg); border-color: var(--border); color: var(--text-primary)"
 							>
 								<option value="">Enroll someone...</option>
 								{#each people as person}
@@ -351,7 +351,7 @@
 							{#each enrollments as enrollment}
 								<div class="flex items-center justify-between p-3 border rounded-lg" style="border-color: var(--border)">
 									<div>
-										<div class="font-medium" style="color: var(--text)">{enrollment.person_name}</div>
+										<div class="font-medium" style="color: var(--text-primary)">{enrollment.person_name}</div>
 										<div class="text-sm" style="color: var(--text-secondary)">
 											Enrolled {new Date(enrollment.enrolled_at).toLocaleDateString()}
 											· Status: {enrollment.status}
@@ -377,40 +377,40 @@
 {#if showStepEditor}
 	<div class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50" on:click={() => showStepEditor = false}>
 		<div class="rounded-lg shadow-xl p-6 max-w-2xl w-full mx-4" style="background: var(--surface)" on:click|stopPropagation>
-			<h2 class="text-2xl font-bold mb-4" style="color: var(--text)">
+			<h2 class="text-2xl font-bold mb-4" style="color: var(--text-primary)">
 				{editingStep ? 'Edit Step' : 'Add Step'}
 			</h2>
 
 			<div class="space-y-4">
 				<div class="grid grid-cols-2 gap-4">
 					<div>
-						<label class="block text-sm font-medium mb-1" style="color: var(--text)">Step Order</label>
+						<label class="block text-sm font-medium mb-1" style="color: var(--text-primary)">Step Order</label>
 						<input
 							type="number"
 							bind:value={stepForm.step_order}
 							min="1"
 							class="w-full px-3 py-2 rounded-lg border"
-							style="background: var(--bg); border-color: var(--border); color: var(--text)"
+							style="background: var(--bg); border-color: var(--border); color: var(--text-primary)"
 						/>
 					</div>
 					<div>
-						<label class="block text-sm font-medium mb-1" style="color: var(--text)">Delay (days)</label>
+						<label class="block text-sm font-medium mb-1" style="color: var(--text-primary)">Delay (days)</label>
 						<input
 							type="number"
 							bind:value={stepForm.delay_days}
 							min="0"
 							class="w-full px-3 py-2 rounded-lg border"
-							style="background: var(--bg); border-color: var(--border); color: var(--text)"
+							style="background: var(--bg); border-color: var(--border); color: var(--text-primary)"
 						/>
 					</div>
 				</div>
 
 				<div>
-					<label class="block text-sm font-medium mb-1" style="color: var(--text)">Action Type</label>
+					<label class="block text-sm font-medium mb-1" style="color: var(--text-primary)">Action Type</label>
 					<select
 						bind:value={stepForm.action_type}
 						class="w-full px-3 py-2 rounded-lg border"
-						style="background: var(--bg); border-color: var(--border); color: var(--text)"
+						style="background: var(--bg); border-color: var(--border); color: var(--text-primary)"
 					>
 						<option value="email">Email</option>
 						<option value="sms">SMS</option>
@@ -420,24 +420,24 @@
 
 				{#if stepForm.action_type === 'email'}
 					<div>
-						<label class="block text-sm font-medium mb-1" style="color: var(--text)">Subject</label>
+						<label class="block text-sm font-medium mb-1" style="color: var(--text-primary)">Subject</label>
 						<input
 							type="text"
 							bind:value={stepForm.subject}
 							class="w-full px-3 py-2 rounded-lg border"
-							style="background: var(--bg); border-color: var(--border); color: var(--text)"
+							style="background: var(--bg); border-color: var(--border); color: var(--text-primary)"
 							placeholder="Email subject line"
 						/>
 					</div>
 				{/if}
 
 				<div>
-					<label class="block text-sm font-medium mb-1" style="color: var(--text)">Message</label>
+					<label class="block text-sm font-medium mb-1" style="color: var(--text-primary)">Message</label>
 					<textarea
 						bind:value={stepForm.body}
 						rows="6"
 						class="w-full px-3 py-2 rounded-lg border"
-						style="background: var(--bg); border-color: var(--border); color: var(--text)"
+						style="background: var(--bg); border-color: var(--border); color: var(--text-primary)"
 						placeholder="Message content..."
 					></textarea>
 					<p class="text-xs mt-1" style="color: var(--text-secondary)">
@@ -449,7 +449,7 @@
 					<button
 						on:click={() => showStepEditor = false}
 						class="px-4 py-2 rounded-lg font-medium border"
-						style="background: var(--bg); border-color: var(--border); color: var(--text)"
+						style="background: var(--bg); border-color: var(--border); color: var(--text-primary)"
 					>
 						Cancel
 					</button>

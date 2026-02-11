@@ -37,6 +37,36 @@ var AvailableModules = []Module{
 		Description: "Event calendar and scheduling",
 		Available:   true,
 	},
+	{
+		Name:        "communication",
+		DisplayName: "Communication",
+		Description: "Email campaigns, journeys, and connection cards",
+		Available:   true,
+	},
+	{
+		Name:        "streaming",
+		DisplayName: "Streaming",
+		Description: "Live streaming and viewer engagement",
+		Available:   true,
+	},
+	{
+		Name:        "care",
+		DisplayName: "Care",
+		Description: "Pastoral care and follow-up tracking",
+		Available:   true,
+	},
+	{
+		Name:        "media",
+		DisplayName: "Media Library",
+		Description: "Media file management and organization",
+		Available:   true,
+	},
+	{
+		Name:        "sermons",
+		DisplayName: "Sermons",
+		Description: "Sermon notes, audio, and podcast feed",
+		Available:   true,
+	},
 }
 
 func GetModuleByName(name string) *Module {

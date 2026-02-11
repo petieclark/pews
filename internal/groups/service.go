@@ -329,3 +329,37 @@ func (s *Service) GetPersonGroups(ctx context.Context, tenantID, personID string
 
 	return groups, nil
 }
+
+func (s *Service) ListPublicGroups(ctx context.Context, tenantID string) ([]Group, error) {
+	rows, err := s.db.Query(ctx, `
+		SELECT g.id, g.tenant_id, g.name, COALESCE(g.description, ''), g.group_type, 
+		       COALESCE(g.meeting_day, ''), COALESCE(g.meeting_time, ''), COALESCE(g.meeting_location, ''), 
+		       g.is_public, g.max_members, g.is_active, COALESCE(g.photo_url, ''), 
+		       g.created_at, g.updated_at,
+		       COUNT(DISTINCT gm.id) as member_count
+		FROM groups g
+		LEFT JOIN group_members gm ON gm.group_id = g.id
+		WHERE g.tenant_id = $1 AND g.is_public = TRUE AND g.is_active = TRUE
+		GROUP BY g.id ORDER BY g.name`, tenantID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to list public groups: %w", err)
+	}
+	defer rows.Close()
+
+	groups := []Group{}
+	for rows.Next() {
+		var g Group
+		err := rows.Scan(
+			&g.ID, &g.TenantID, &g.Name, &g.Description, &g.GroupType,
+			&g.MeetingDay, &g.MeetingTime, &g.MeetingLocation,
+			&g.IsPublic, &g.MaxMembers, &g.IsActive, &g.PhotoURL,
+			&g.CreatedAt, &g.UpdatedAt, &g.MemberCount,
+		)
+		if err != nil {
+			return nil, fmt.Errorf("failed to scan group: %w", err)
+		}
+		groups = append(groups, g)
+	}
+
+	return groups, nil
+}

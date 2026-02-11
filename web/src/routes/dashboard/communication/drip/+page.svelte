@@ -58,7 +58,7 @@
 <div>
 	<div class="flex items-center justify-between mb-6">
 		<div>
-			<h1 class="text-3xl font-bold" style="color: var(--text)">Drip Campaigns</h1>
+			<h1 class="text-3xl font-bold" style="color: var(--text-primary)">Drip Campaigns</h1>
 			<p class="mt-1" style="color: var(--text-secondary)">Automated sequences triggered by specific events</p>
 		</div>
 		<button
@@ -81,7 +81,7 @@
 	{:else if campaigns.length === 0}
 		<div class="rounded-lg shadow border p-12 text-center" style="background: var(--surface); border-color: var(--border)">
 			<div class="text-5xl mb-4">💧</div>
-			<h2 class="text-xl font-semibold mb-2" style="color: var(--text)">No drip campaigns yet</h2>
+			<h2 class="text-xl font-semibold mb-2" style="color: var(--text-primary)">No drip campaigns yet</h2>
 			<p class="mb-6" style="color: var(--text-secondary)">Create automated communication sequences triggered by visitor and member actions</p>
 			<button
 				on:click={() => goto('/dashboard/communication/drip/new')}
@@ -98,7 +98,7 @@
 					<div class="flex items-start justify-between">
 						<div class="flex-1">
 							<div class="flex items-center gap-3 mb-2">
-								<h3 class="font-semibold text-lg" style="color: var(--text)">{campaign.name}</h3>
+								<h3 class="font-semibold text-lg" style="color: var(--text-primary)">{campaign.name}</h3>
 								<button
 									on:click={() => toggleActive(campaign)}
 									class="px-3 py-1 rounded-full text-xs font-medium"
@@ -128,7 +128,7 @@
 							<button
 								on:click={() => goto(`/dashboard/communication/drip/${campaign.id}`)}
 								class="px-4 py-2 rounded-lg font-medium border"
-								style="background: var(--bg); border-color: var(--border); color: var(--text)"
+								style="background: var(--bg); border-color: var(--border); color: var(--text-primary)"
 							>
 								Edit
 							</button>

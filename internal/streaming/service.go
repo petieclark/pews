@@ -31,9 +31,9 @@ func (s *Service) ListStreams(ctx context.Context, tenantID string, status strin
 
 	// Build query
 	sqlQuery := `
-		SELECT id, tenant_id, title, description, service_id, status, 
+		SELECT id, tenant_id, title, COALESCE(description, ''::text), service_id, status, 
 		       scheduled_start, actual_start, actual_end, stream_type, 
-		       stream_url, stream_key, embed_url, chat_enabled, giving_enabled, 
+		       COALESCE(stream_url, ''::text), COALESCE(stream_key, ''::text), embed_url, chat_enabled, giving_enabled, 
 		       connection_card_enabled, viewer_count, peak_viewers, 
 		       created_at, updated_at
 		FROM streams
@@ -90,9 +90,9 @@ func (s *Service) ListStreams(ctx context.Context, tenantID string, status strin
 func (s *Service) GetStreamByID(ctx context.Context, tenantID, streamID string) (*Stream, error) {
 	var st Stream
 	err := s.db.QueryRow(ctx, `
-		SELECT id, tenant_id, title, description, service_id, status, 
+		SELECT id, tenant_id, title, COALESCE(description, ''::text), service_id, status, 
 		       scheduled_start, actual_start, actual_end, stream_type, 
-		       stream_url, stream_key, embed_url, chat_enabled, giving_enabled, 
+		       COALESCE(stream_url, ''::text), COALESCE(stream_key, ''::text), embed_url, chat_enabled, giving_enabled, 
 		       connection_card_enabled, viewer_count, peak_viewers, 
 		       created_at, updated_at
 		FROM streams
@@ -119,9 +119,9 @@ func (s *Service) GetStreamByIDPublic(ctx context.Context, streamID string) (*St
 	// Public access - no tenant context needed, but we still fetch it
 	var st Stream
 	err := s.db.QueryRow(ctx, `
-		SELECT id, tenant_id, title, description, service_id, status, 
+		SELECT id, tenant_id, title, COALESCE(description, ''::text), service_id, status, 
 		       scheduled_start, actual_start, actual_end, stream_type, 
-		       stream_url, stream_key, embed_url, chat_enabled, giving_enabled, 
+		       COALESCE(stream_url, ''::text), COALESCE(stream_key, ''::text), embed_url, chat_enabled, giving_enabled, 
 		       connection_card_enabled, viewer_count, peak_viewers, 
 		       created_at, updated_at
 		FROM streams
@@ -151,7 +151,7 @@ func (s *Service) CreateStream(ctx context.Context, tenantID string, stream *Str
 	_, err := s.db.Exec(ctx, `
 		INSERT INTO streams (
 			id, tenant_id, title, description, service_id, status, 
-			scheduled_start, stream_type, stream_url, stream_key, embed_url,
+			scheduled_start, stream_type, COALESCE(stream_url, ''::text), COALESCE(stream_key, ''::text), embed_url,
 			chat_enabled, giving_enabled, connection_card_enabled
 		) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)
 	`, stream.ID, stream.TenantID, stream.Title, stream.Description, stream.ServiceID,
@@ -228,9 +228,9 @@ func (s *Service) EndStream(ctx context.Context, tenantID, streamID string) erro
 func (s *Service) GetLiveStream(ctx context.Context, tenantID string) (*Stream, error) {
 	var st Stream
 	err := s.db.QueryRow(ctx, `
-		SELECT id, tenant_id, title, description, service_id, status, 
+		SELECT id, tenant_id, title, COALESCE(description, ''::text), service_id, status, 
 		       scheduled_start, actual_start, actual_end, stream_type, 
-		       stream_url, stream_key, embed_url, chat_enabled, giving_enabled, 
+		       COALESCE(stream_url, ''::text), COALESCE(stream_key, ''::text), embed_url, chat_enabled, giving_enabled, 
 		       connection_card_enabled, viewer_count, peak_viewers, 
 		       created_at, updated_at
 		FROM streams

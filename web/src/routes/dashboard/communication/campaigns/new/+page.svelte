@@ -79,7 +79,7 @@
 
 <div class="max-w-4xl mx-auto">
 	<div class="mb-6">
-		<h1 class="text-3xl font-bold" style="color: var(--text)">New Campaign</h1>
+		<h1 class="text-3xl font-bold" style="color: var(--text-primary)">New Campaign</h1>
 	</div>
 
 	{#if error}
@@ -91,11 +91,11 @@
 	<div class="rounded-lg shadow border p-6 space-y-6" style="background: var(--surface); border-color: var(--border)">
 		<!-- Template Selector -->
 		<div>
-			<label class="block text-sm font-medium mb-2" style="color: var(--text)">Start from Template (Optional)</label>
+			<label class="block text-sm font-medium mb-2" style="color: var(--text-primary)">Start from Template (Optional)</label>
 			<select
 				on:change={loadTemplate}
 				class="w-full px-4 py-2 rounded-lg border"
-				style="background: var(--bg); border-color: var(--border); color: var(--text)"
+				style="background: var(--bg); border-color: var(--border); color: var(--text-primary)"
 			>
 				<option value="">— Select Template —</option>
 				{#each templates as template}
@@ -106,27 +106,27 @@
 
 		<!-- Name -->
 		<div>
-			<label class="block text-sm font-medium mb-2" style="color: var(--text)">Campaign Name *</label>
+			<label class="block text-sm font-medium mb-2" style="color: var(--text-primary)">Campaign Name *</label>
 			<input
 				type="text"
 				bind:value={name}
 				placeholder="Easter Sunday Invitation"
 				class="w-full px-4 py-2 rounded-lg border"
-				style="background: var(--bg); border-color: var(--border); color: var(--text)"
+				style="background: var(--bg); border-color: var(--border); color: var(--text-primary)"
 			/>
 		</div>
 
 		<!-- Channel -->
 		<div>
-			<label class="block text-sm font-medium mb-2" style="color: var(--text)">Channel *</label>
+			<label class="block text-sm font-medium mb-2" style="color: var(--text-primary)">Channel *</label>
 			<div class="flex gap-4">
 				<label class="flex items-center gap-2 cursor-pointer">
 					<input type="radio" bind:group={channel} value="email" />
-					<span style="color: var(--text)">📧 Email</span>
+					<span style="color: var(--text-primary)">📧 Email</span>
 				</label>
 				<label class="flex items-center gap-2 cursor-pointer">
 					<input type="radio" bind:group={channel} value="sms" />
-					<span style="color: var(--text)">💬 SMS</span>
+					<span style="color: var(--text-primary)">💬 SMS</span>
 				</label>
 			</div>
 		</div>
@@ -134,13 +134,13 @@
 		<!-- Subject (email only) -->
 		{#if channel === 'email'}
 			<div>
-				<label class="block text-sm font-medium mb-2" style="color: var(--text)">Subject Line *</label>
+				<label class="block text-sm font-medium mb-2" style="color: var(--text-primary)">Subject Line *</label>
 				<input
 					type="text"
 					bind:value={subject}
 					placeholder="You're Invited to Easter Sunday!"
 					class="w-full px-4 py-2 rounded-lg border"
-					style="background: var(--bg); border-color: var(--border); color: var(--text)"
+					style="background: var(--bg); border-color: var(--border); color: var(--text-primary)"
 				/>
 			</div>
 		{/if}
@@ -148,13 +148,13 @@
 		<!-- Body -->
 		<div>
 			<div class="flex items-center justify-between mb-2">
-				<label class="block text-sm font-medium" style="color: var(--text)">Message Body *</label>
+				<label class="block text-sm font-medium" style="color: var(--text-primary)">Message Body *</label>
 				<div class="flex gap-2">
 					<button
 						type="button"
 						on:click={() => insertVariable('first_name')}
 						class="text-xs px-2 py-1 rounded border"
-						style="background: var(--surface); border-color: var(--border); color: var(--text)"
+						style="background: var(--surface); border-color: var(--border); color: var(--text-primary)"
 					>
 						+ First Name
 					</button>
@@ -162,7 +162,7 @@
 						type="button"
 						on:click={() => insertVariable('church_name')}
 						class="text-xs px-2 py-1 rounded border"
-						style="background: var(--surface); border-color: var(--border); color: var(--text)"
+						style="background: var(--surface); border-color: var(--border); color: var(--text-primary)"
 					>
 						+ Church Name
 					</button>
@@ -173,17 +173,17 @@
 				rows="10"
 				placeholder="Hi {{first_name}}, we'd love to see you this Easter..."
 				class="w-full px-4 py-2 rounded-lg border font-mono text-sm"
-				style="background: var(--bg); border-color: var(--border); color: var(--text)"
+				style="background: var(--bg); border-color: var(--border); color: var(--text-primary)"
 			></textarea>
 		</div>
 
 		<!-- Target -->
 		<div>
-			<label class="block text-sm font-medium mb-2" style="color: var(--text)">Send To *</label>
+			<label class="block text-sm font-medium mb-2" style="color: var(--text-primary)">Send To *</label>
 			<select
 				bind:value={targetType}
 				class="w-full px-4 py-2 rounded-lg border mb-2"
-				style="background: var(--bg); border-color: var(--border); color: var(--text)"
+				style="background: var(--bg); border-color: var(--border); color: var(--text-primary)"
 			>
 				<option value="all">All Members</option>
 				<option value="tag">By Tag</option>
@@ -194,7 +194,7 @@
 				<select
 					bind:value={targetId}
 					class="w-full px-4 py-2 rounded-lg border"
-					style="background: var(--bg); border-color: var(--border); color: var(--text)"
+					style="background: var(--bg); border-color: var(--border); color: var(--text-primary)"
 				>
 					<option value="">— Select Tag —</option>
 					{#each tags as tag}
@@ -205,7 +205,7 @@
 				<select
 					bind:value={targetId}
 					class="w-full px-4 py-2 rounded-lg border"
-					style="background: var(--bg); border-color: var(--border); color: var(--text)"
+					style="background: var(--bg); border-color: var(--border); color: var(--text-primary)"
 				>
 					<option value="">— Select Group —</option>
 					{#each groups as group}
@@ -220,7 +220,7 @@
 			<button
 				on:click={() => goto('/dashboard/communication/campaigns')}
 				class="px-6 py-2 rounded-lg font-medium border"
-				style="background: var(--surface); border-color: var(--border); color: var(--text)"
+				style="background: var(--surface); border-color: var(--border); color: var(--text-primary)"
 			>
 				Cancel
 			</button>

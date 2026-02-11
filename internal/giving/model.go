@@ -54,6 +54,7 @@ type GivingStats struct {
 	TotalThisYear   int            `json:"total_this_year"`
 	TotalAllTime    int            `json:"total_all_time"`
 	DonationCount   int            `json:"donation_count"`
+	DonorCount      int            `json:"donor_count"`
 	AverageDonation int            `json:"average_donation"`
 	FundBreakdown   []FundSummary  `json:"fund_breakdown"`
 	MonthlyTrend    []MonthlyTotal `json:"monthly_trend"`
