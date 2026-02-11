@@ -15,6 +15,7 @@ type Config struct {
 	StripePriceID       string
 	Port                string
 	FrontendURL         string
+	UploadsPath         string
 }
 
 func Load() (*Config, error) {
@@ -29,6 +30,7 @@ func Load() (*Config, error) {
 		StripePriceID:       getEnv("STRIPE_PRICE_ID", ""),
 		Port:                getEnv("PORT", "8080"),
 		FrontendURL:         getEnv("FRONTEND_URL", "http://localhost:5173"),
+		UploadsPath:         getEnv("UPLOADS_PATH", "./uploads"),
 	}
 
 	if cfg.DatabaseURL == "" {

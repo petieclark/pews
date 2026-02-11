@@ -29,6 +29,9 @@ services:
       STRIPE_PRICE_ID: ${STRIPE_PRICE_ID:-price_xxx}
       PORT: 8080
       FRONTEND_URL: http://localhost:5273
+      UPLOADS_PATH: /uploads
+    volumes:
+      - uploads:/uploads
     depends_on:
       postgres:
         condition: service_healthy
@@ -50,3 +53,4 @@ services:
 
 volumes:
   postgres_data:
+  uploads:

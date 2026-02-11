@@ -10,6 +10,7 @@ import (
 	"github.com/petieclark/pews/internal/communication"
 	"github.com/petieclark/pews/internal/giving"
 	"github.com/petieclark/pews/internal/groups"
+	"github.com/petieclark/pews/internal/media"
 	"github.com/petieclark/pews/internal/middleware"
 	"github.com/petieclark/pews/internal/module"
 	"github.com/petieclark/pews/internal/people"
@@ -35,9 +36,11 @@ func New(
 	streamingHandler *streaming.Handler,
 	communicationHandler *communication.Handler,
 	checkinsHandler *checkins.Handler,
+	mediaHandler *media.Handler,
 	webhookSecret string,
 	givingWebhookSecret string,
 	frontendURL string,
+	uploadsPath string,
 ) *Router {
 	r := chi.NewRouter()
 
@@ -258,7 +261,18 @@ func New(
 		// Check-ins - Stats & Search
 		r.Get("/api/checkins/stats", checkinsHandler.GetStats)
 		r.Get("/api/checkins/search", checkinsHandler.SearchPeople)
+
+		// Media Library
+		r.Post("/api/media/upload", mediaHandler.UploadFile)
+		r.Get("/api/media", mediaHandler.ListFiles)
+		r.Get("/api/media/folders", mediaHandler.ListFolders)
+		r.Get("/api/media/{id}", mediaHandler.GetFile)
+		r.Put("/api/media/{id}", mediaHandler.UpdateFile)
+		r.Delete("/api/media/{id}", mediaHandler.DeleteFile)
 	})
+
+	// Static file server for uploads
+	r.Handle("/uploads/*", http.StripPrefix("/uploads/", http.FileServer(http.Dir(uploadsPath))))
 
 	return &Router{r}
 }
