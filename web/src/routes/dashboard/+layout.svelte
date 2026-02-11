@@ -12,6 +12,7 @@
 	let churchLogo = '';
 	let showUserDropdown = false;
 	let activeNavSection = '';
+	let openNavSection = '';
 
 	// Navigation structure
 	const navSections = [
@@ -89,6 +90,14 @@
 	function closeUserDropdown() {
 		showUserDropdown = false;
 	}
+
+	function toggleNav(name) {
+		openNavSection = openNavSection === name ? '' : name;
+	}
+
+	function closeNav() {
+		openNavSection = '';
+	}
 </script>
 
 <div class="min-h-screen bg-[var(--bg)]">
@@ -140,29 +149,35 @@
 		<!-- Second row: Navigation sections -->
 		<div class="bg-surface">
 			<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-				<div class="flex space-x-6 h-12 items-center overflow-x-auto">
+				<div class="flex space-x-6 h-12 items-center overflow-visible">
 					{#each navSections as section}
-						<div class="relative group">
-							<button class="text-sm font-medium text-secondary hover:text-primary whitespace-nowrap py-3 px-2">
+						<div class="relative">
+							<button
+								on:click={() => toggleNav(section.name)}
+								class="text-sm font-medium whitespace-nowrap py-3 px-2 transition-colors
+									{section.items.some(i => isActive(i.href)) ? 'text-[var(--teal)] border-b-2 border-[var(--teal)]' : 'text-secondary hover:text-primary'}"
+							>
 								{section.name}
-								<svg class="w-3 h-3 inline ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+								<svg class="w-3 h-3 inline ml-1 transition-transform {openNavSection === section.name ? 'rotate-180' : ''}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
 									<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
 								</svg>
 							</button>
 							
-							<!-- Dropdown menu -->
-							<div class="absolute left-0 mt-1 hidden group-hover:block z-50">
-								<div class="bg-surface rounded-lg shadow-lg border border-custom py-2 min-w-[180px]">
-									{#each section.items as item}
-										<a
-											href={item.href}
-											class="block px-4 py-2 text-sm hover:bg-[var(--surface-hover)] transition-colors {isActive(item.href) ? 'text-[var(--teal)] font-semibold bg-[var(--surface-hover)]' : 'text-secondary hover:text-primary'}"
-										>
-											{item.label}
-										</a>
-									{/each}
+							{#if openNavSection === section.name}
+								<div class="absolute left-0 top-full z-50 pt-1">
+									<div class="bg-surface rounded-lg shadow-lg border border-custom py-2 min-w-[180px]">
+										{#each section.items as item}
+											<a
+												href={item.href}
+												on:click={closeNav}
+												class="block px-4 py-2 text-sm hover:bg-[var(--surface-hover)] transition-colors {isActive(item.href) ? 'text-[var(--teal)] font-semibold bg-[var(--surface-hover)]' : 'text-secondary hover:text-primary'}"
+											>
+												{item.label}
+											</a>
+										{/each}
+									</div>
 								</div>
-							</div>
+							{/if}
 						</div>
 					{/each}
 				</div>
@@ -175,11 +190,11 @@
 	</main>
 </div>
 
-<!-- Close user dropdown when clicking outside -->
-{#if showUserDropdown}
+<!-- Close dropdowns when clicking outside -->
+{#if showUserDropdown || openNavSection}
 	<button
 		class="fixed inset-0 z-30"
-		on:click={closeUserDropdown}
+		on:click={() => { closeUserDropdown(); closeNav(); }}
 		aria-label="Close dropdown"
 	></button>
 {/if}
