@@ -258,6 +258,12 @@ func New(
 		// Check-ins - Stats & Search
 		r.Get("/api/checkins/stats", checkinsHandler.GetStats)
 		r.Get("/api/checkins/search", checkinsHandler.SearchPeople)
+
+		// Attendance Tracking
+		r.Get("/api/attendance/trends", checkinsHandler.GetAttendanceTrends)
+		r.Get("/api/attendance/by-person/{id}", checkinsHandler.GetPersonAttendance)
+		r.Get("/api/attendance/by-service/{id}", checkinsHandler.GetServiceAttendance)
+		r.Get("/api/attendance/first-timers", checkinsHandler.GetFirstTimersThisWeek)
 	})
 
 	return &Router{r}
