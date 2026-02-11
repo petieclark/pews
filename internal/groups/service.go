@@ -31,9 +31,9 @@ func (s *Service) ListGroups(ctx context.Context, tenantID string, groupType str
 
 	// Build query
 	sqlQuery := `
-		SELECT g.id, g.tenant_id, g.name, g.description, g.group_type, 
-		       g.meeting_day, g.meeting_time, g.meeting_location, 
-		       g.is_public, g.max_members, g.is_active, g.photo_url, 
+		SELECT g.id, g.tenant_id, g.name, COALESCE(g.description, ''), g.group_type, 
+		       COALESCE(g.meeting_day, ''), COALESCE(g.meeting_time, ''), COALESCE(g.meeting_location, ''), 
+		       g.is_public, g.max_members, g.is_active, COALESCE(g.photo_url, ''), 
 		       g.created_at, g.updated_at,
 		       COUNT(DISTINCT gm.id) as member_count
 		FROM groups g
@@ -99,9 +99,9 @@ func (s *Service) ListGroups(ctx context.Context, tenantID string, groupType str
 func (s *Service) GetGroupByID(ctx context.Context, tenantID, groupID string) (*Group, error) {
 	var g Group
 	err = s.db.QueryRow(ctx, `
-		SELECT g.id, g.tenant_id, g.name, g.description, g.group_type, 
-		       g.meeting_day, g.meeting_time, g.meeting_location, 
-		       g.is_public, g.max_members, g.is_active, g.photo_url, 
+		SELECT g.id, g.tenant_id, g.name, COALESCE(g.description, ''), g.group_type, 
+		       COALESCE(g.meeting_day, ''), COALESCE(g.meeting_time, ''), COALESCE(g.meeting_location, ''), 
+		       g.is_public, g.max_members, g.is_active, COALESCE(g.photo_url, ''), 
 		       g.created_at, g.updated_at,
 		       COUNT(DISTINCT gm.id) as member_count
 		FROM groups g
@@ -197,10 +197,10 @@ func (s *Service) DeleteGroup(ctx context.Context, tenantID, groupID string) err
 func (s *Service) GetGroupMembers(ctx context.Context, tenantID, groupID string) ([]Member, error) {
 	rows, err := s.db.Query(ctx, `
 		SELECT gm.id, gm.group_id, gm.person_id, gm.role, gm.joined_at,
-		       p.id, p.tenant_id, p.first_name, p.last_name, p.email, p.phone,
-		       p.address_line1, p.address_line2, p.city, p.state, p.zip,
-		       p.birthdate, p.gender, p.membership_status, p.photo_url, p.notes,
-		       p.custom_fields, p.created_at, p.updated_at
+		       p.id, p.tenant_id, p.first_name, p.last_name, COALESCE(p.email, ''), COALESCE(p.phone, ''),
+		       COALESCE(p.address_line1, ''), COALESCE(p.address_line2, ''), COALESCE(p.city, ''), COALESCE(p.state, ''), COALESCE(p.zip, ''),
+		       p.birthdate, COALESCE(p.gender, ''), p.membership_status, COALESCE(p.photo_url, ''), COALESCE(p.notes, ''),
+		       COALESCE(p.custom_fields, '{}'), p.created_at, p.updated_at
 		FROM group_members gm
 		JOIN people p ON p.id = gm.person_id
 		WHERE gm.group_id = $1
@@ -279,9 +279,9 @@ func (s *Service) RemoveMemberFromGroup(ctx context.Context, tenantID, memberID 
 
 func (s *Service) GetPersonGroups(ctx context.Context, tenantID, personID string) ([]Group, error) {
 	rows, err := s.db.Query(ctx, `
-		SELECT g.id, g.tenant_id, g.name, g.description, g.group_type, 
-		       g.meeting_day, g.meeting_time, g.meeting_location, 
-		       g.is_public, g.max_members, g.is_active, g.photo_url, 
+		SELECT g.id, g.tenant_id, g.name, COALESCE(g.description, ''), g.group_type, 
+		       COALESCE(g.meeting_day, ''), COALESCE(g.meeting_time, ''), COALESCE(g.meeting_location, ''), 
+		       g.is_public, g.max_members, g.is_active, COALESCE(g.photo_url, ''), 
 		       g.created_at, g.updated_at
 		FROM groups g
 		JOIN group_members gm ON gm.group_id = g.id
