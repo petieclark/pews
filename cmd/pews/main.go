@@ -38,7 +38,6 @@ import (
 	"github.com/petieclark/pews/internal/streaming"
 	"github.com/petieclark/pews/internal/tenant"
 	"github.com/petieclark/pews/internal/website"
-	"github.com/petieclark/pews/internal/worship"
 )
 
 func main() {
