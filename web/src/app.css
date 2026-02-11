@@ -51,6 +51,54 @@
 	}
 }
 
+@layer components {
+	/* Mobile-responsive table → card layout */
+	@media (max-width: 768px) {
+		.responsive-table thead {
+			display: none;
+		}
+		.responsive-table tbody tr {
+			display: block;
+			margin-bottom: 0.75rem;
+			border: 1px solid var(--border);
+			border-radius: 0.5rem;
+			padding: 1rem;
+			background: var(--surface);
+		}
+		.responsive-table tbody td {
+			display: flex;
+			justify-content: space-between;
+			align-items: center;
+			padding: 0.35rem 0;
+			border: none;
+		}
+		.responsive-table tbody td::before {
+			content: attr(data-label);
+			font-weight: 600;
+			font-size: 0.75rem;
+			text-transform: uppercase;
+			color: var(--text-secondary);
+			margin-right: 1rem;
+		}
+	}
+
+	/* Full-screen modal on mobile */
+	@media (max-width: 640px) {
+		.modal-responsive {
+			align-items: stretch !important;
+			padding: 0 !important;
+		}
+		.modal-responsive > div[role="dialog"] {
+			max-width: 100% !important;
+			width: 100% !important;
+			min-height: 100vh;
+			border-radius: 0 !important;
+			display: flex;
+			flex-direction: column;
+		}
+	}
+}
+
 @layer utilities {
 	.bg-surface {
 		background-color: var(--surface);
