@@ -29,7 +29,7 @@ echo ""
 echo -e "${YELLOW}Logging in...${NC}"
 LOGIN_RESPONSE=$(curl -s -X POST "$BASE/api/auth/login" \
   -H "Content-Type: application/json" \
-  -d "{\"email\":\"$EMAIL\",\"password\":\"$PASS\"}")
+  -d "{\"tenant_slug\":\"$SLUG\",\"email\":\"$EMAIL\",\"password\":\"$PASS\"}")
 
 TOKEN=$(echo $LOGIN_RESPONSE | grep -o '"token":"[^"]*' | sed 's/"token":"//')
 
