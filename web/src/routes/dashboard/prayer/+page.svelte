@@ -48,16 +48,21 @@
 	}
 
 	function getStatusColor(s: string) {
-		const colors = { pending: 'bg-yellow-100 text-yellow-800', praying: 'bg-blue-100 text-blue-800', answered: 'bg-green-100 text-green-800', archived: 'bg-gray-100 text-gray-800' };
-		return colors[s] || 'bg-gray-100';
+		const colors = { 
+			pending: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-100', 
+			praying: 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-100', 
+			answered: 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-100', 
+			archived: 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-200' 
+		};
+		return colors[s] || 'bg-gray-100 dark:bg-gray-700';
 	}
 </script>
 
 <div class="p-6">
-	<h1 class="text-3xl font-bold text-[#1B3A4B] mb-6">Prayer Requests</h1>
+	<h1 class="text-3xl font-bold text-[var(--text-primary)] mb-6">Prayer Requests</h1>
 
-	<div class="bg-white rounded-lg shadow p-4 mb-6">
-		<select bind:value={statusFilter} on:change={loadPrayerRequests} class="px-3 py-2 border rounded-lg">
+	<div class="bg-surface border border-custom rounded-lg shadow p-4 mb-6">
+		<select bind:value={statusFilter} on:change={loadPrayerRequests} class="px-3 py-2 border border-custom rounded-lg bg-surface text-primary">
 			<option value="">All</option>
 			<option value="pending">Pending</option>
 			<option value="praying">Praying</option>
@@ -68,19 +73,22 @@
 
 	<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
 		{#if loading}
-			<div class="col-span-full text-center py-12"><div class="animate-spin rounded-full h-12 w-12 border-b-2 border-[#4A8B8C] mx-auto"></div></div>
+			<div class="col-span-full text-center py-12"><div class="animate-spin rounded-full h-12 w-12 border-b-2 border-[var(--teal)] mx-auto"></div></div>
 		{:else if prayerRequests.length === 0}
-			<p class="col-span-full text-center text-gray-500">No requests</p>
+			<p class="col-span-full text-center text-secondary">No requests</p>
 		{:else}
 			{#each prayerRequests as req}
-				<div class="bg-white rounded-lg shadow p-6">
+				<div class="bg-surface border border-custom rounded-lg shadow p-6">
 					<div class="flex justify-between mb-2">
-						<h3 class="font-bold text-lg">{req.name}</h3>
+						<h3 class="font-bold text-lg text-[var(--text-primary)]">{req.name}</h3>
 						<span class="px-2 py-1 text-xs rounded-full {getStatusColor(req.status)}">{req.status}</span>
 					</div>
-					<p class="text-gray-700 mb-4 line-clamp-3">{req.request_text}</p>
-					<p class="text-sm text-gray-600 mb-3">{formatDate(req.submitted_at)}</p>
-					<select value={req.status} on:change={(e) => updateStatus(req.id, e.currentTarget.value)} class="w-full px-3 py-2 border rounded-lg">
+					<p class="text-secondary mb-4 line-clamp-3">{req.request_text}</p>
+					<p class="text-sm text-secondary mb-3">{formatDate(req.submitted_at)}</p>
+					{#if req.follower_count !== undefined}
+						<p class="text-xs text-secondary mb-3">👥 {req.follower_count} {req.follower_count === 1 ? 'follower' : 'followers'}</p>
+					{/if}
+					<select value={req.status} on:change={(e) => updateStatus(req.id, e.currentTarget.value)} class="w-full px-3 py-2 border border-custom rounded-lg bg-surface text-primary">
 						<option value="pending">Pending</option>
 						<option value="praying">Praying</option>
 						<option value="answered">Answered</option>
