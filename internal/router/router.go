@@ -13,6 +13,7 @@ import (
 	"github.com/petieclark/pews/internal/middleware"
 	"github.com/petieclark/pews/internal/module"
 	"github.com/petieclark/pews/internal/people"
+	"github.com/petieclark/pews/internal/qr"
 	"github.com/petieclark/pews/internal/services"
 	"github.com/petieclark/pews/internal/streaming"
 	"github.com/petieclark/pews/internal/tenant"
@@ -35,6 +36,7 @@ func New(
 	streamingHandler *streaming.Handler,
 	communicationHandler *communication.Handler,
 	checkinsHandler *checkins.Handler,
+	qrHandler *qr.Handler,
 	webhookSecret string,
 	givingWebhookSecret string,
 	frontendURL string,
@@ -61,6 +63,12 @@ func New(
 
 	// Public communication route - connection card submission (no auth required)
 	r.Post("/api/communication/cards", communicationHandler.SubmitConnectionCard)
+
+	// Public QR code routes (no auth required - for scanning)
+	r.Get("/api/qr/checkin", qrHandler.GenerateCheckinQR)
+	r.Get("/api/qr/connect", qrHandler.GenerateConnectQR)
+	r.Get("/api/qr/give", qrHandler.GenerateGiveQR)
+	r.Get("/api/qr/prayer", qrHandler.GeneratePrayerQR)
 
 	// Health check
 	r.Get("/api/health", func(w http.ResponseWriter, r *http.Request) {
@@ -258,6 +266,9 @@ func New(
 		// Check-ins - Stats & Search
 		r.Get("/api/checkins/stats", checkinsHandler.GetStats)
 		r.Get("/api/checkins/search", checkinsHandler.SearchPeople)
+
+		// QR - Custom URL (authenticated)
+		r.Get("/api/qr/custom", qrHandler.GenerateCustomQR)
 	})
 
 	return &Router{r}
