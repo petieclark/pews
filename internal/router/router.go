@@ -6,12 +6,14 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/petieclark/pews/internal/auth"
 	"github.com/petieclark/pews/internal/billing"
+	"github.com/petieclark/pews/internal/communication"
 	"github.com/petieclark/pews/internal/giving"
 	"github.com/petieclark/pews/internal/groups"
 	"github.com/petieclark/pews/internal/middleware"
 	"github.com/petieclark/pews/internal/module"
 	"github.com/petieclark/pews/internal/people"
 	"github.com/petieclark/pews/internal/services"
+	"github.com/petieclark/pews/internal/streaming"
 	"github.com/petieclark/pews/internal/tenant"
 )
 
@@ -29,6 +31,8 @@ func New(
 	groupsHandler *groups.Handler,
 	servicesHandler *services.Handler,
 	givingHandler *giving.Handler,
+	streamingHandler *streaming.Handler,
+	communicationHandler *communication.Handler,
 	webhookSecret string,
 	givingWebhookSecret string,
 	frontendURL string,
@@ -45,6 +49,16 @@ func New(
 	r.Post("/api/auth/login", authHandler.Login)
 	r.Post("/api/billing/webhook", billingHandler.HandleWebhook(webhookSecret))
 	r.Post("/api/giving/webhook", givingHandler.HandleWebhook(givingWebhookSecret))
+
+	// Public streaming routes (no auth required)
+	r.Get("/api/streaming/watch/{id}", streamingHandler.GetWatchStream)
+	r.Get("/api/streaming/{id}/chat", streamingHandler.GetChatMessages)
+	r.Post("/api/streaming/{id}/chat", streamingHandler.SendChatMessage)
+	r.Post("/api/streaming/{id}/join", streamingHandler.JoinStream)
+	r.Post("/api/streaming/{id}/leave", streamingHandler.LeaveStream)
+
+	// Public communication route - connection card submission (no auth required)
+	r.Post("/api/communication/cards", communicationHandler.SubmitConnectionCard)
 
 	// Health check
 	r.Get("/api/health", func(w http.ResponseWriter, r *http.Request) {
@@ -160,6 +174,61 @@ func New(
 		r.Get("/api/giving/connect/return", givingHandler.HandleConnectReturn)
 		r.Get("/api/giving/connect/refresh", givingHandler.HandleConnectRefresh)
 		r.Post("/api/giving/checkout", givingHandler.CreateCheckout)
+
+		// Streaming - Streams
+		r.Get("/api/streaming", streamingHandler.ListStreams)
+		r.Post("/api/streaming", streamingHandler.CreateStream)
+		r.Get("/api/streaming/live", streamingHandler.GetLiveStream)
+		r.Get("/api/streaming/{id}", streamingHandler.GetStream)
+		r.Put("/api/streaming/{id}", streamingHandler.UpdateStream)
+		r.Delete("/api/streaming/{id}", streamingHandler.DeleteStream)
+		r.Post("/api/streaming/{id}/go-live", streamingHandler.GoLive)
+		r.Post("/api/streaming/{id}/end", streamingHandler.EndStream)
+
+		// Streaming - Chat (admin actions)
+		r.Put("/api/streaming/{id}/chat/{msgId}/pin", streamingHandler.PinChatMessage)
+		r.Delete("/api/streaming/{id}/chat/{msgId}", streamingHandler.DeleteChatMessage)
+
+		// Streaming - Viewers
+		r.Get("/api/streaming/{id}/viewers", streamingHandler.GetViewers)
+
+		// Streaming - Notes
+		r.Get("/api/streaming/{id}/notes", streamingHandler.GetStreamNotes)
+		r.Post("/api/streaming/{id}/notes", streamingHandler.SaveStreamNotes)
+
+		// Communication - Templates
+		r.Get("/api/communication/templates", communicationHandler.ListTemplates)
+		r.Post("/api/communication/templates", communicationHandler.CreateTemplate)
+		r.Put("/api/communication/templates/{id}", communicationHandler.UpdateTemplate)
+		r.Delete("/api/communication/templates/{id}", communicationHandler.DeleteTemplate)
+
+		// Communication - Campaigns
+		r.Get("/api/communication/campaigns", communicationHandler.ListCampaigns)
+		r.Post("/api/communication/campaigns", communicationHandler.CreateCampaign)
+		r.Get("/api/communication/campaigns/{id}", communicationHandler.GetCampaign)
+		r.Put("/api/communication/campaigns/{id}", communicationHandler.UpdateCampaign)
+		r.Post("/api/communication/campaigns/{id}/send", communicationHandler.SendCampaign)
+		r.Get("/api/communication/campaigns/{id}/recipients", communicationHandler.GetCampaignRecipients)
+
+		// Communication - Journeys
+		r.Get("/api/communication/journeys", communicationHandler.ListJourneys)
+		r.Post("/api/communication/journeys", communicationHandler.CreateJourney)
+		r.Get("/api/communication/journeys/{id}", communicationHandler.GetJourney)
+		r.Put("/api/communication/journeys/{id}", communicationHandler.UpdateJourney)
+		r.Delete("/api/communication/journeys/{id}", communicationHandler.DeleteJourney)
+		r.Post("/api/communication/journeys/{id}/steps", communicationHandler.AddJourneyStep)
+		r.Put("/api/communication/journeys/{id}/steps/{stepId}", communicationHandler.UpdateJourneyStep)
+		r.Delete("/api/communication/journeys/{id}/steps/{stepId}", communicationHandler.DeleteJourneyStep)
+		r.Post("/api/communication/journeys/{id}/enroll", communicationHandler.EnrollInJourney)
+		r.Get("/api/communication/journeys/{id}/enrollments", communicationHandler.GetJourneyEnrollments)
+
+		// Communication - Connection Cards (authenticated endpoints)
+		r.Get("/api/communication/cards", communicationHandler.ListConnectionCards)
+		r.Get("/api/communication/cards/{id}", communicationHandler.GetConnectionCard)
+		r.Post("/api/communication/cards/{id}/process", communicationHandler.ProcessConnectionCard)
+
+		// Communication - Stats
+		r.Get("/api/communication/stats", communicationHandler.GetStats)
 	})
 
 	return &Router{r}
