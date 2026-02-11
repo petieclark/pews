@@ -5,6 +5,7 @@ import (
 
 	"github.com/go-chi/chi/v5"
 	"github.com/petieclark/pews/internal/auth"
+	"github.com/petieclark/pews/internal/backup"
 	"github.com/petieclark/pews/internal/billing"
 	"github.com/petieclark/pews/internal/checkins"
 	"github.com/petieclark/pews/internal/communication"
@@ -35,6 +36,7 @@ func New(
 	streamingHandler *streaming.Handler,
 	communicationHandler *communication.Handler,
 	checkinsHandler *checkins.Handler,
+	backupHandler *backup.Handler,
 	webhookSecret string,
 	givingWebhookSecret string,
 	frontendURL string,
@@ -258,6 +260,13 @@ func New(
 		// Check-ins - Stats & Search
 		r.Get("/api/checkins/stats", checkinsHandler.GetStats)
 		r.Get("/api/checkins/search", checkinsHandler.SearchPeople)
+
+		// Backups
+		r.Post("/api/admin/backup", backupHandler.CreateBackup)
+		r.Get("/api/admin/backups", backupHandler.ListBackups)
+		r.Post("/api/admin/restore/{filename}", backupHandler.RestoreBackup)
+		r.Delete("/api/admin/backups/{filename}", backupHandler.DeleteBackup)
+		r.Get("/api/admin/backups/{filename}/download", backupHandler.DownloadBackup)
 	})
 
 	return &Router{r}

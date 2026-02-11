@@ -77,7 +77,15 @@
 </script>
 
 <div class="max-w-4xl">
-	<h1 class="text-3xl font-bold text-primary mb-6">Settings</h1>
+	<div class="flex items-center justify-between mb-6">
+		<h1 class="text-3xl font-bold text-primary">Settings</h1>
+		<a 
+			href="/dashboard/settings/backups" 
+			class="bg-[var(--teal)] text-white py-2 px-6 rounded-lg font-medium hover:opacity-90"
+		>
+			Manage Backups
+		</a>
+	</div>
 
 	{#if loading}
 		<div class="text-center py-12">

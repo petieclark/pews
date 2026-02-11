@@ -29,6 +29,8 @@ services:
       STRIPE_PRICE_ID: ${STRIPE_PRICE_ID:-price_xxx}
       PORT: 8080
       FRONTEND_URL: http://localhost:5273
+    volumes:
+      - backup_data:/backups
     depends_on:
       postgres:
         condition: service_healthy
@@ -50,3 +52,4 @@ services:
 
 volumes:
   postgres_data:
+  backup_data:
