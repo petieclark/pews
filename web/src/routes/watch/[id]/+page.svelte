@@ -263,7 +263,7 @@
 					<!-- Messages -->
 					<div id="chat-container" class="flex-1 overflow-y-auto p-4 space-y-3">
 						{#each chatMessages as msg}
-							<div class="text-sm" class:bg-yellow-900={msg.is_pinned} class:bg-opacity-30={msg.is_pinned} class="p-2 rounded">
+							<div class="text-sm p-2 rounded" class:bg-yellow-900={msg.is_pinned} class:bg-opacity-30={msg.is_pinned}>
 								{#if msg.is_pinned}
 									<div class="text-xs text-yellow-400 mb-1">📌 Pinned</div>
 								{/if}

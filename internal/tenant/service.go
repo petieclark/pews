@@ -35,8 +35,8 @@ func (s *Service) CreateTenant(ctx context.Context, name string) (*Tenant, error
 	}
 
 	_, err := s.db.Exec(ctx,
-		`INSERT INTO tenants (id, name, slug, plan) VALUES ($1, $2, $3, $4)`,
-		tenant.ID, tenant.Name, tenant.Slug, tenant.Plan,
+		`INSERT INTO tenants (id, name, slug, domain, plan) VALUES ($1, $2, $3, $4, $5)`,
+		tenant.ID, tenant.Name, tenant.Slug, "", tenant.Plan,
 	)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create tenant: %w", err)
@@ -60,7 +60,7 @@ func (s *Service) CreateTenant(ctx context.Context, name string) (*Tenant, error
 func (s *Service) GetTenantBySlug(ctx context.Context, slug string) (*Tenant, error) {
 	tenant := &Tenant{}
 	err := s.db.QueryRow(ctx,
-		`SELECT id, name, slug, domain, plan, created_at, updated_at FROM tenants WHERE slug = $1`,
+		`SELECT id, name, slug, COALESCE(domain, ''), plan, created_at, updated_at FROM tenants WHERE slug = $1`,
 		slug,
 	).Scan(&tenant.ID, &tenant.Name, &tenant.Slug, &tenant.Domain, &tenant.Plan, &tenant.CreatedAt, &tenant.UpdatedAt)
 
@@ -74,7 +74,7 @@ func (s *Service) GetTenantBySlug(ctx context.Context, slug string) (*Tenant, er
 func (s *Service) GetTenantByID(ctx context.Context, id string) (*Tenant, error) {
 	tenant := &Tenant{}
 	err := s.db.QueryRow(ctx,
-		`SELECT id, name, slug, domain, plan, created_at, updated_at FROM tenants WHERE id = $1`,
+		`SELECT id, name, slug, COALESCE(domain, ''), plan, created_at, updated_at FROM tenants WHERE id = $1`,
 		id,
 	).Scan(&tenant.ID, &tenant.Name, &tenant.Slug, &tenant.Domain, &tenant.Plan, &tenant.CreatedAt, &tenant.UpdatedAt)
 

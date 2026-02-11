@@ -247,7 +247,7 @@
 						{#if stepType === 'add_tag' || stepType === 'add_to_group'}
 							<div>
 								<label class="block text-xs font-medium mb-1" style="color: var(--text-secondary)">Config (JSON)</label>
-								<input bind:value={stepConfig} type="text" placeholder='{"tag_name": "followed-up"}' class="w-full px-3 py-2 rounded-lg border text-sm font-mono" style="background: var(--bg); border-color: var(--border); color: var(--text)" />
+								<input bind:value={stepConfig} type="text" placeholder="tag_name: followed-up" class="w-full px-3 py-2 rounded-lg border text-sm font-mono" style="background: var(--bg); border-color: var(--border); color: var(--text)" />
 							</div>
 						{/if}
 						<div class="flex gap-2">

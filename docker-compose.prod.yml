@@ -1,0 +1,57 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: pews
+      POSTGRES_USER: pews
+      POSTGRES_PASSWORD: pews-demo-2026
+    volumes:
+      - pews_postgres_data:/var/lib/postgresql/data
+    networks:
+      - pews-internal
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U pews"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  backend:
+    image: pews-backend:latest
+    environment:
+      DATABASE_URL: postgres://pews:pews-demo-2026@postgres:5432/pews?sslmode=disable
+      JWT_SECRET: pews-demo-jwt-secret-2026
+      STRIPE_SECRET_KEY: ${STRIPE_SECRET_KEY:-sk_test_xxx}
+      STRIPE_WEBHOOK_SECRET: ${STRIPE_WEBHOOK_SECRET:-whsec_xxx}
+      STRIPE_PRICE_ID: ${STRIPE_PRICE_ID:-price_xxx}
+      PORT: 8080
+      FRONTEND_URL: https://demo.pews.app
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - pews-internal
+      - web_proxy
+    restart: unless-stopped
+
+  frontend:
+    image: pews-frontend:latest
+    environment:
+      VITE_API_URL: https://demo.pews.app
+      ORIGIN: https://demo.pews.app
+      PORT: "3000"
+    depends_on:
+      - backend
+    networks:
+      - pews-internal
+      - web_proxy
+    restart: unless-stopped
+
+volumes:
+  pews_postgres_data:
+
+networks:
+  pews-internal:
+  web_proxy:
+    external: true

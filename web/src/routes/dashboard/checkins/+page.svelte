@@ -28,6 +28,23 @@
 			loading = false;
 		}
 	});
+
+	let showCreateEvent = false;
+	let newEvent = { name: '', event_date: new Date().toISOString().split('T')[0], is_active: true };
+
+	async function createEvent() {
+		try {
+			await api('/api/checkins/events', {
+				method: 'POST',
+				body: JSON.stringify(newEvent)
+			});
+			showCreateEvent = false;
+			newEvent = { name: '', event_date: new Date().toISOString().split('T')[0], is_active: true };
+			location.reload();
+		} catch (error) {
+			alert('Failed to create event: ' + error.message);
+		}
+	}
 </script>
 
 <div class="space-y-6">
@@ -142,24 +159,6 @@
 </div>
 
 <!-- Create Event Modal -->
-<script>
-	let showCreateEvent = false;
-	let newEvent = { name: '', event_date: new Date().toISOString().split('T')[0], is_active: true };
-
-	async function createEvent() {
-		try {
-			await api('/api/checkins/events', {
-				method: 'POST',
-				body: JSON.stringify(newEvent)
-			});
-			showCreateEvent = false;
-			newEvent = { name: '', event_date: new Date().toISOString().split('T')[0], is_active: true };
-			location.reload();
-		} catch (error) {
-			alert('Failed to create event: ' + error.message);
-		}
-	}
-</script>
 
 {#if showCreateEvent}
 	<div class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
