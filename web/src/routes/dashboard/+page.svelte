@@ -141,59 +141,69 @@
 			<!-- Engagement Distribution -->
 			<div class="bg-surface rounded-lg shadow-md p-6 border border-custom">
 				<h2 class="text-xl font-semibold text-primary mb-4">Engagement Distribution</h2>
-				<div class="flex items-center justify-center mb-4">
-					<svg viewBox="0 0 100 100" class="w-48 h-48">
-						{#if kpis.engagement_distribution}
-							{@const total = kpis.engagement_distribution.high + kpis.engagement_distribution.medium + kpis.engagement_distribution.low + kpis.engagement_distribution.inactive}
-							{@const high = (kpis.engagement_distribution.high / total) * 100}
-							{@const medium = (kpis.engagement_distribution.medium / total) * 100}
-							{@const low = (kpis.engagement_distribution.low / total) * 100}
-							{@const inactive = (kpis.engagement_distribution.inactive / total) * 100}
-							
-							<!-- High (75-100) - Teal -->
-							<circle cx="50" cy="50" r="40" fill="none" stroke="var(--teal)" stroke-width="20" 
-								stroke-dasharray="{high * 2.51} 251.2" 
-								transform="rotate(-90 50 50)" />
-							
-							<!-- Medium (50-74) - Sage -->
-							<circle cx="50" cy="50" r="40" fill="none" stroke="var(--sage)" stroke-width="20" 
-								stroke-dasharray="{medium * 2.51} 251.2" 
-								stroke-dashoffset="{-high * 2.51}"
-								transform="rotate(-90 50 50)" />
-							
-							<!-- Low (25-49) - Orange -->
-							<circle cx="50" cy="50" r="40" fill="none" stroke="#f59e0b" stroke-width="20" 
-								stroke-dasharray="{low * 2.51} 251.2" 
-								stroke-dashoffset="{-(high + medium) * 2.51}"
-								transform="rotate(-90 50 50)" />
-							
-							<!-- Inactive (0-24) - Red -->
-							<circle cx="50" cy="50" r="40" fill="none" stroke="#ef4444" stroke-width="20" 
-								stroke-dasharray="{inactive * 2.51} 251.2" 
-								stroke-dashoffset="{-(high + medium + low) * 2.51}"
-								transform="rotate(-90 50 50)" />
-						{/if}
-					</svg>
-				</div>
 				{#if kpis.engagement_distribution}
-					<div class="grid grid-cols-2 gap-3">
-						<div class="flex items-center">
-							<div class="w-3 h-3 rounded-full bg-[var(--teal)] mr-2"></div>
-							<span class="text-sm text-secondary">High (75+): {kpis.engagement_distribution.high}</span>
+					{@const total = kpis.engagement_distribution.high + kpis.engagement_distribution.medium + kpis.engagement_distribution.low + kpis.engagement_distribution.inactive}
+					{#if total === 0}
+						<!-- Empty State -->
+						<div class="text-center py-12">
+							<svg class="w-16 h-16 mx-auto mb-3 text-secondary opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+								<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+							</svg>
+							<p class="text-secondary">No engagement data yet</p>
+							<p class="text-xs text-secondary mt-1">Track attendance and activities to see engagement metrics</p>
 						</div>
-						<div class="flex items-center">
-							<div class="w-3 h-3 rounded-full bg-[var(--sage)] mr-2"></div>
-							<span class="text-sm text-secondary">Medium (50-74): {kpis.engagement_distribution.medium}</span>
+					{:else}
+						{@const high = (kpis.engagement_distribution.high / total) * 100}
+						{@const medium = (kpis.engagement_distribution.medium / total) * 100}
+						{@const low = (kpis.engagement_distribution.low / total) * 100}
+						{@const inactive = (kpis.engagement_distribution.inactive / total) * 100}
+						
+						<div class="flex items-center justify-center mb-4">
+							<svg viewBox="0 0 100 100" class="w-48 h-48">
+								<!-- High (75-100) - Teal -->
+								<circle cx="50" cy="50" r="40" fill="none" stroke="var(--teal)" stroke-width="20" 
+									stroke-dasharray="{high * 2.51} 251.2" 
+									transform="rotate(-90 50 50)" />
+								
+								<!-- Medium (50-74) - Sage -->
+								<circle cx="50" cy="50" r="40" fill="none" stroke="var(--sage)" stroke-width="20" 
+									stroke-dasharray="{medium * 2.51} 251.2" 
+									stroke-dashoffset="{-high * 2.51}"
+									transform="rotate(-90 50 50)" />
+								
+								<!-- Low (25-49) - Orange -->
+								<circle cx="50" cy="50" r="40" fill="none" stroke="#f59e0b" stroke-width="20" 
+									stroke-dasharray="{low * 2.51} 251.2" 
+									stroke-dashoffset="{-(high + medium) * 2.51}"
+									transform="rotate(-90 50 50)" />
+								
+								<!-- Inactive (0-24) - Red -->
+								<circle cx="50" cy="50" r="40" fill="none" stroke="#ef4444" stroke-width="20" 
+									stroke-dasharray="{inactive * 2.51} 251.2" 
+									stroke-dashoffset="{-(high + medium + low) * 2.51}"
+									transform="rotate(-90 50 50)" />
+							</svg>
 						</div>
-						<div class="flex items-center">
-							<div class="w-3 h-3 rounded-full bg-[#f59e0b] mr-2"></div>
-							<span class="text-sm text-secondary">Low (25-49): {kpis.engagement_distribution.low}</span>
+						
+						<div class="grid grid-cols-2 gap-3">
+							<div class="flex items-center">
+								<div class="w-3 h-3 rounded-full bg-[var(--teal)] mr-2"></div>
+								<span class="text-sm text-secondary">High (75+): {kpis.engagement_distribution.high}</span>
+							</div>
+							<div class="flex items-center">
+								<div class="w-3 h-3 rounded-full bg-[var(--sage)] mr-2"></div>
+								<span class="text-sm text-secondary">Medium (50-74): {kpis.engagement_distribution.medium}</span>
+							</div>
+							<div class="flex items-center">
+								<div class="w-3 h-3 rounded-full bg-[#f59e0b] mr-2"></div>
+								<span class="text-sm text-secondary">Low (25-49): {kpis.engagement_distribution.low}</span>
+							</div>
+							<div class="flex items-center">
+								<div class="w-3 h-3 rounded-full bg-[#ef4444] mr-2"></div>
+								<span class="text-sm text-secondary">Inactive (0-24): {kpis.engagement_distribution.inactive}</span>
+							</div>
 						</div>
-						<div class="flex items-center">
-							<div class="w-3 h-3 rounded-full bg-[#ef4444] mr-2"></div>
-							<span class="text-sm text-secondary">Inactive (0-24): {kpis.engagement_distribution.inactive}</span>
-						</div>
-					</div>
+					{/if}
 				{/if}
 			</div>
 
