@@ -8,6 +8,7 @@ import (
 	"github.com/petieclark/pews/internal/billing"
 	"github.com/petieclark/pews/internal/checkins"
 	"github.com/petieclark/pews/internal/communication"
+	"github.com/petieclark/pews/internal/engagement"
 	"github.com/petieclark/pews/internal/giving"
 	"github.com/petieclark/pews/internal/groups"
 	"github.com/petieclark/pews/internal/middleware"
@@ -35,6 +36,7 @@ func New(
 	streamingHandler *streaming.Handler,
 	communicationHandler *communication.Handler,
 	checkinsHandler *checkins.Handler,
+	engagementHandler *engagement.Handler,
 	webhookSecret string,
 	givingWebhookSecret string,
 	frontendURL string,
@@ -258,6 +260,16 @@ func New(
 		// Check-ins - Stats & Search
 		r.Get("/api/checkins/stats", checkinsHandler.GetStats)
 		r.Get("/api/checkins/search", checkinsHandler.SearchPeople)
+
+		// Engagement - Scores
+		r.Get("/api/engagement/scores", engagementHandler.GetAllScores)
+		r.Get("/api/engagement/scores/{personID}", engagementHandler.GetPersonScore)
+		r.Post("/api/engagement/scores/{personID}/calculate", engagementHandler.CalculatePersonScore)
+		r.Get("/api/engagement/at-risk", engagementHandler.GetAtRiskPeople)
+		r.Post("/api/engagement/recalculate", engagementHandler.RecalculateAllScores)
+
+		// Dashboard - KPIs
+		r.Get("/api/dashboard/kpis", engagementHandler.GetDashboardKPIs)
 	})
 
 	return &Router{r}

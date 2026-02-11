@@ -18,6 +18,7 @@
 	onMount(() => {
 		loadPerson();
 		loadAvailableTags();
+		loadEngagementScore();
 	});
 
 	async function loadPerson() {
@@ -40,6 +41,39 @@
 		} catch (error) {
 			console.error('Failed to load tags:', error);
 		}
+	}
+
+	async function loadEngagementScore() {
+		try {
+			engagementScore = await api(`/api/engagement/scores/${personId}`);
+		} catch (error) {
+			console.log('Engagement score not available:', error);
+			engagementScore = null;
+		}
+	}
+
+	async function recalculateEngagement() {
+		try {
+			engagementScore = await api(`/api/engagement/scores/${personId}/calculate`, {
+				method: 'POST'
+			});
+		} catch (error) {
+			alert('Failed to calculate engagement score: ' + error.message);
+		}
+	}
+
+	function getEngagementColor(score) {
+		if (score >= 75) return 'bg-[var(--teal)]';
+		if (score >= 50) return 'bg-[var(--sage)]';
+		if (score >= 25) return 'bg-[#f59e0b]';
+		return 'bg-[#ef4444]';
+	}
+
+	function getEngagementLabel(score) {
+		if (score >= 75) return 'High';
+		if (score >= 50) return 'Medium';
+		if (score >= 25) return 'Low';
+		return 'Inactive';
 	}
 
 	async function savePerson() {
@@ -316,8 +350,77 @@
 				{/if}
 			</div>
 
-			<!-- Tags sidebar -->
+			<!-- Sidebar -->
 			<div class="space-y-6">
+				<!-- Engagement Score -->
+				{#if engagementScore}
+					<div class="bg-surface rounded-lg shadow p-6 border border-custom">
+						<div class="flex justify-between items-center mb-4">
+							<h2 class="text-lg font-semibold text-primary">Engagement Score</h2>
+							<button
+								on:click={recalculateEngagement}
+								class="text-[var(--teal)] hover:underline text-sm"
+							>
+								↻ Recalculate
+							</button>
+						</div>
+						<div class="text-center mb-4">
+							<div class="inline-flex items-center justify-center w-24 h-24 rounded-full {getEngagementColor(engagementScore.score)} text-white text-3xl font-bold">
+								{engagementScore.score}
+							</div>
+							<p class="mt-2 text-sm text-secondary">{getEngagementLabel(engagementScore.score)} Engagement</p>
+						</div>
+						<div class="space-y-2">
+							<div>
+								<div class="flex justify-between text-sm mb-1">
+									<span class="text-secondary">Attendance</span>
+									<span class="text-primary font-medium">{engagementScore.attendance_score}/100</span>
+								</div>
+								<div class="w-full bg-gray-200 rounded-full h-2">
+									<div class="bg-[var(--teal)] h-2 rounded-full" style="width: {engagementScore.attendance_score}%"></div>
+								</div>
+							</div>
+							<div>
+								<div class="flex justify-between text-sm mb-1">
+									<span class="text-secondary">Giving</span>
+									<span class="text-primary font-medium">{engagementScore.giving_score}/100</span>
+								</div>
+								<div class="w-full bg-gray-200 rounded-full h-2">
+									<div class="bg-[var(--teal)] h-2 rounded-full" style="width: {engagementScore.giving_score}%"></div>
+								</div>
+							</div>
+							<div>
+								<div class="flex justify-between text-sm mb-1">
+									<span class="text-secondary">Groups</span>
+									<span class="text-primary font-medium">{engagementScore.group_score}/100</span>
+								</div>
+								<div class="w-full bg-gray-200 rounded-full h-2">
+									<div class="bg-[var(--teal)] h-2 rounded-full" style="width: {engagementScore.group_score}%"></div>
+								</div>
+							</div>
+							<div>
+								<div class="flex justify-between text-sm mb-1">
+									<span class="text-secondary">Volunteering</span>
+									<span class="text-primary font-medium">{engagementScore.volunteer_score}/100</span>
+								</div>
+								<div class="w-full bg-gray-200 rounded-full h-2">
+									<div class="bg-[var(--teal)] h-2 rounded-full" style="width: {engagementScore.volunteer_score}%"></div>
+								</div>
+							</div>
+							<div>
+								<div class="flex justify-between text-sm mb-1">
+									<span class="text-secondary">Connection</span>
+									<span class="text-primary font-medium">{engagementScore.connection_score}/100</span>
+								</div>
+								<div class="w-full bg-gray-200 rounded-full h-2">
+									<div class="bg-[var(--teal)] h-2 rounded-full" style="width: {engagementScore.connection_score}%"></div>
+								</div>
+							</div>
+						</div>
+					</div>
+				{/if}
+
+				<!-- Tags -->
 				<div class="bg-surface rounded-lg shadow p-6 border border-custom">
 					<div class="flex justify-between items-center mb-4">
 						<h2 class="text-lg font-semibold text-primary">Tags</h2>

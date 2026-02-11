@@ -82,6 +82,7 @@ func run() error {
 	streamingHandler := streaming.NewHandler(streamingService)
 	communicationHandler := communication.NewHandler(communicationService)
 	checkinsHandler := checkins.NewHandler(checkinsService)
+	kioskHandler := checkins.NewKioskHandler(checkinsService)
 
 	// Setup router
 	r := router.New(
@@ -97,6 +98,7 @@ func run() error {
 		streamingHandler,
 		communicationHandler,
 		checkinsHandler,
+		kioskHandler,
 		cfg.StripeWebhookSecret,
 		cfg.StripeWebhookSecret, // Use same webhook secret for giving
 		cfg.FrontendURL,
