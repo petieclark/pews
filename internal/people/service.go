@@ -30,10 +30,13 @@ func (s *Service) ListPeople(ctx context.Context, tenantID string, query string,
 
 	// Build query
 	sqlQuery := `
-		SELECT id, tenant_id, first_name, last_name, email, phone, 
-		       address_line1, address_line2, city, state, zip, 
-		       birthdate, gender, membership_status, photo_url, notes, 
-		       custom_fields, created_at, updated_at
+		SELECT id, tenant_id, first_name, last_name, 
+		       COALESCE(email, ''), COALESCE(phone, ''), 
+		       COALESCE(address_line1, ''), COALESCE(address_line2, ''), 
+		       COALESCE(city, ''), COALESCE(state, ''), COALESCE(zip, ''), 
+		       birthdate, COALESCE(gender, ''), membership_status, 
+		       COALESCE(photo_url, ''), COALESCE(notes, ''), 
+		       COALESCE(custom_fields, '{}'), created_at, updated_at
 		FROM people
 		WHERE 1=1`
 
@@ -87,10 +90,13 @@ func (s *Service) ListPeople(ctx context.Context, tenantID string, query string,
 func (s *Service) GetPersonByID(ctx context.Context, tenantID, personID string) (*Person, error) {
 	var p Person
 	err = s.db.QueryRow(ctx, `
-		SELECT id, tenant_id, first_name, last_name, email, phone, 
-		       address_line1, address_line2, city, state, zip, 
-		       birthdate, gender, membership_status, photo_url, notes, 
-		       custom_fields, created_at, updated_at
+		SELECT id, tenant_id, first_name, last_name, 
+		       COALESCE(email, ''), COALESCE(phone, ''), 
+		       COALESCE(address_line1, ''), COALESCE(address_line2, ''), 
+		       COALESCE(city, ''), COALESCE(state, ''), COALESCE(zip, ''), 
+		       birthdate, COALESCE(gender, ''), membership_status, 
+		       COALESCE(photo_url, ''), COALESCE(notes, ''), 
+		       COALESCE(custom_fields, '{}'), created_at, updated_at
 		FROM people WHERE id = $1`, personID).Scan(
 		&p.ID, &p.TenantID, &p.FirstName, &p.LastName, &p.Email, &p.Phone,
 		&p.AddressLine1, &p.AddressLine2, &p.City, &p.State, &p.Zip,
@@ -275,8 +281,9 @@ func (s *Service) CreateTag(ctx context.Context, tenantID string, tag *Tag) (*Ta
 func (s *Service) GetPersonHousehold(ctx context.Context, tenantID, personID string) (*Household, error) {
 	var h Household
 	err = s.db.QueryRow(ctx, `
-		SELECT h.id, h.tenant_id, h.name, h.primary_contact_id, 
-		       h.address_line1, h.address_line2, h.city, h.state, h.zip,
+		SELECT h.id, h.tenant_id, h.name, COALESCE(h.primary_contact_id, ''), 
+		       COALESCE(h.address_line1, ''), COALESCE(h.address_line2, ''), 
+		       COALESCE(h.city, ''), COALESCE(h.state, ''), COALESCE(h.zip, ''),
 		       h.created_at, h.updated_at
 		FROM households h
 		JOIN household_members hm ON hm.household_id = h.id
@@ -298,8 +305,9 @@ func (s *Service) GetPersonHousehold(ctx context.Context, tenantID, personID str
 
 func (s *Service) ListHouseholds(ctx context.Context, tenantID string) ([]Household, error) {
 	rows, err := s.db.Query(ctx, `
-		SELECT id, tenant_id, name, primary_contact_id, 
-		       address_line1, address_line2, city, state, zip,
+		SELECT id, tenant_id, name, COALESCE(primary_contact_id, ''), 
+		       COALESCE(address_line1, ''), COALESCE(address_line2, ''), 
+		       COALESCE(city, ''), COALESCE(state, ''), COALESCE(zip, ''),
 		       created_at, updated_at
 		FROM households
 		ORDER BY name`)
