@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/petieclark/pews/internal/activity"
+	"github.com/petieclark/pews/internal/audit"
 	"github.com/petieclark/pews/internal/auth"
 	"github.com/petieclark/pews/internal/billing"
 	"github.com/petieclark/pews/internal/calendar"
@@ -92,11 +93,12 @@ func run() error {
 	notificationService := notification.NewService(db.Pool)
 	websiteService := website.NewService(db.Pool)
 	qrService := qr.NewService(cfg.FrontendURL)
-	smsService := sms.NewService(db.Pool, cfg.SMSEncryptionKey)
+	smsService := sms.NewService(db.Pool)
 	i18nService := i18n.NewService()
+	auditService := audit.NewService(db.DB)
 
 	// Initialize handlers
-	authHandler := auth.NewHandler(authService, tenantService, billingService)
+	authHandler := auth.NewHandler(authService, tenantService, billingService, auditService)
 	tenantHandler := tenant.NewHandler(tenantService)
 	moduleHandler := module.NewHandler(moduleService)
 	billingHandler := billing.NewHandler(billingService)
