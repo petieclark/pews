@@ -6,6 +6,7 @@ import (
 	"github.com/go-chi/chi/v5"
 	// "github.com/petieclark/pews/internal/audit"
 	"github.com/petieclark/pews/internal/auth"
+	"github.com/petieclark/pews/internal/backup"
 	"github.com/petieclark/pews/internal/billing"
 	"github.com/petieclark/pews/internal/calendar"
 	"github.com/petieclark/pews/internal/checkins"
@@ -60,6 +61,7 @@ func New(
 	engagementHandler *engagement.Handler,
 	smsHandler *sms.Handler,
 	i18nHandler *i18n.Handler,
+	backupHandler *backup.Handler,
 	webhookSecret string,
 	givingWebhookSecret string,
 	frontendURL string,
@@ -367,6 +369,7 @@ func New(
 		r.Get("/api/checkins/stats", checkinsHandler.GetStats)
 		r.Get("/api/checkins/search", checkinsHandler.SearchPeople)
 
+<<<<<<< HEAD
 		// Reports
 		r.Get("/api/reports/attendance", reportsHandler.GetAttendanceReport)
 		r.Get("/api/reports/giving", reportsHandler.GetGivingReport)
@@ -414,6 +417,13 @@ func New(
 		r.Get("/api/attendance/by-person/{id}", checkinsHandler.GetPersonAttendance)
 		r.Get("/api/attendance/by-service/{id}", checkinsHandler.GetServiceAttendance)
 		r.Get("/api/attendance/first-timers", checkinsHandler.GetFirstTimersThisWeek)
+
+		// Backups (Phase 8)
+		r.Post("/api/admin/backup", backupHandler.CreateBackup)
+		r.Get("/api/admin/backups", backupHandler.ListBackups)
+		r.Post("/api/admin/restore/{filename}", backupHandler.RestoreBackup)
+		r.Delete("/api/admin/backups/{filename}", backupHandler.DeleteBackup)
+		r.Get("/api/admin/backups/{filename}/download", backupHandler.DownloadBackup)
 	})
 
 	return &Router{r}
