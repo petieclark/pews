@@ -148,6 +148,26 @@ type AutoScheduleRequest struct {
 	Role      string `json:"role"`
 }
 
+type SongListParams struct {
+	Query     string `json:"q"`
+	Key       string `json:"key"`
+	Tag       string `json:"tag"`
+	HasLyrics string `json:"has_lyrics"`
+	Sort      string `json:"sort"`
+	Page      int    `json:"page"`
+	Limit     int    `json:"limit"`
+}
+
+type SongStats struct {
+	TotalSongs     int    `json:"total_songs"`
+	WithLyrics     int    `json:"with_lyrics"`
+	WithAttachments int   `json:"with_attachments"`
+	MostUsed       []Song `json:"most_used"`
+	RecentlyAdded  []Song `json:"recently_added"`
+	AllKeys        []string `json:"all_keys"`
+	AllTags        []string `json:"all_tags"`
+}
+
 type SongUsage struct {
 	ServiceID   string    `json:"service_id"`
 	ServiceName string    `json:"service_name"`

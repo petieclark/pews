@@ -551,11 +551,17 @@ func (h *Handler) ListSongs(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	query := r.URL.Query().Get("q")
-	page, _ := strconv.Atoi(r.URL.Query().Get("page"))
-	limit, _ := strconv.Atoi(r.URL.Query().Get("limit"))
+	params := SongListParams{
+		Query:     r.URL.Query().Get("q"),
+		Key:       r.URL.Query().Get("key"),
+		Tag:       r.URL.Query().Get("tag"),
+		HasLyrics: r.URL.Query().Get("has_lyrics"),
+		Sort:      r.URL.Query().Get("sort"),
+	}
+	params.Page, _ = strconv.Atoi(r.URL.Query().Get("page"))
+	params.Limit, _ = strconv.Atoi(r.URL.Query().Get("limit"))
 
-	songs, total, err := h.service.ListSongs(r.Context(), claims.TenantID, query, page, limit)
+	songs, total, err := h.service.ListSongsFiltered(r.Context(), claims.TenantID, params)
 	if err != nil {
 		http.Error(w, "Failed to list songs: "+err.Error(), http.StatusInternalServerError)
 		return
@@ -564,12 +570,29 @@ func (h *Handler) ListSongs(w http.ResponseWriter, r *http.Request) {
 	response := map[string]interface{}{
 		"songs": songs,
 		"total": total,
-		"page":  page,
-		"limit": limit,
+		"page":  params.Page,
+		"limit": params.Limit,
 	}
 
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(response)
+}
+
+func (h *Handler) GetSongStats(w http.ResponseWriter, r *http.Request) {
+	claims, ok := middleware.GetClaims(r.Context())
+	if !ok {
+		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		return
+	}
+
+	stats, err := h.service.GetSongStats(r.Context(), claims.TenantID)
+	if err != nil {
+		http.Error(w, "Failed to get song stats: "+err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(stats)
 }
 
 func (h *Handler) CreateSong(w http.ResponseWriter, r *http.Request) {

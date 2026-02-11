@@ -483,22 +483,48 @@ func (s *Service) DeleteServiceTeamMember(ctx context.Context, tenantID, teamID 
 // Songs operations
 
 func (s *Service) ListSongs(ctx context.Context, tenantID, query string, page, limit int) ([]Song, int, error) {
-	if page < 1 {
-		page = 1
+	return s.ListSongsFiltered(ctx, tenantID, SongListParams{
+		Query: query,
+		Page:  page,
+		Limit: limit,
+	})
+}
+
+func (s *Service) ListSongsFiltered(ctx context.Context, tenantID string, params SongListParams) ([]Song, int, error) {
+	if params.Page < 1 {
+		params.Page = 1
 	}
-	if limit < 1 || limit > 100 {
-		limit = 50
+	if params.Limit < 1 || params.Limit > 100 {
+		params.Limit = 20
 	}
-	offset := (page - 1) * limit
+	offset := (params.Page - 1) * params.Limit
 
 	whereClause := "WHERE 1=1"
 	args := []interface{}{}
 	argPos := 1
 
-	if query != "" {
-		whereClause += fmt.Sprintf(" AND (title ILIKE $%d OR artist ILIKE $%d OR tags ILIKE $%d)", argPos, argPos, argPos)
-		args = append(args, "%"+query+"%")
+	if params.Query != "" {
+		whereClause += fmt.Sprintf(" AND (title ILIKE $%d OR artist ILIKE $%d OR tags ILIKE $%d OR ccli_number ILIKE $%d)", argPos, argPos, argPos, argPos)
+		args = append(args, "%"+params.Query+"%")
 		argPos++
+	}
+
+	if params.Key != "" {
+		whereClause += fmt.Sprintf(" AND default_key = $%d", argPos)
+		args = append(args, params.Key)
+		argPos++
+	}
+
+	if params.Tag != "" {
+		whereClause += fmt.Sprintf(" AND tags ILIKE $%d", argPos)
+		args = append(args, "%"+params.Tag+"%")
+		argPos++
+	}
+
+	if params.HasLyrics == "yes" {
+		whereClause += " AND lyrics IS NOT NULL AND lyrics != ''"
+	} else if params.HasLyrics == "no" {
+		whereClause += " AND (lyrics IS NULL OR lyrics = '')"
 	}
 
 	// Count total
@@ -509,15 +535,30 @@ func (s *Service) ListSongs(ctx context.Context, tenantID, query string, page, l
 		return nil, 0, fmt.Errorf("failed to count songs: %w", err)
 	}
 
+	// Determine sort order
+	orderBy := "ORDER BY title ASC"
+	switch params.Sort {
+	case "title_desc":
+		orderBy = "ORDER BY title DESC"
+	case "last_used":
+		orderBy = "ORDER BY last_used DESC NULLS LAST"
+	case "times_used":
+		orderBy = "ORDER BY times_used DESC"
+	case "recently_added":
+		orderBy = "ORDER BY created_at DESC"
+	case "artist":
+		orderBy = "ORDER BY artist ASC, title ASC"
+	}
+
 	// Get songs
 	sqlQuery := fmt.Sprintf(`
 		SELECT id, tenant_id, title, COALESCE(artist, ''), COALESCE(default_key, ''), COALESCE(tempo, 0), COALESCE(ccli_number, ''), COALESCE(lyrics, ''), COALESCE(notes, ''), COALESCE(tags, ''), last_used, times_used, created_at, updated_at
 		FROM songs
 		%s
-		ORDER BY title
-		LIMIT $%d OFFSET $%d`, whereClause, argPos, argPos+1)
+		%s
+		LIMIT $%d OFFSET $%d`, whereClause, orderBy, argPos, argPos+1)
 
-	args = append(args, limit, offset)
+	args = append(args, params.Limit, offset)
 
 	rows, err := s.db.Query(ctx, sqlQuery, args...)
 	if err != nil {
@@ -538,6 +579,105 @@ func (s *Service) ListSongs(ctx context.Context, tenantID, query string, page, l
 	}
 
 	return songs, total, nil
+}
+
+func (s *Service) GetSongStats(ctx context.Context, tenantID string) (*SongStats, error) {
+	stats := &SongStats{}
+
+	// Total songs, with lyrics
+	err := s.db.QueryRow(ctx, `
+		SELECT 
+			COUNT(*),
+			COUNT(*) FILTER (WHERE lyrics IS NOT NULL AND lyrics != '')
+		FROM songs`).Scan(&stats.TotalSongs, &stats.WithLyrics)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get song counts: %w", err)
+	}
+
+	// With attachments
+	err = s.db.QueryRow(ctx, `
+		SELECT COUNT(DISTINCT song_id) FROM song_attachments`).Scan(&stats.WithAttachments)
+	if err != nil {
+		stats.WithAttachments = 0 // table might not exist
+	}
+
+	// Most used (top 5)
+	rows, err := s.db.Query(ctx, `
+		SELECT id, tenant_id, title, COALESCE(artist, ''), COALESCE(default_key, ''), COALESCE(tempo, 0), COALESCE(ccli_number, ''), '', '', COALESCE(tags, ''), last_used, times_used, created_at, updated_at
+		FROM songs
+		WHERE times_used > 0
+		ORDER BY times_used DESC
+		LIMIT 5`)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get most used songs: %w", err)
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		var song Song
+		err := rows.Scan(&song.ID, &song.TenantID, &song.Title, &song.Artist, &song.DefaultKey,
+			&song.Tempo, &song.CCLINumber, &song.Lyrics, &song.Notes, &song.Tags,
+			&song.LastUsed, &song.TimesUsed, &song.CreatedAt, &song.UpdatedAt)
+		if err != nil {
+			return nil, fmt.Errorf("failed to scan most used song: %w", err)
+		}
+		stats.MostUsed = append(stats.MostUsed, song)
+	}
+
+	// Recently added (last 5)
+	rows2, err := s.db.Query(ctx, `
+		SELECT id, tenant_id, title, COALESCE(artist, ''), COALESCE(default_key, ''), COALESCE(tempo, 0), COALESCE(ccli_number, ''), '', '', COALESCE(tags, ''), last_used, times_used, created_at, updated_at
+		FROM songs
+		ORDER BY created_at DESC
+		LIMIT 5`)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get recently added songs: %w", err)
+	}
+	defer rows2.Close()
+
+	for rows2.Next() {
+		var song Song
+		err := rows2.Scan(&song.ID, &song.TenantID, &song.Title, &song.Artist, &song.DefaultKey,
+			&song.Tempo, &song.CCLINumber, &song.Lyrics, &song.Notes, &song.Tags,
+			&song.LastUsed, &song.TimesUsed, &song.CreatedAt, &song.UpdatedAt)
+		if err != nil {
+			return nil, fmt.Errorf("failed to scan recently added song: %w", err)
+		}
+		stats.RecentlyAdded = append(stats.RecentlyAdded, song)
+	}
+
+	// All unique keys
+	rows3, err := s.db.Query(ctx, `
+		SELECT DISTINCT default_key FROM songs 
+		WHERE default_key IS NOT NULL AND default_key != '' 
+		ORDER BY default_key`)
+	if err == nil {
+		defer rows3.Close()
+		for rows3.Next() {
+			var key string
+			if err := rows3.Scan(&key); err == nil {
+				stats.AllKeys = append(stats.AllKeys, key)
+			}
+		}
+	}
+
+	// All unique tags (split comma-separated)
+	rows4, err := s.db.Query(ctx, `
+		SELECT DISTINCT TRIM(unnest(string_to_array(tags, ','))) as tag 
+		FROM songs 
+		WHERE tags IS NOT NULL AND tags != ''
+		ORDER BY tag`)
+	if err == nil {
+		defer rows4.Close()
+		for rows4.Next() {
+			var tag string
+			if err := rows4.Scan(&tag); err == nil && tag != "" {
+				stats.AllTags = append(stats.AllTags, tag)
+			}
+		}
+	}
+
+	return stats, nil
 }
 
 func (s *Service) GetSongByID(ctx context.Context, tenantID, songID string) (*Song, error) {

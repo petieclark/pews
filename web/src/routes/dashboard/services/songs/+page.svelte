@@ -6,27 +6,42 @@
 	let songs = [];
 	let total = 0;
 	let page = 1;
-	let limit = 50;
+	let limit = 20;
 	let searchQuery = '';
 	let loading = false;
-	let showModal = false;
-	let editingSong = null;
-	let formData = {
-		title: '',
-		artist: '',
-		default_key: '',
-		tempo: null,
-		ccli_number: '',
-		lyrics: '',
-		notes: '',
-		tags: ''
-	};
-	let attachments = [];
-	let uploadingFile = false;
+	let viewMode = 'list'; // 'list' or 'card'
+
+	// Filters
+	let filterKey = '';
+	let filterTag = '';
+	let filterHasLyrics = '';
+	let sortBy = 'title';
+
+	// Stats
+	let stats = null;
+	let statsLoading = true;
+
+	// Available filter options (from stats)
+	let allKeys = [];
+	let allTags = [];
 
 	onMount(() => {
+		loadStats();
 		loadSongs();
 	});
+
+	async function loadStats() {
+		statsLoading = true;
+		try {
+			stats = await api('/api/services/songs/stats');
+			allKeys = stats.all_keys || [];
+			allTags = stats.all_tags || [];
+		} catch (error) {
+			console.error('Failed to load stats:', error);
+		} finally {
+			statsLoading = false;
+		}
+	}
 
 	async function loadSongs() {
 		loading = true;
@@ -35,9 +50,12 @@
 				page: page.toString(),
 				limit: limit.toString()
 			});
-			if (searchQuery) {
-				params.append('q', searchQuery);
-			}
+			if (searchQuery) params.append('q', searchQuery);
+			if (filterKey) params.append('key', filterKey);
+			if (filterTag) params.append('tag', filterTag);
+			if (filterHasLyrics) params.append('has_lyrics', filterHasLyrics);
+			if (sortBy) params.append('sort', sortBy);
+
 			const response = await api(`/api/services/songs?${params}`);
 			songs = response.songs || [];
 			total = response.total || 0;
@@ -53,67 +71,19 @@
 		loadSongs();
 	}
 
-	function openCreateModal() {
-		editingSong = null;
-		formData = {
-			title: '',
-			artist: '',
-			default_key: '',
-			tempo: null,
-			ccli_number: '',
-			lyrics: '',
-			notes: '',
-			tags: ''
-		};
-		showModal = true;
+	function applyFilters() {
+		page = 1;
+		loadSongs();
 	}
 
-	async function openEditModal(song) {
-		editingSong = song;
-		formData = {
-			title: song.title,
-			artist: song.artist || '',
-			default_key: song.default_key || '',
-			tempo: song.tempo || null,
-			ccli_number: song.ccli_number || '',
-			lyrics: song.lyrics || '',
-			notes: song.notes || '',
-			tags: song.tags || ''
-		};
-		showModal = true;
-		await loadAttachments(song.id);
-	}
-
-	async function saveSong() {
-		try {
-			if (editingSong) {
-				await api(`/api/services/songs/${editingSong.id}`, {
-					method: 'PUT',
-					body: JSON.stringify(formData)
-				});
-			} else {
-				await api('/api/services/songs', {
-					method: 'POST',
-					body: JSON.stringify(formData)
-				});
-			}
-			showModal = false;
-			loadSongs();
-		} catch (error) {
-			alert('Failed to save song: ' + error.message);
-		}
-	}
-
-	async function deleteSong(songId) {
-		if (!confirm('Delete this song? This will not affect existing service plans.')) return;
-		try {
-			await api(`/api/services/songs/${songId}`, {
-				method: 'DELETE'
-			});
-			loadSongs();
-		} catch (error) {
-			alert('Failed to delete song: ' + error.message);
-		}
+	function clearFilters() {
+		filterKey = '';
+		filterTag = '';
+		filterHasLyrics = '';
+		sortBy = 'title';
+		searchQuery = '';
+		page = 1;
+		loadSongs();
 	}
 
 	function formatDate(dateStr) {
@@ -122,393 +92,394 @@
 		return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
 	}
 
-	async function loadAttachments(songId) {
-		try {
-			attachments = await api(`/api/services/songs/${songId}/attachments`);
-		} catch (error) {
-			console.error('Failed to load attachments:', error);
-			attachments = [];
+	function getTagColor(tag) {
+		const colors = [
+			'bg-teal/20 text-teal',
+			'bg-blue-500/20 text-blue-400',
+			'bg-purple-500/20 text-purple-400',
+			'bg-amber-500/20 text-amber-400',
+			'bg-rose-500/20 text-rose-400',
+			'bg-green-500/20 text-green-400',
+			'bg-cyan-500/20 text-cyan-400',
+			'bg-orange-500/20 text-orange-400',
+		];
+		let hash = 0;
+		for (let i = 0; i < tag.length; i++) {
+			hash = tag.charCodeAt(i) + ((hash << 5) - hash);
 		}
+		return colors[Math.abs(hash) % colors.length];
 	}
 
-	async function uploadAttachment(event) {
-		const file = event.target.files[0];
-		if (!file) return;
-
-		if (file.type !== 'application/pdf') {
-			alert('Only PDF files are allowed');
-			return;
-		}
-
-		if (file.size > 10 * 1024 * 1024) {
-			alert('File size must be less than 10MB');
-			return;
-		}
-
-		uploadingFile = true;
-		try {
-			const formData = new FormData();
-			formData.append('file', file);
-
-			const response = await fetch(`/api/services/songs/${editingSong.id}/attachments`, {
-				method: 'POST',
-				headers: {
-					'Authorization': `Bearer ${localStorage.getItem('token')}`
-				},
-				body: formData
-			});
-
-			if (!response.ok) {
-				throw new Error('Upload failed');
-			}
-
-			await loadAttachments(editingSong.id);
-			event.target.value = ''; // Clear file input
-		} catch (error) {
-			alert('Failed to upload file: ' + error.message);
-		} finally {
-			uploadingFile = false;
-		}
-	}
-
-	async function deleteAttachment(attachmentId) {
-		if (!confirm('Delete this attachment?')) return;
-
-		try {
-			await api(`/api/services/songs/attachments/${attachmentId}`, {
-				method: 'DELETE'
-			});
-			await loadAttachments(editingSong.id);
-		} catch (error) {
-			alert('Failed to delete attachment: ' + error.message);
-		}
-	}
-
-	function formatFileSize(bytes) {
-		if (bytes < 1024) return bytes + ' B';
-		if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
-		return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
-	}
+	$: totalPages = Math.ceil(total / limit);
+	$: hasFilters = filterKey || filterTag || filterHasLyrics || searchQuery;
 </script>
 
 <div class="space-y-6">
+	<!-- Header -->
 	<div class="flex justify-between items-center">
 		<div>
 			<button
 				on:click={() => goto('/dashboard/services')}
-				class="text-teal hover:underline mb-2"
+				class="text-teal hover:underline mb-2 text-sm flex items-center gap-1"
 			>
-				← Back to Services
+				<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
+				Back to Services
 			</button>
 			<h1 class="text-3xl font-bold text-[var(--text-primary)]">Song Library</h1>
+			{#if !statsLoading && stats}
+				<p class="text-sm text-[var(--text-secondary)] mt-1">{stats.total_songs} songs in library</p>
+			{/if}
 		</div>
 		<button
-			on:click={openCreateModal}
-			class="px-4 py-2 bg-teal text-white rounded-md hover:bg-opacity-90"
+			on:click={() => goto('/dashboard/services/songs/new')}
+			class="px-4 py-2.5 bg-teal text-white rounded-lg hover:bg-opacity-90 font-medium flex items-center gap-2"
 		>
+			<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
 			Add Song
 		</button>
 	</div>
 
-	<!-- Search -->
-	<div class="bg-surface rounded-lg shadow p-4">
-		<div class="flex gap-4">
-			<input
-				type="text"
-				bind:value={searchQuery}
-				on:keyup={(e) => e.key === 'Enter' && handleSearch()}
-				placeholder="Search by title, artist, or tags..."
-				class="flex-1 px-4 py-2 border input-border bg-[var(--input-bg)] text-primary rounded-md focus:outline-none focus:ring-2 focus:ring-teal"
-			/>
-			<button
-				on:click={handleSearch}
-				class="px-6 py-2 bg-navy text-white rounded-md hover:bg-opacity-90"
+	<!-- Stats Dashboard -->
+	{#if !statsLoading && stats}
+		<div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+			<div class="bg-[var(--surface)] rounded-lg p-4 border border-[var(--border)]">
+				<div class="text-2xl font-bold text-[var(--text-primary)]">{stats.total_songs}</div>
+				<div class="text-sm text-[var(--text-secondary)]">Total Songs</div>
+			</div>
+			<div class="bg-[var(--surface)] rounded-lg p-4 border border-[var(--border)]">
+				<div class="text-2xl font-bold text-[var(--text-primary)]">{stats.with_lyrics}</div>
+				<div class="text-sm text-[var(--text-secondary)]">With Lyrics/Chords</div>
+			</div>
+			<div class="bg-[var(--surface)] rounded-lg p-4 border border-[var(--border)]">
+				<div class="text-2xl font-bold text-[var(--text-primary)]">{stats.with_attachments}</div>
+				<div class="text-sm text-[var(--text-secondary)]">With PDFs</div>
+			</div>
+			<div class="bg-[var(--surface)] rounded-lg p-4 border border-[var(--border)]">
+				<div class="text-2xl font-bold text-teal">{allKeys.length}</div>
+				<div class="text-sm text-[var(--text-secondary)]">Unique Keys</div>
+			</div>
+		</div>
+
+		<!-- Most Used & Recently Added -->
+		{#if (stats.most_used && stats.most_used.length > 0) || (stats.recently_added && stats.recently_added.length > 0)}
+			<div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+				{#if stats.most_used && stats.most_used.length > 0}
+					<div class="bg-[var(--surface)] rounded-lg p-4 border border-[var(--border)]">
+						<h3 class="text-sm font-semibold text-[var(--text-secondary)] uppercase tracking-wider mb-3">Most Used</h3>
+						<div class="space-y-2">
+							{#each stats.most_used as song, i}
+								<button
+									on:click={() => goto(`/dashboard/services/songs/${song.id}`)}
+									class="w-full flex items-center gap-3 p-2 rounded hover:bg-[var(--surface-hover)] transition-colors text-left"
+								>
+									<span class="text-xs font-mono text-[var(--text-secondary)] w-4">{i + 1}.</span>
+									<div class="flex-1 min-w-0">
+										<div class="text-sm font-medium text-[var(--text-primary)] truncate">{song.title}</div>
+										<div class="text-xs text-[var(--text-secondary)]">{song.artist || 'Unknown'}</div>
+									</div>
+									<span class="text-xs font-medium text-teal">{song.times_used}×</span>
+								</button>
+							{/each}
+						</div>
+					</div>
+				{/if}
+				{#if stats.recently_added && stats.recently_added.length > 0}
+					<div class="bg-[var(--surface)] rounded-lg p-4 border border-[var(--border)]">
+						<h3 class="text-sm font-semibold text-[var(--text-secondary)] uppercase tracking-wider mb-3">Recently Added</h3>
+						<div class="space-y-2">
+							{#each stats.recently_added as song}
+								<button
+									on:click={() => goto(`/dashboard/services/songs/${song.id}`)}
+									class="w-full flex items-center gap-3 p-2 rounded hover:bg-[var(--surface-hover)] transition-colors text-left"
+								>
+									<div class="flex-1 min-w-0">
+										<div class="text-sm font-medium text-[var(--text-primary)] truncate">{song.title}</div>
+										<div class="text-xs text-[var(--text-secondary)]">{song.artist || 'Unknown'}</div>
+									</div>
+									<span class="text-xs text-[var(--text-secondary)]">{formatDate(song.created_at)}</span>
+								</button>
+							{/each}
+						</div>
+					</div>
+				{/if}
+			</div>
+		{/if}
+	{/if}
+
+	<!-- Search & Filters -->
+	<div class="bg-[var(--surface)] rounded-lg border border-[var(--border)] p-4 space-y-4">
+		<!-- Search bar + view toggle -->
+		<div class="flex gap-3 items-center">
+			<div class="relative flex-1">
+				<svg class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--text-secondary)]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+				<input
+					type="text"
+					bind:value={searchQuery}
+					on:input={() => { page = 1; loadSongs(); }}
+					placeholder="Search by title, artist, CCLI number..."
+					class="w-full pl-10 pr-4 py-2.5 border border-[var(--border)] bg-[var(--bg)] text-[var(--text-primary)] rounded-lg focus:outline-none focus:ring-2 focus:ring-teal/50 focus:border-teal"
+				/>
+			</div>
+			<!-- View toggle -->
+			<div class="flex rounded-lg border border-[var(--border)] overflow-hidden">
+				<button
+					on:click={() => viewMode = 'list'}
+					class="p-2.5 {viewMode === 'list' ? 'bg-teal text-white' : 'bg-[var(--bg)] text-[var(--text-secondary)] hover:text-[var(--text-primary)]'}"
+					title="List view"
+				>
+					<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/></svg>
+				</button>
+				<button
+					on:click={() => viewMode = 'card'}
+					class="p-2.5 {viewMode === 'card' ? 'bg-teal text-white' : 'bg-[var(--bg)] text-[var(--text-secondary)] hover:text-[var(--text-primary)]'}"
+					title="Card view"
+				>
+					<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 5a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1H5a1 1 0 01-1-1V5zm10 0a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1h-4a1 1 0 01-1-1V5zM4 15a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1H5a1 1 0 01-1-1v-4zm10 0a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1h-4a1 1 0 01-1-1v-4z"/></svg>
+				</button>
+			</div>
+		</div>
+
+		<!-- Filter row -->
+		<div class="flex flex-wrap gap-3 items-center">
+			<select
+				bind:value={filterKey}
+				on:change={applyFilters}
+				class="px-3 py-2 border border-[var(--border)] bg-[var(--bg)] text-[var(--text-primary)] rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-teal/50"
 			>
-				Search
-			</button>
+				<option value="">All Keys</option>
+				{#each allKeys as key}
+					<option value={key}>{key}</option>
+				{/each}
+			</select>
+
+			<select
+				bind:value={filterTag}
+				on:change={applyFilters}
+				class="px-3 py-2 border border-[var(--border)] bg-[var(--bg)] text-[var(--text-primary)] rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-teal/50"
+			>
+				<option value="">All Tags</option>
+				{#each allTags as tag}
+					<option value={tag}>{tag}</option>
+				{/each}
+			</select>
+
+			<select
+				bind:value={filterHasLyrics}
+				on:change={applyFilters}
+				class="px-3 py-2 border border-[var(--border)] bg-[var(--bg)] text-[var(--text-primary)] rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-teal/50"
+			>
+				<option value="">Lyrics: Any</option>
+				<option value="yes">Has Lyrics</option>
+				<option value="no">No Lyrics</option>
+			</select>
+
+			<select
+				bind:value={sortBy}
+				on:change={applyFilters}
+				class="px-3 py-2 border border-[var(--border)] bg-[var(--bg)] text-[var(--text-primary)] rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-teal/50"
+			>
+				<option value="title">Sort: Title A-Z</option>
+				<option value="title_desc">Sort: Title Z-A</option>
+				<option value="artist">Sort: Artist</option>
+				<option value="last_used">Sort: Last Used</option>
+				<option value="times_used">Sort: Most Used</option>
+				<option value="recently_added">Sort: Recently Added</option>
+			</select>
+
+			{#if hasFilters}
+				<button
+					on:click={clearFilters}
+					class="text-sm text-teal hover:underline"
+				>
+					Clear filters
+				</button>
+			{/if}
+
+			<div class="ml-auto text-sm text-[var(--text-secondary)]">
+				{total} result{total !== 1 ? 's' : ''}
+			</div>
 		</div>
 	</div>
 
-	<!-- Songs table -->
-	<div class="bg-surface rounded-lg shadow overflow-hidden">
-		{#if loading}
-			<div class="p-8 text-center text-secondary">Loading...</div>
-		{:else if songs.length === 0}
-			<div class="p-8 text-center text-secondary">
-				No songs found. {#if searchQuery}Try a different search.{:else}Add your first song to get
-					started.{/if}
-			</div>
-		{:else}
-			<table class="min-w-full divide-y divide-gray-200">
-				<thead class="bg-[var(--surface-hover)]">
-					<tr>
-						<th
-							class="px-6 py-3 text-left text-xs font-medium text-secondary uppercase tracking-wider"
-							>Title</th
-						>
-						<th
-							class="px-6 py-3 text-left text-xs font-medium text-secondary uppercase tracking-wider"
-							>Artist</th
-						>
-						<th
-							class="px-6 py-3 text-left text-xs font-medium text-secondary uppercase tracking-wider"
-							>Key</th
-						>
-						<th
-							class="px-6 py-3 text-left text-xs font-medium text-secondary uppercase tracking-wider"
-							>Last Used</th
-						>
-						<th
-							class="px-6 py-3 text-left text-xs font-medium text-secondary uppercase tracking-wider"
-							>Times Used</th
-						>
-						<th
-							class="px-6 py-3 text-left text-xs font-medium text-secondary uppercase tracking-wider"
-							>Actions</th
-						>
+	<!-- Song List / Cards -->
+	{#if loading}
+		<div class="flex justify-center py-12">
+			<div class="animate-spin rounded-full h-8 w-8 border-4 border-teal border-t-transparent"></div>
+		</div>
+	{:else if songs.length === 0}
+		<div class="bg-[var(--surface)] rounded-lg border border-[var(--border)] p-12 text-center">
+			<svg class="mx-auto h-12 w-12 text-[var(--text-secondary)] mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 19V6l12-3v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zm12-3c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zM9 10l12-3"/></svg>
+			<h3 class="text-lg font-medium text-[var(--text-primary)]">No songs found</h3>
+			<p class="text-[var(--text-secondary)] mt-1">
+				{#if hasFilters}Try adjusting your filters or search.{:else}Add your first song to get started.{/if}
+			</p>
+		</div>
+	{:else if viewMode === 'list'}
+		<!-- List View -->
+		<div class="bg-[var(--surface)] rounded-lg border border-[var(--border)] overflow-hidden">
+			<table class="min-w-full">
+				<thead>
+					<tr class="border-b border-[var(--border)]">
+						<th class="px-5 py-3 text-left text-xs font-semibold text-[var(--text-secondary)] uppercase tracking-wider">Title</th>
+						<th class="px-5 py-3 text-left text-xs font-semibold text-[var(--text-secondary)] uppercase tracking-wider hidden md:table-cell">Artist</th>
+						<th class="px-5 py-3 text-left text-xs font-semibold text-[var(--text-secondary)] uppercase tracking-wider hidden lg:table-cell">Key</th>
+						<th class="px-5 py-3 text-left text-xs font-semibold text-[var(--text-secondary)] uppercase tracking-wider hidden lg:table-cell">Tempo</th>
+						<th class="px-5 py-3 text-left text-xs font-semibold text-[var(--text-secondary)] uppercase tracking-wider hidden md:table-cell">Tags</th>
+						<th class="px-5 py-3 text-left text-xs font-semibold text-[var(--text-secondary)] uppercase tracking-wider hidden sm:table-cell">Last Used</th>
+						<th class="px-5 py-3 text-right text-xs font-semibold text-[var(--text-secondary)] uppercase tracking-wider hidden sm:table-cell">Used</th>
 					</tr>
 				</thead>
-				<tbody class="bg-surface divide-y divide-gray-200">
+				<tbody>
 					{#each songs as song}
-						<tr class="hover:bg-[var(--surface-hover)]">
-							<td class="px-6 py-4">
-								<div class="text-sm font-medium text-primary">{song.title}</div>
-								{#if song.tags}
-									<div class="text-xs text-secondary">{song.tags}</div>
+						<tr
+							on:click={() => goto(`/dashboard/services/songs/${song.id}`)}
+							class="border-b border-[var(--border)] hover:bg-[var(--surface-hover)] cursor-pointer transition-colors"
+						>
+							<td class="px-5 py-3.5">
+								<div class="text-sm font-medium text-[var(--text-primary)]">{song.title}</div>
+								{#if song.ccli_number}
+									<div class="text-xs text-[var(--text-secondary)] font-mono">CCLI {song.ccli_number}</div>
 								{/if}
 							</td>
-							<td class="px-6 py-4 whitespace-nowrap">
-								<div class="text-sm text-secondary">{song.artist || '—'}</div>
+							<td class="px-5 py-3.5 hidden md:table-cell">
+								<div class="text-sm text-[var(--text-secondary)]">{song.artist || '—'}</div>
 							</td>
-							<td class="px-6 py-4 whitespace-nowrap">
-								<div class="text-sm text-secondary">{song.default_key || '—'}</div>
+							<td class="px-5 py-3.5 hidden lg:table-cell">
+								{#if song.default_key}
+									<span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold bg-teal/20 text-teal">
+										{song.default_key}
+									</span>
+								{:else}
+									<span class="text-sm text-[var(--text-secondary)]">—</span>
+								{/if}
 							</td>
-							<td class="px-6 py-4 whitespace-nowrap">
-								<div class="text-sm text-secondary">{formatDate(song.last_used)}</div>
+							<td class="px-5 py-3.5 hidden lg:table-cell">
+								<div class="text-sm text-[var(--text-secondary)]">{song.tempo ? `${song.tempo} BPM` : '—'}</div>
 							</td>
-							<td class="px-6 py-4 whitespace-nowrap">
-								<div class="text-sm text-secondary">{song.times_used}</div>
+							<td class="px-5 py-3.5 hidden md:table-cell">
+								<div class="flex flex-wrap gap-1">
+									{#if song.tags}
+										{#each song.tags.split(',').slice(0, 3) as tag}
+											<span class="inline-flex items-center px-1.5 py-0.5 rounded text-xs {getTagColor(tag.trim())}">
+												{tag.trim()}
+											</span>
+										{/each}
+										{#if song.tags.split(',').length > 3}
+											<span class="text-xs text-[var(--text-secondary)]">+{song.tags.split(',').length - 3}</span>
+										{/if}
+									{/if}
+								</div>
 							</td>
-							<td class="px-6 py-4 whitespace-nowrap text-sm">
-								<button
-									on:click={() => openEditModal(song)}
-									class="text-teal hover:underline mr-3"
-								>
-									Edit
-								</button>
-								<button
-									on:click={() => deleteSong(song.id)}
-									class="text-red-600 hover:underline"
-								>
-									Delete
-								</button>
+							<td class="px-5 py-3.5 hidden sm:table-cell">
+								<div class="text-sm text-[var(--text-secondary)]">{formatDate(song.last_used)}</div>
+							</td>
+							<td class="px-5 py-3.5 text-right hidden sm:table-cell">
+								<div class="text-sm font-medium text-[var(--text-primary)]">{song.times_used}</div>
 							</td>
 						</tr>
 					{/each}
 				</tbody>
 			</table>
-		{/if}
-	</div>
+		</div>
+	{:else}
+		<!-- Card View -->
+		<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+			{#each songs as song}
+				<button
+					on:click={() => goto(`/dashboard/services/songs/${song.id}`)}
+					class="bg-[var(--surface)] rounded-lg border border-[var(--border)] p-4 hover:border-teal/50 hover:shadow-lg transition-all text-left group"
+				>
+					<div class="flex items-start justify-between mb-2">
+						<h3 class="text-sm font-semibold text-[var(--text-primary)] group-hover:text-teal transition-colors line-clamp-2">{song.title}</h3>
+						{#if song.default_key}
+							<span class="ml-2 shrink-0 inline-flex items-center px-2 py-0.5 rounded text-xs font-bold bg-teal/20 text-teal">
+								{song.default_key}
+							</span>
+						{/if}
+					</div>
+					<div class="text-xs text-[var(--text-secondary)] mb-3">{song.artist || 'Unknown Artist'}</div>
+
+					<div class="flex items-center gap-3 text-xs text-[var(--text-secondary)] mb-3">
+						{#if song.tempo}
+							<span>♩ {song.tempo}</span>
+						{/if}
+						{#if song.ccli_number}
+							<span class="font-mono">CCLI {song.ccli_number}</span>
+						{/if}
+					</div>
+
+					{#if song.tags}
+						<div class="flex flex-wrap gap-1 mb-3">
+							{#each song.tags.split(',').slice(0, 3) as tag}
+								<span class="inline-flex items-center px-1.5 py-0.5 rounded text-xs {getTagColor(tag.trim())}">
+									{tag.trim()}
+								</span>
+							{/each}
+						</div>
+					{/if}
+
+					<div class="flex items-center justify-between text-xs text-[var(--text-secondary)] pt-2 border-t border-[var(--border)]">
+						<span>{formatDate(song.last_used)}</span>
+						<span class="font-medium">{song.times_used}× used</span>
+					</div>
+				</button>
+			{/each}
+		</div>
+	{/if}
 
 	<!-- Pagination -->
-	{#if total > limit}
-		<div class="flex justify-center gap-2">
+	{#if totalPages > 1}
+		<div class="flex items-center justify-center gap-2">
 			<button
-				on:click={() => {
-					page--;
-					loadSongs();
-				}}
+				on:click={() => { page = 1; loadSongs(); }}
 				disabled={page === 1}
-				class="px-4 py-2 bg-surface border rounded-md disabled:opacity-50"
+				class="px-3 py-2 text-sm bg-[var(--surface)] border border-[var(--border)] rounded-lg disabled:opacity-30 hover:bg-[var(--surface-hover)] text-[var(--text-primary)]"
 			>
-				Previous
+				First
 			</button>
-			<span class="px-4 py-2">
-				Page {page} of {Math.ceil(total / limit)}
-			</span>
 			<button
-				on:click={() => {
-					page++;
-					loadSongs();
-				}}
-				disabled={page >= Math.ceil(total / limit)}
-				class="px-4 py-2 bg-surface border rounded-md disabled:opacity-50"
+				on:click={() => { page--; loadSongs(); }}
+				disabled={page === 1}
+				class="px-3 py-2 text-sm bg-[var(--surface)] border border-[var(--border)] rounded-lg disabled:opacity-30 hover:bg-[var(--surface-hover)] text-[var(--text-primary)]"
 			>
-				Next
+				← Prev
+			</button>
+			
+			{#each Array.from({length: Math.min(5, totalPages)}, (_, i) => {
+				let start = Math.max(1, Math.min(page - 2, totalPages - 4));
+				return start + i;
+			}).filter(p => p <= totalPages) as p}
+				<button
+					on:click={() => { page = p; loadSongs(); }}
+					class="px-3 py-2 text-sm rounded-lg {p === page ? 'bg-teal text-white' : 'bg-[var(--surface)] border border-[var(--border)] hover:bg-[var(--surface-hover)] text-[var(--text-primary)]'}"
+				>
+					{p}
+				</button>
+			{/each}
+
+			<button
+				on:click={() => { page++; loadSongs(); }}
+				disabled={page >= totalPages}
+				class="px-3 py-2 text-sm bg-[var(--surface)] border border-[var(--border)] rounded-lg disabled:opacity-30 hover:bg-[var(--surface-hover)] text-[var(--text-primary)]"
+			>
+				Next →
+			</button>
+			<button
+				on:click={() => { page = totalPages; loadSongs(); }}
+				disabled={page >= totalPages}
+				class="px-3 py-2 text-sm bg-[var(--surface)] border border-[var(--border)] rounded-lg disabled:opacity-30 hover:bg-[var(--surface-hover)] text-[var(--text-primary)]"
+			>
+				Last
 			</button>
 		</div>
 	{/if}
 </div>
 
-<!-- Create/Edit song modal -->
-{#if showModal}
-	<div class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-		<div class="bg-surface rounded-lg max-w-2xl w-full p-6 max-h-[90vh] overflow-y-auto">
-			<h2 class="text-2xl font-bold text-[var(--text-primary)] mb-4">
-				{editingSong ? 'Edit Song' : 'Add Song'}
-			</h2>
-			<form on:submit|preventDefault={saveSong} class="space-y-4">
-				<div class="grid grid-cols-2 gap-4">
-					<div class="col-span-2">
-						<label class="block text-sm font-medium text-primary">Title *</label>
-						<input
-							type="text"
-							bind:value={formData.title}
-							required
-							class="mt-1 block w-full px-3 py-2 border input-border bg-[var(--input-bg)] text-primary rounded-md focus:outline-none focus:ring-2 focus:ring-teal"
-						/>
-					</div>
-					<div>
-						<label class="block text-sm font-medium text-primary">Artist</label>
-						<input
-							type="text"
-							bind:value={formData.artist}
-							class="mt-1 block w-full px-3 py-2 border input-border bg-[var(--input-bg)] text-primary rounded-md focus:outline-none focus:ring-2 focus:ring-teal"
-						/>
-					</div>
-					<div>
-						<label class="block text-sm font-medium text-primary">Default Key</label>
-						<input
-							type="text"
-							bind:value={formData.default_key}
-							placeholder="G, C, Bb, etc."
-							class="mt-1 block w-full px-3 py-2 border input-border bg-[var(--input-bg)] text-primary rounded-md focus:outline-none focus:ring-2 focus:ring-teal"
-						/>
-					</div>
-					<div>
-						<label class="block text-sm font-medium text-primary">Tempo (BPM)</label>
-						<input
-							type="number"
-							bind:value={formData.tempo}
-							class="mt-1 block w-full px-3 py-2 border input-border bg-[var(--input-bg)] text-primary rounded-md focus:outline-none focus:ring-2 focus:ring-teal"
-						/>
-					</div>
-					<div>
-						<label class="block text-sm font-medium text-primary">CCLI Number</label>
-						<input
-							type="text"
-							bind:value={formData.ccli_number}
-							class="mt-1 block w-full px-3 py-2 border input-border bg-[var(--input-bg)] text-primary rounded-md focus:outline-none focus:ring-2 focus:ring-teal"
-						/>
-					</div>
-					<div class="col-span-2">
-						<label class="block text-sm font-medium text-primary">Tags</label>
-						<input
-							type="text"
-							bind:value={formData.tags}
-							placeholder="worship, fast, opener (comma-separated)"
-							class="mt-1 block w-full px-3 py-2 border input-border bg-[var(--input-bg)] text-primary rounded-md focus:outline-none focus:ring-2 focus:ring-teal"
-						/>
-					</div>
-					<div class="col-span-2">
-						<label class="block text-sm font-medium text-primary">Lyrics</label>
-						<textarea
-							bind:value={formData.lyrics}
-							rows="6"
-							class="mt-1 block w-full px-3 py-2 border input-border bg-[var(--input-bg)] text-primary rounded-md focus:outline-none focus:ring-2 focus:ring-teal font-mono text-sm"
-						></textarea>
-					</div>
-					<div class="col-span-2">
-						<label class="block text-sm font-medium text-primary">Notes</label>
-						<textarea
-							bind:value={formData.notes}
-							rows="3"
-							class="mt-1 block w-full px-3 py-2 border input-border bg-[var(--input-bg)] text-primary rounded-md focus:outline-none focus:ring-2 focus:ring-teal"
-						></textarea>
-					</div>
-					
-					{#if editingSong}
-						<div class="col-span-2 border-t pt-4">
-							<label class="block text-sm font-medium text-primary mb-2">Attachments (PDFs)</label>
-							
-							<!-- Upload button -->
-							<div class="mb-4">
-								<label class="cursor-pointer inline-flex items-center px-4 py-2 bg-[var(--surface)] border border-custom text-primary rounded-md hover:bg-[var(--surface-hover)]">
-									{#if uploadingFile}
-										Uploading...
-									{:else}
-										📎 Upload PDF
-									{/if}
-									<input
-										type="file"
-										accept=".pdf,application/pdf"
-										on:change={uploadAttachment}
-										disabled={uploadingFile}
-										class="hidden"
-									/>
-								</label>
-								<span class="ml-2 text-xs text-secondary">Max 10MB</span>
-							</div>
-
-							<!-- Attachments list -->
-							{#if attachments.length > 0}
-								<div class="space-y-2">
-									{#each attachments as attachment}
-										<div class="flex items-center justify-between bg-[var(--surface-hover)] p-3 rounded">
-											<div class="flex items-center space-x-3">
-												<span class="text-2xl">📄</span>
-												<div>
-													<a
-														href={`/api/services/songs/attachments/${attachment.id}`}
-														target="_blank"
-														class="text-sm font-medium text-primary hover:text-teal"
-													>
-														{attachment.original_name}
-													</a>
-													<div class="text-xs text-secondary">
-														{formatFileSize(attachment.file_size)} • Uploaded {formatDate(attachment.created_at)}
-													</div>
-												</div>
-											</div>
-											<button
-												on:click={() => deleteAttachment(attachment.id)}
-												class="text-red-600 hover:text-red-800 text-sm"
-											>
-												Delete
-											</button>
-										</div>
-									{/each}
-								</div>
-							{:else}
-								<p class="text-sm text-secondary italic">No attachments yet. Upload chord charts or sheet music PDFs.</p>
-							{/if}
-						</div>
-					{/if}
-				</div>
-				<div class="flex gap-2 pt-4">
-					<button
-						type="button"
-						on:click={() => (showModal = false)}
-						class="flex-1 px-4 py-2 border input-border bg-[var(--input-bg)] text-primary rounded-md hover:bg-[var(--surface-hover)]"
-					>
-						Cancel
-					</button>
-					<button
-						type="submit"
-						class="flex-1 px-4 py-2 bg-teal text-white rounded-md hover:bg-opacity-90"
-					>
-						{editingSong ? 'Update' : 'Create'}
-					</button>
-				</div>
-			</form>
-		</div>
-	</div>
-{/if}
-
 <style>
-	:global(.bg-navy) {
-		background-color: #1b3a4b;
-	}
-	:global(.text-navy) {
-		color: #1b3a4b;
-	}
-	:global(.bg-teal) {
-		background-color: #4a8b8c;
-	}
-	:global(.text-teal) {
-		color: #4a8b8c;
-	}
-	:global(.ring-teal) {
-		--tw-ring-color: #4a8b8c;
+	.line-clamp-2 {
+		display: -webkit-box;
+		-webkit-line-clamp: 2;
+		-webkit-box-orient: vertical;
+		overflow: hidden;
 	}
 </style>
