@@ -1,0 +1,77 @@
+openapi: 3.0.3
+info:
+  title: Pews Church Management API
+  description: |
+    Comprehensive REST API for the Pews church management platform covering all modules:
+    auth, people, giving, services, groups, streaming, communication, and check-ins.
+    
+    This API powers a multi-tenant church management system with support for:
+    - People & household management
+    - Online & offline giving with Stripe integration
+    - Service planning & scheduling
+    - Small groups & ministries
+    - Live streaming with chat
+    - Email campaigns & automated journeys
+    - Event check-ins with medical alerts
+    
+  version: 1.0.0
+  contact:
+    name: Pews API Support
+    url: https://github.com/warpapaya/Pews
+
+servers:
+  - url: http://localhost:8080/api
+    description: Local development
+  - url: https://api.pews.app/api
+    description: Production
+
+security:
+  - BearerAuth: []
+
+tags:
+  - name: Auth
+  - name: Tenant
+  - name: Modules
+  - name: Billing
+  - name: People
+  - name: Groups
+  - name: Services
+  - name: Giving
+  - name: Streaming
+  - name: Communication
+  - name: Check-ins
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  responses:
+    Unauthorized:
+      description: Missing or invalid authentication token
+    Forbidden:
+      description: Insufficient permissions
+    NotFound:
+      description: Resource not found
+    BadRequest:
+      description: Invalid request parameters
+
+paths:
+  /health:
+    get:
+      tags: [Auth]
+      summary: Health check
+      security: []
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: healthy
