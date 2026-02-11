@@ -22,7 +22,7 @@ func NewService(db *pgxpool.Pool) *Service {
 
 func (s *Service) ListFunds(ctx context.Context, tenantID string) ([]Fund, error) {
 	rows, err := s.db.Query(ctx,
-		`SELECT id, tenant_id, name, description, is_default, is_active, created_at, updated_at 
+		`SELECT id, tenant_id, name, COALESCE(description, ''), is_default, is_active, created_at, updated_at 
 		 FROM funds WHERE tenant_id = $1 ORDER BY is_default DESC, name ASC`,
 		tenantID,
 	)
@@ -99,7 +99,7 @@ func (s *Service) UpdateFund(ctx context.Context, tenantID, fundID, name, descri
 func (s *Service) GetFund(ctx context.Context, tenantID, fundID string) (*Fund, error) {
 	var f Fund
 	err := s.db.QueryRow(ctx,
-		`SELECT id, tenant_id, name, description, is_default, is_active, created_at, updated_at 
+		`SELECT id, tenant_id, name, COALESCE(description, ''), is_default, is_active, created_at, updated_at 
 		 FROM funds WHERE id = $1 AND tenant_id = $2`,
 		fundID, tenantID,
 	).Scan(&f.ID, &f.TenantID, &f.Name, &f.Description, &f.IsDefault, &f.IsActive, &f.CreatedAt, &f.UpdatedAt)
@@ -119,8 +119,8 @@ func (s *Service) GetFund(ctx context.Context, tenantID, fundID string) (*Fund, 
 func (s *Service) ListDonations(ctx context.Context, tenantID, personID, fundID, fromDate, toDate string, limit, offset int) ([]Donation, int, error) {
 	query := `
 		SELECT d.id, d.tenant_id, d.person_id, d.fund_id, d.amount_cents, d.currency,
-		       d.payment_method, d.stripe_payment_intent_id, d.stripe_charge_id, d.status,
-		       d.is_recurring, d.recurring_frequency, d.stripe_subscription_id, d.memo,
+		       COALESCE(d.payment_method, ''), COALESCE(d.stripe_payment_intent_id, ''), COALESCE(d.stripe_charge_id, ''), d.status,
+		       d.is_recurring, COALESCE(d.recurring_frequency, ''), COALESCE(d.stripe_subscription_id, ''), COALESCE(d.memo, ''),
 		       d.donated_at, d.created_at, d.updated_at,
 		       COALESCE(p.first_name || ' ' || p.last_name, 'Anonymous') as person_name,
 		       f.name as fund_name
@@ -205,8 +205,8 @@ func (s *Service) GetDonation(ctx context.Context, tenantID, donationID string) 
 
 	err := s.db.QueryRow(ctx,
 		`SELECT d.id, d.tenant_id, d.person_id, d.fund_id, d.amount_cents, d.currency,
-		        d.payment_method, d.stripe_payment_intent_id, d.stripe_charge_id, d.status,
-		        d.is_recurring, d.recurring_frequency, d.stripe_subscription_id, d.memo,
+		        COALESCE(d.payment_method, ''), COALESCE(d.stripe_payment_intent_id, ''), COALESCE(d.stripe_charge_id, ''), d.status,
+		        d.is_recurring, COALESCE(d.recurring_frequency, ''), COALESCE(d.stripe_subscription_id, ''), COALESCE(d.memo, ''),
 		        d.donated_at, d.created_at, d.updated_at,
 		        COALESCE(p.first_name || ' ' || p.last_name, 'Anonymous') as person_name,
 		        f.name as fund_name
@@ -433,7 +433,7 @@ func (s *Service) GenerateGivingStatement(ctx context.Context, tenantID, personI
 func (s *Service) ListRecurringDonations(ctx context.Context, tenantID string) ([]Donation, error) {
 	rows, err := s.db.Query(ctx,
 		`SELECT d.id, d.tenant_id, d.person_id, d.fund_id, d.amount_cents, d.currency,
-		        d.payment_method, d.stripe_subscription_id, d.recurring_frequency, d.status,
+		        COALESCE(d.payment_method, ''), COALESCE(d.stripe_subscription_id, ''), COALESCE(d.recurring_frequency, ''), d.status,
 		        d.created_at, d.updated_at,
 		        COALESCE(p.first_name || ' ' || p.last_name, 'Anonymous') as person_name,
 		        f.name as fund_name

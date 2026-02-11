@@ -37,9 +37,9 @@ func (s *Service) ListStreams(ctx context.Context, tenantID string, status strin
 
 	// Build query
 	sqlQuery := `
-		SELECT id, tenant_id, title, description, service_id, status, 
+		SELECT id, tenant_id, title, COALESCE(description, ''), service_id, status, 
 		       scheduled_start, actual_start, actual_end, stream_type, 
-		       stream_url, stream_key, embed_url, chat_enabled, giving_enabled, 
+		       COALESCE(stream_url, ''), COALESCE(stream_key, ''), COALESCE(embed_url, ''), chat_enabled, giving_enabled, 
 		       connection_card_enabled, viewer_count, peak_viewers, 
 		       created_at, updated_at
 		FROM streams
@@ -102,9 +102,9 @@ func (s *Service) GetStreamByID(ctx context.Context, tenantID, streamID string) 
 
 	var st Stream
 	err = s.db.QueryRow(ctx, `
-		SELECT id, tenant_id, title, description, service_id, status, 
+		SELECT id, tenant_id, title, COALESCE(description, ''), service_id, status, 
 		       scheduled_start, actual_start, actual_end, stream_type, 
-		       stream_url, stream_key, embed_url, chat_enabled, giving_enabled, 
+		       COALESCE(stream_url, ''), COALESCE(stream_key, ''), COALESCE(embed_url, ''), chat_enabled, giving_enabled, 
 		       connection_card_enabled, viewer_count, peak_viewers, 
 		       created_at, updated_at
 		FROM streams
@@ -131,9 +131,9 @@ func (s *Service) GetStreamByIDPublic(ctx context.Context, streamID string) (*St
 	// Public access - no tenant context needed, but we still fetch it
 	var st Stream
 	err := s.db.QueryRow(ctx, `
-		SELECT id, tenant_id, title, description, service_id, status, 
+		SELECT id, tenant_id, title, COALESCE(description, ''), service_id, status, 
 		       scheduled_start, actual_start, actual_end, stream_type, 
-		       stream_url, stream_key, embed_url, chat_enabled, giving_enabled, 
+		       COALESCE(stream_url, ''), COALESCE(stream_key, ''), COALESCE(embed_url, ''), chat_enabled, giving_enabled, 
 		       connection_card_enabled, viewer_count, peak_viewers, 
 		       created_at, updated_at
 		FROM streams
@@ -276,9 +276,9 @@ func (s *Service) GetLiveStream(ctx context.Context, tenantID string) (*Stream, 
 
 	var st Stream
 	err = s.db.QueryRow(ctx, `
-		SELECT id, tenant_id, title, description, service_id, status, 
+		SELECT id, tenant_id, title, COALESCE(description, ''), service_id, status, 
 		       scheduled_start, actual_start, actual_end, stream_type, 
-		       stream_url, stream_key, embed_url, chat_enabled, giving_enabled, 
+		       COALESCE(stream_url, ''), COALESCE(stream_key, ''), COALESCE(embed_url, ''), chat_enabled, giving_enabled, 
 		       connection_card_enabled, viewer_count, peak_viewers, 
 		       created_at, updated_at
 		FROM streams
@@ -322,7 +322,7 @@ func (s *Service) GetChatMessages(ctx context.Context, streamID string, after st
 	}
 
 	sqlQuery := `
-		SELECT id, stream_id, person_id, guest_name, message, 
+		SELECT id, stream_id, person_id, COALESCE(guest_name, ''), message, 
 		       is_pinned, is_deleted, created_at
 		FROM stream_chat
 		WHERE stream_id = $1 AND is_deleted = false`
@@ -520,7 +520,7 @@ func (s *Service) GetViewers(ctx context.Context, tenantID, streamID string) ([]
 	}
 
 	rows, err := s.db.Query(ctx, `
-		SELECT id, stream_id, person_id, guest_name, joined_at, left_at, duration_seconds
+		SELECT id, stream_id, person_id, COALESCE(guest_name, ''), joined_at, left_at, COALESCE(duration_seconds, 0)
 		FROM stream_viewers
 		WHERE stream_id = $1 AND left_at IS NULL
 		ORDER BY joined_at DESC

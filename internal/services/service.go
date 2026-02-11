@@ -27,7 +27,7 @@ func (s *Service) ListServiceTypes(ctx context.Context, tenantID string) ([]Serv
 	}
 
 	rows, err := s.db.Query(ctx, `
-		SELECT id, tenant_id, name, default_time, default_day, color, is_active, created_at, updated_at
+		SELECT id, tenant_id, name, COALESCE(default_time, ''), COALESCE(default_day, ''), color, is_active, created_at, updated_at
 		FROM service_types
 		ORDER BY name`)
 	if err != nil {
@@ -153,8 +153,8 @@ func (s *Service) ListServices(ctx context.Context, tenantID, fromDate, toDate, 
 
 	// Get services
 	query := fmt.Sprintf(`
-		SELECT s.id, s.tenant_id, s.service_type_id, s.name, s.service_date, 
-		       s.service_time, s.notes, s.status, s.created_at, s.updated_at,
+		SELECT s.id, s.tenant_id, s.service_type_id, COALESCE(s.name, ''), s.service_date, 
+		       COALESCE(s.service_time, ''), COALESCE(s.notes, ''), s.status, s.created_at, s.updated_at,
 		       st.name, st.color
 		FROM services s
 		JOIN service_types st ON st.id = s.service_type_id
@@ -206,8 +206,8 @@ func (s *Service) GetUpcomingServices(ctx context.Context, tenantID string, limi
 	today := time.Now().Format("2006-01-02")
 
 	rows, err := s.db.Query(ctx, `
-		SELECT s.id, s.tenant_id, s.service_type_id, s.name, s.service_date, 
-		       s.service_time, s.notes, s.status, s.created_at, s.updated_at,
+		SELECT s.id, s.tenant_id, s.service_type_id, COALESCE(s.name, ''), s.service_date, 
+		       COALESCE(s.service_time, ''), COALESCE(s.notes, ''), s.status, s.created_at, s.updated_at,
 		       st.name, st.color
 		FROM services s
 		JOIN service_types st ON st.id = s.service_type_id
@@ -245,7 +245,7 @@ func (s *Service) GetServiceByID(ctx context.Context, tenantID, serviceID string
 
 	var svc ChurchService
 	err = s.db.QueryRow(ctx, `
-		SELECT id, tenant_id, service_type_id, name, service_date, service_time, notes, status, created_at, updated_at
+		SELECT id, tenant_id, service_type_id, COALESCE(name, ''), service_date, COALESCE(service_time, ''), COALESCE(notes, ''), status, created_at, updated_at
 		FROM services WHERE id = $1`, serviceID).Scan(
 		&svc.ID, &svc.TenantID, &svc.ServiceTypeID, &svc.Name, &svc.ServiceDate,
 		&svc.ServiceTime, &svc.Notes, &svc.Status, &svc.CreatedAt, &svc.UpdatedAt,
@@ -260,7 +260,7 @@ func (s *Service) GetServiceByID(ctx context.Context, tenantID, serviceID string
 	// Load service type
 	var st ServiceType
 	err = s.db.QueryRow(ctx, `
-		SELECT id, tenant_id, name, default_time, default_day, color, is_active, created_at, updated_at
+		SELECT id, tenant_id, name, COALESCE(default_time, ''), COALESCE(default_day, ''), color, is_active, created_at, updated_at
 		FROM service_types WHERE id = $1`, svc.ServiceTypeID).Scan(
 		&st.ID, &st.TenantID, &st.Name, &st.DefaultTime, &st.DefaultDay,
 		&st.Color, &st.IsActive, &st.CreatedAt, &st.UpdatedAt,
@@ -361,7 +361,7 @@ func (s *Service) GetServiceItems(ctx context.Context, tenantID, serviceID strin
 	}
 
 	rows, err := s.db.Query(ctx, `
-		SELECT id, service_id, item_type, title, song_id, song_key, position, duration_minutes, notes, assigned_to
+		SELECT id, service_id, item_type, title, song_id, COALESCE(song_key, ''), position, COALESCE(duration_minutes, 0), COALESCE(notes, ''), COALESCE(assigned_to, '')
 		FROM service_items
 		WHERE service_id = $1
 		ORDER BY position`, serviceID)
@@ -474,7 +474,7 @@ func (s *Service) GetServiceTeam(ctx context.Context, tenantID, serviceID string
 	}
 
 	rows, err := s.db.Query(ctx, `
-		SELECT st.id, st.service_id, st.person_id, st.role, st.status, st.notes,
+		SELECT st.id, st.service_id, st.person_id, st.role, st.status, COALESCE(st.notes, ''),
 		       p.first_name, p.last_name
 		FROM service_teams st
 		JOIN people p ON p.id = st.person_id
@@ -599,7 +599,7 @@ func (s *Service) ListSongs(ctx context.Context, tenantID, query string, page, l
 
 	// Get songs
 	sqlQuery := fmt.Sprintf(`
-		SELECT id, tenant_id, title, artist, default_key, tempo, ccli_number, lyrics, notes, tags, last_used, times_used, created_at, updated_at
+		SELECT id, tenant_id, title, COALESCE(artist, ''), COALESCE(default_key, ''), COALESCE(tempo, 0), COALESCE(ccli_number, ''), COALESCE(lyrics, ''), COALESCE(notes, ''), COALESCE(tags, ''), last_used, times_used, created_at, updated_at
 		FROM songs
 		%s
 		ORDER BY title
@@ -636,7 +636,7 @@ func (s *Service) GetSongByID(ctx context.Context, tenantID, songID string) (*So
 
 	var song Song
 	err = s.db.QueryRow(ctx, `
-		SELECT id, tenant_id, title, artist, default_key, tempo, ccli_number, lyrics, notes, tags, last_used, times_used, created_at, updated_at
+		SELECT id, tenant_id, title, COALESCE(artist, ''), COALESCE(default_key, ''), COALESCE(tempo, 0), COALESCE(ccli_number, ''), COALESCE(lyrics, ''), COALESCE(notes, ''), COALESCE(tags, ''), last_used, times_used, created_at, updated_at
 		FROM songs WHERE id = $1`, songID).Scan(
 		&song.ID, &song.TenantID, &song.Title, &song.Artist, &song.DefaultKey,
 		&song.Tempo, &song.CCLINumber, &song.Lyrics, &song.Notes, &song.Tags,
