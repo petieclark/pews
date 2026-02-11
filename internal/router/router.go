@@ -147,6 +147,7 @@ func New(
 		r.Get("/api/billing/subscription", billingHandler.GetSubscription)
 		r.Post("/api/billing/checkout", billingHandler.CreateCheckout)
 		r.Post("/api/billing/portal", billingHandler.CreatePortal)
+		r.Get("/api/billing/invoices", billingHandler.GetInvoices)
 
 		// People
 		r.Get("/api/people", peopleHandler.ListPeople)
