@@ -14,6 +14,7 @@ import (
 	"github.com/petieclark/pews/internal/module"
 	"github.com/petieclark/pews/internal/people"
 	"github.com/petieclark/pews/internal/services"
+	"github.com/petieclark/pews/internal/sms"
 	"github.com/petieclark/pews/internal/streaming"
 	"github.com/petieclark/pews/internal/tenant"
 )
@@ -35,6 +36,7 @@ func New(
 	streamingHandler *streaming.Handler,
 	communicationHandler *communication.Handler,
 	checkinsHandler *checkins.Handler,
+	smsHandler *sms.Handler,
 	webhookSecret string,
 	givingWebhookSecret string,
 	frontendURL string,
@@ -231,6 +233,24 @@ func New(
 
 		// Communication - Stats
 		r.Get("/api/communication/stats", communicationHandler.GetStats)
+
+		// SMS - Sending
+		r.Post("/api/sms/send", smsHandler.SendSMS)
+		r.Post("/api/sms/bulk", smsHandler.SendBulkSMS)
+
+		// SMS - History
+		r.Get("/api/sms/history", smsHandler.GetHistory)
+
+		// SMS - Templates
+		r.Get("/api/sms/templates", smsHandler.ListTemplates)
+		r.Post("/api/sms/templates", smsHandler.CreateTemplate)
+		r.Put("/api/sms/templates/{id}", smsHandler.UpdateTemplate)
+		r.Delete("/api/sms/templates/{id}", smsHandler.DeleteTemplate)
+
+		// SMS - Settings
+		r.Get("/api/sms/settings", smsHandler.GetSettings)
+		r.Post("/api/sms/settings", smsHandler.SaveSettings)
+		r.Post("/api/sms/settings/test", smsHandler.TestConnection)
 
 		// Check-ins - Events
 		r.Get("/api/checkins/events", checkinsHandler.ListEvents)
