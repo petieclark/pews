@@ -155,8 +155,10 @@ func New(
 		// Services - Songs
 		r.Get("/api/services/songs", servicesHandler.ListSongs)
 		r.Post("/api/services/songs", servicesHandler.CreateSong)
+		r.Get("/api/services/songs/{id}", servicesHandler.GetSong)
 		r.Put("/api/services/songs/{id}", servicesHandler.UpdateSong)
 		r.Delete("/api/services/songs/{id}", servicesHandler.DeleteSong)
+		r.Get("/api/services/songs/{id}/usage", servicesHandler.GetSongUsage)
 
 		// Giving - Funds
 		r.Get("/api/giving/funds", givingHandler.ListFunds)

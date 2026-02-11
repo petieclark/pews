@@ -697,3 +697,33 @@ func (s *Service) DeleteSong(ctx context.Context, tenantID, songID string) error
 
 	return nil
 }
+
+func (s *Service) GetSongUsage(ctx context.Context, tenantID, songID string) ([]SongUsage, error) {
+	_, err := s.db.Exec(ctx, "SELECT set_config('app.current_tenant_id', $1, TRUE)", tenantID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to set tenant context: %w", err)
+	}
+
+	rows, err := s.db.Query(ctx, `
+		SELECT si.service_id, s.name, s.service_date, s.service_time, si.song_key, si.position
+		FROM service_items si
+		JOIN services s ON s.id = si.service_id
+		WHERE si.song_id = $1
+		ORDER BY s.service_date DESC, si.position`, songID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get song usage: %w", err)
+	}
+	defer rows.Close()
+
+	usage := []SongUsage{}
+	for rows.Next() {
+		var u SongUsage
+		err := rows.Scan(&u.ServiceID, &u.ServiceName, &u.ServiceDate, &u.ServiceTime, &u.SongKey, &u.Position)
+		if err != nil {
+			return nil, fmt.Errorf("failed to scan song usage: %w", err)
+		}
+		usage = append(usage, u)
+	}
+
+	return usage, nil
+}

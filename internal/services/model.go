@@ -72,3 +72,12 @@ type ServiceTeam struct {
 	PersonFirstName string `json:"person_first_name,omitempty"`
 	PersonLastName  string `json:"person_last_name,omitempty"`
 }
+
+type SongUsage struct {
+	ServiceID   string    `json:"service_id"`
+	ServiceName string    `json:"service_name"`
+	ServiceDate time.Time `json:"service_date"`
+	ServiceTime string    `json:"service_time"`
+	SongKey     string    `json:"song_key,omitempty"`
+	Position    int       `json:"position"`
+}
