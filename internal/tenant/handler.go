@@ -16,8 +16,9 @@ func NewHandler(service *Service) *Handler {
 }
 
 type UpdateTenantRequest struct {
-	Name   string `json:"name"`
-	Domain string `json:"domain"`
+	Name          string `json:"name"`
+	Domain        string `json:"domain"`
+	DefaultLocale string `json:"default_locale,omitempty"`
 }
 
 func (h *Handler) GetTenant(w http.ResponseWriter, r *http.Request) {
@@ -55,7 +56,7 @@ func (h *Handler) UpdateTenant(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	tenant, err := h.service.UpdateTenant(r.Context(), claims.TenantID, req.Name, req.Domain)
+	tenant, err := h.service.UpdateTenant(r.Context(), claims.TenantID, req.Name, req.Domain, req.DefaultLocale)
 	if err != nil {
 		http.Error(w, "Failed to update tenant: "+err.Error(), http.StatusInternalServerError)
 		return

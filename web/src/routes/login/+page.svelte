@@ -2,12 +2,20 @@
 	import { goto } from '$app/navigation';
 	import { api, setToken } from '$lib/api';
 	import ThemeToggle from '$lib/ThemeToggle.svelte';
+	import LanguageSelector from '$lib/LanguageSelector.svelte';
+	import { t } from '$lib/i18n.js';
 
 	let tenantSlug = '';
 	let email = '';
 	let password = '';
 	let error = '';
 	let loading = false;
+	let translate;
+
+	// Subscribe to translation updates
+	const unsubscribe = t.subscribe(value => {
+		translate = value;
+	});
 
 	async function handleLogin() {
 		error = '';
@@ -34,7 +42,8 @@
 </script>
 
 <div class="min-h-screen flex items-center justify-center relative" style="background: linear-gradient(to bottom right, var(--navy), var(--teal));">
-	<div class="absolute top-4 right-4">
+	<div class="absolute top-4 right-4 flex items-center gap-4">
+		<LanguageSelector />
 		<ThemeToggle />
 	</div>
 	
@@ -59,7 +68,7 @@
 
 			<div>
 				<label for="email" class="block text-sm font-medium text-primary mb-1">
-					Email
+					{translate ? translate('auth.email') : 'Email'}
 				</label>
 				<input
 					id="email"
@@ -73,7 +82,7 @@
 
 			<div>
 				<label for="password" class="block text-sm font-medium text-primary mb-1">
-					Password
+					{translate ? translate('auth.password') : 'Password'}
 				</label>
 				<input
 					id="password"
@@ -96,13 +105,15 @@
 				disabled={loading}
 				class="w-full bg-[var(--teal)] text-white py-2 px-4 rounded-lg font-medium hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed"
 			>
-				{loading ? 'Signing in...' : 'Sign In'}
+				{loading ? (translate ? translate('common.loading') : 'Loading...') : (translate ? translate('auth.signin') : 'Sign In')}
 			</button>
 		</form>
 
 		<p class="mt-6 text-center text-sm text-secondary">
 			Don't have an account?
-			<a href="/register" class="text-[var(--teal)] font-medium hover:underline">Register</a>
+			<a href="/register" class="text-[var(--teal)] font-medium hover:underline">
+				{translate ? translate('auth.register') : 'Register'}
+			</a>
 		</p>
 	</div>
 </div>

@@ -8,8 +8,10 @@ import (
 	"github.com/petieclark/pews/internal/billing"
 	"github.com/petieclark/pews/internal/checkins"
 	"github.com/petieclark/pews/internal/communication"
+	"github.com/petieclark/pews/internal/drip"
 	"github.com/petieclark/pews/internal/giving"
 	"github.com/petieclark/pews/internal/groups"
+	"github.com/petieclark/pews/internal/i18n"
 	"github.com/petieclark/pews/internal/middleware"
 	"github.com/petieclark/pews/internal/module"
 	"github.com/petieclark/pews/internal/people"
@@ -34,7 +36,9 @@ func New(
 	givingHandler *giving.Handler,
 	streamingHandler *streaming.Handler,
 	communicationHandler *communication.Handler,
+	dripHandler *drip.Handler,
 	checkinsHandler *checkins.Handler,
+	i18nHandler *i18n.Handler,
 	webhookSecret string,
 	givingWebhookSecret string,
 	frontendURL string,
@@ -61,6 +65,10 @@ func New(
 
 	// Public communication route - connection card submission (no auth required)
 	r.Post("/api/communication/cards", communicationHandler.SubmitConnectionCard)
+
+	// Public i18n routes (no auth required)
+	r.Get("/api/i18n/{locale}", i18nHandler.GetTranslations)
+	r.Get("/api/i18n/locales", i18nHandler.GetSupportedLocales)
 
 	// Health check
 	r.Get("/api/health", func(w http.ResponseWriter, r *http.Request) {
@@ -231,6 +239,20 @@ func New(
 
 		// Communication - Stats
 		r.Get("/api/communication/stats", communicationHandler.GetStats)
+
+		// Drip Campaigns
+		r.Get("/api/drip/campaigns", dripHandler.ListCampaigns)
+		r.Post("/api/drip/campaigns", dripHandler.CreateCampaign)
+		r.Get("/api/drip/campaigns/{id}", dripHandler.GetCampaign)
+		r.Put("/api/drip/campaigns/{id}", dripHandler.UpdateCampaign)
+		r.Delete("/api/drip/campaigns/{id}", dripHandler.DeleteCampaign)
+		r.Get("/api/drip/campaigns/{id}/steps", dripHandler.ListSteps)
+		r.Post("/api/drip/campaigns/{id}/steps", dripHandler.CreateStep)
+		r.Put("/api/drip/campaigns/{campaignId}/steps/{stepId}", dripHandler.UpdateStep)
+		r.Delete("/api/drip/campaigns/{campaignId}/steps/{stepId}", dripHandler.DeleteStep)
+		r.Post("/api/drip/campaigns/{id}/enroll/{personId}", dripHandler.EnrollPerson)
+		r.Get("/api/drip/campaigns/{id}/enrollments", dripHandler.ListEnrollments)
+		r.Post("/api/drip/process", dripHandler.ProcessPendingSteps)
 
 		// Check-ins - Events
 		r.Get("/api/checkins/events", checkinsHandler.ListEvents)

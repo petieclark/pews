@@ -35,8 +35,8 @@ func (s *Service) CreateTenant(ctx context.Context, name string) (*Tenant, error
 	}
 
 	_, err := s.db.Exec(ctx,
-		`INSERT INTO tenants (id, name, slug, domain, plan) VALUES ($1, $2, $3, $4, $5)`,
-		tenant.ID, tenant.Name, tenant.Slug, "", tenant.Plan,
+		`INSERT INTO tenants (id, name, slug, domain, plan, default_locale) VALUES ($1, $2, $3, $4, $5, $6)`,
+		tenant.ID, tenant.Name, tenant.Slug, "", tenant.Plan, "en",
 	)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create tenant: %w", err)
@@ -60,9 +60,9 @@ func (s *Service) CreateTenant(ctx context.Context, name string) (*Tenant, error
 func (s *Service) GetTenantBySlug(ctx context.Context, slug string) (*Tenant, error) {
 	tenant := &Tenant{}
 	err := s.db.QueryRow(ctx,
-		`SELECT id, name, slug, COALESCE(domain, ''), plan, created_at, updated_at FROM tenants WHERE slug = $1`,
+		`SELECT id, name, slug, COALESCE(domain, ''), plan, default_locale, created_at, updated_at FROM tenants WHERE slug = $1`,
 		slug,
-	).Scan(&tenant.ID, &tenant.Name, &tenant.Slug, &tenant.Domain, &tenant.Plan, &tenant.CreatedAt, &tenant.UpdatedAt)
+	).Scan(&tenant.ID, &tenant.Name, &tenant.Slug, &tenant.Domain, &tenant.Plan, &tenant.DefaultLocale, &tenant.CreatedAt, &tenant.UpdatedAt)
 
 	if err != nil {
 		return nil, fmt.Errorf("tenant not found: %w", err)
@@ -74,9 +74,9 @@ func (s *Service) GetTenantBySlug(ctx context.Context, slug string) (*Tenant, er
 func (s *Service) GetTenantByID(ctx context.Context, id string) (*Tenant, error) {
 	tenant := &Tenant{}
 	err := s.db.QueryRow(ctx,
-		`SELECT id, name, slug, COALESCE(domain, ''), plan, created_at, updated_at FROM tenants WHERE id = $1`,
+		`SELECT id, name, slug, COALESCE(domain, ''), plan, default_locale, created_at, updated_at FROM tenants WHERE id = $1`,
 		id,
-	).Scan(&tenant.ID, &tenant.Name, &tenant.Slug, &tenant.Domain, &tenant.Plan, &tenant.CreatedAt, &tenant.UpdatedAt)
+	).Scan(&tenant.ID, &tenant.Name, &tenant.Slug, &tenant.Domain, &tenant.Plan, &tenant.DefaultLocale, &tenant.CreatedAt, &tenant.UpdatedAt)
 
 	if err != nil {
 		return nil, fmt.Errorf("tenant not found: %w", err)
@@ -85,15 +85,26 @@ func (s *Service) GetTenantByID(ctx context.Context, id string) (*Tenant, error)
 	return tenant, nil
 }
 
-func (s *Service) UpdateTenant(ctx context.Context, id string, name, domain string) (*Tenant, error) {
+func (s *Service) UpdateTenant(ctx context.Context, id string, name, domain, defaultLocale string) (*Tenant, error) {
 	slug := slugify(name)
 
-	_, err := s.db.Exec(ctx,
-		`UPDATE tenants SET name = $1, slug = $2, domain = $3 WHERE id = $4`,
-		name, slug, domain, id,
-	)
-	if err != nil {
-		return nil, fmt.Errorf("failed to update tenant: %w", err)
+	// If defaultLocale is empty, don't update it
+	if defaultLocale != "" {
+		_, err := s.db.Exec(ctx,
+			`UPDATE tenants SET name = $1, slug = $2, domain = $3, default_locale = $4 WHERE id = $5`,
+			name, slug, domain, defaultLocale, id,
+		)
+		if err != nil {
+			return nil, fmt.Errorf("failed to update tenant: %w", err)
+		}
+	} else {
+		_, err := s.db.Exec(ctx,
+			`UPDATE tenants SET name = $1, slug = $2, domain = $3 WHERE id = $4`,
+			name, slug, domain, id,
+		)
+		if err != nil {
+			return nil, fmt.Errorf("failed to update tenant: %w", err)
+		}
 	}
 
 	return s.GetTenantByID(ctx, id)
