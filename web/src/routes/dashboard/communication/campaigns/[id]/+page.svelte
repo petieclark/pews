@@ -104,8 +104,7 @@
 			<div class="flex items-center justify-between mt-2">
 				<div class="flex items-center gap-3">
 					<h1 class="text-3xl font-bold" style="color: var(--text-primary)">{campaign.name}</h1>
-					{@const badge = getStatusBadge(campaign.status)}
-					<span class="px-3 py-1 rounded-full text-sm font-medium" style="background: {badge.bg}; color: {badge.color}">{badge.text}</span>
+					{#if true}{@const badge = getStatusBadge(campaign.status)}<span class="px-3 py-1 rounded-full text-sm font-medium" style="background: {badge.bg}; color: {badge.color}">{badge.text}</span>{/if}
 				</div>
 				{#if campaign.status === 'draft'}
 					<div class="flex gap-3">
