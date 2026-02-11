@@ -1,0 +1,26 @@
+{
+  "songs": [
+    {
+      "title": "Amazing Grace",
+      "artist": "John Newton",
+      "key": "G",
+      "ccli_number": "4669344",
+      "tempo": 75
+    },
+    {
+      "title": "How Great Is Our God",
+      "artist": "Chris Tomlin",
+      "key": "C",
+      "ccli_number": "4348399",
+      "tempo": 76
+    },
+    {
+      "title": "10,000 Reasons",
+      "artist": "Matt Redman",
+      "key": "G",
+      "ccli_number": "6016351",
+      "tempo": 73
+    }
+  ],
+  "dry_run": false
+}

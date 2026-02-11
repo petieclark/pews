@@ -1,0 +1,21 @@
+{
+  "people": [
+    {
+      "first_name": "John",
+      "last_name": "Doe",
+      "email": "john.doe@example.com",
+      "phone": "555-1234",
+      "city": "Springfield",
+      "state": "IL"
+    },
+    {
+      "first_name": "Jane",
+      "last_name": "Smith",
+      "email": "jane.smith@example.com",
+      "phone": "555-5678",
+      "city": "Chicago",
+      "state": "IL"
+    }
+  ],
+  "dry_run": false
+}
