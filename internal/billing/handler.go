@@ -24,8 +24,17 @@ func (h *Handler) GetSubscription(w http.ResponseWriter, r *http.Request) {
 
 	sub, err := h.service.GetSubscription(r.Context(), claims.TenantID)
 	if err != nil {
-		http.Error(w, "Failed to get subscription: "+err.Error(), http.StatusInternalServerError)
-		return
+		// If subscription doesn't exist, create a free one
+		if err := h.service.EnsureSubscription(r.Context(), claims.TenantID); err != nil {
+			http.Error(w, "Failed to create subscription: "+err.Error(), http.StatusInternalServerError)
+			return
+		}
+		// Try to get again
+		sub, err = h.service.GetSubscription(r.Context(), claims.TenantID)
+		if err != nil {
+			http.Error(w, "Failed to get subscription: "+err.Error(), http.StatusInternalServerError)
+			return
+		}
 	}
 
 	w.Header().Set("Content-Type", "application/json")
