@@ -24,6 +24,7 @@ import (
 	"github.com/petieclark/pews/internal/giving"
 	"github.com/petieclark/pews/internal/groups"
 	"github.com/petieclark/pews/internal/i18n"
+	importpkg "github.com/petieclark/pews/internal/import"
 	"github.com/petieclark/pews/internal/module"
 	"github.com/petieclark/pews/internal/notification"
 	"github.com/petieclark/pews/internal/people"
@@ -128,6 +129,10 @@ func run() error {
 	
 	// i18n (Phase 8)
 	i18nHandler := i18n.NewHandler(i18nService)
+	
+	// Import
+	importService := importpkg.NewService(db.Pool)
+	importHandler := importpkg.NewHandler(importService)
 
 	// Setup router
 	r := router.New(
@@ -155,6 +160,7 @@ func run() error {
 		engagementHandler,
 		smsHandler,
 		i18nHandler,
+		importHandler,
 		cfg.StripeWebhookSecret,
 		cfg.StripeWebhookSecret, // Use same webhook secret for giving
 		cfg.FrontendURL,

@@ -196,7 +196,6 @@ func ParsePCOSongsCSV(r io.Reader) ([]SongImport, error) {
 
 	var songs []SongImport
 	rowNum := 0
-	unmappedNotes := make(map[string][]string) // Store unmapped fields per song
 
 	// Read rows
 	for {

@@ -15,6 +15,7 @@ import (
 	"github.com/petieclark/pews/internal/giving"
 	"github.com/petieclark/pews/internal/groups"
 	"github.com/petieclark/pews/internal/i18n"
+	importpkg "github.com/petieclark/pews/internal/import"
 	"github.com/petieclark/pews/internal/middleware"
 	"github.com/petieclark/pews/internal/module"
 	"github.com/petieclark/pews/internal/notification"
@@ -60,6 +61,7 @@ func New(
 	engagementHandler *engagement.Handler,
 	smsHandler *sms.Handler,
 	i18nHandler *i18n.Handler,
+	importHandler *importpkg.Handler,
 	webhookSecret string,
 	givingWebhookSecret string,
 	frontendURL string,
@@ -421,6 +423,11 @@ func New(
 		r.Post("/api/engagement/scores/{personID}/calculate", engagementHandler.CalculatePersonScore)
 		r.Get("/api/engagement/at-risk", engagementHandler.GetAtRiskPeople)
 		r.Post("/api/engagement/recalculate", engagementHandler.RecalculateAllScores)
+
+		// Import - PCO Data Import
+		r.Post("/api/import/pco/people", importHandler.ImportPCOPeople)
+		r.Post("/api/import/pco/songs", importHandler.ImportPCOSongs)
+		r.Get("/api/import/status", importHandler.GetImportStatus)
 
 		// Dashboard - KPIs
 		r.Get("/api/dashboard/kpis", engagementHandler.GetDashboardKPIs)

@@ -319,3 +319,279 @@ func (s *Service) ImportGiving(ctx context.Context, tenantID string, donations [
 
 	return result, nil
 }
+
+// ImportPCOPeople bulk imports people from PCO with support for custom fields and updates
+func (s *Service) ImportPCOPeople(ctx context.Context, tenantID string, people []PersonImport, updateMode string) (*PCOImportResult, error) {
+	// Set tenant context
+	_, err := s.db.Exec(ctx, "SELECT set_config('app.current_tenant_id', $1, TRUE)", tenantID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to set tenant context: %w", err)
+	}
+
+	result := &PCOImportResult{
+		Imported: 0,
+		Updated:  0,
+		Skipped:  0,
+		Errors:   []string{},
+	}
+
+	// Start transaction
+	tx, err := s.db.Begin(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("failed to start transaction: %w", err)
+	}
+	defer tx.Rollback(ctx)
+
+	for i, person := range people {
+		// Skip if missing required fields
+		if person.FirstName == "" || person.LastName == "" {
+			result.Errors = append(result.Errors, fmt.Sprintf("Row %d: missing required fields (first_name, last_name)", i+1))
+			continue
+		}
+
+		// Check for duplicate by email
+		var existingID string
+		if person.Email != "" {
+			err := tx.QueryRow(ctx, "SELECT id FROM people WHERE email = $1", person.Email).Scan(&existingID)
+			if err == nil {
+				// Person exists
+				if updateMode == "skip" {
+					result.Skipped++
+					continue
+				} else if updateMode == "update" {
+					// Update existing person
+					_, err := tx.Exec(ctx, `
+						UPDATE people SET
+							first_name = COALESCE(NULLIF($1, ''), first_name),
+							last_name = COALESCE(NULLIF($2, ''), last_name),
+							phone = COALESCE(NULLIF($3, ''), phone),
+							address_line1 = COALESCE(NULLIF($4, ''), address_line1),
+							address_line2 = COALESCE(NULLIF($5, ''), address_line2),
+							city = COALESCE(NULLIF($6, ''), city),
+							state = COALESCE(NULLIF($7, ''), state),
+							zip = COALESCE(NULLIF($8, ''), zip),
+							birthdate = CASE WHEN $9 != '' THEN $9::date ELSE birthdate END,
+							gender = COALESCE(NULLIF($10, ''), gender),
+							membership_status = COALESCE(NULLIF($11, ''), membership_status),
+							photo_url = COALESCE(NULLIF($12, ''), photo_url),
+							notes = COALESCE(NULLIF($13, ''), notes),
+							custom_fields = CASE
+								WHEN $14::jsonb IS NOT NULL
+								THEN COALESCE(custom_fields, '{}'::jsonb) || $14::jsonb
+								ELSE custom_fields
+							END,
+							updated_at = NOW()
+						WHERE id = $15
+					`,
+						person.FirstName, person.LastName, person.Phone,
+						person.AddressLine1, person.AddressLine2, person.City, person.State, person.Zip,
+						person.Birthdate, person.Gender, person.MembershipStatus, person.PhotoURL, person.Notes,
+						person.CustomFields, existingID,
+					)
+
+					if err != nil {
+						result.Errors = append(result.Errors, fmt.Sprintf("Row %d: %v", i+1, err))
+						continue
+					}
+
+					result.Updated++
+					continue
+				}
+			}
+		}
+
+		// Insert new person
+		id := uuid.New().String()
+		membershipStatus := person.MembershipStatus
+		if membershipStatus == "" {
+			membershipStatus = "active"
+		}
+
+		_, err = tx.Exec(ctx, `
+			INSERT INTO people (
+				id, tenant_id, first_name, last_name, email, phone,
+				address_line1, address_line2, city, state, zip,
+				birthdate, gender, membership_status, photo_url, notes, custom_fields,
+				in_directory, profile_completed,
+				created_at, updated_at
+			) VALUES (
+				$1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11,
+				NULLIF($12, '')::date, $13, $14, $15, $16, $17,
+				FALSE, FALSE,
+				NOW(), NOW()
+			)`,
+			id, tenantID, person.FirstName, person.LastName, person.Email, person.Phone,
+			person.AddressLine1, person.AddressLine2, person.City, person.State, person.Zip,
+			person.Birthdate, person.Gender, membershipStatus, person.PhotoURL, person.Notes, person.CustomFields,
+		)
+
+		if err != nil {
+			result.Errors = append(result.Errors, fmt.Sprintf("Row %d: %v", i+1, err))
+			continue
+		}
+
+		result.Imported++
+	}
+
+	// Commit transaction
+	if err := tx.Commit(ctx); err != nil {
+		return nil, fmt.Errorf("failed to commit transaction: %w", err)
+	}
+
+	// Log import to history
+	s.logImport(ctx, tenantID, "pco_people", result.Imported, result.Updated, result.Skipped, len(result.Errors))
+
+	return result, nil
+}
+
+// ImportPCOSongs bulk imports songs from PCO with support for updates
+func (s *Service) ImportPCOSongs(ctx context.Context, tenantID string, songs []SongImport, updateMode string) (*PCOImportResult, error) {
+	// Set tenant context
+	_, err := s.db.Exec(ctx, "SELECT set_config('app.current_tenant_id', $1, TRUE)", tenantID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to set tenant context: %w", err)
+	}
+
+	result := &PCOImportResult{
+		Imported: 0,
+		Updated:  0,
+		Skipped:  0,
+		Errors:   []string{},
+	}
+
+	// Start transaction
+	tx, err := s.db.Begin(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("failed to start transaction: %w", err)
+	}
+	defer tx.Rollback(ctx)
+
+	for i, song := range songs {
+		// Skip if missing required fields
+		if song.Title == "" {
+			result.Errors = append(result.Errors, fmt.Sprintf("Row %d: missing required field (title)", i+1))
+			continue
+		}
+
+		// Check for duplicate by title+artist or CCLI number
+		var existingID string
+		var err error
+
+		if song.CCLINumber != "" {
+			err = tx.QueryRow(ctx, "SELECT id FROM songs WHERE ccli_number = $1 AND ccli_number != ''", song.CCLINumber).Scan(&existingID)
+		} else if song.Artist != "" {
+			err = tx.QueryRow(ctx, "SELECT id FROM songs WHERE title = $1 AND artist = $2", song.Title, song.Artist).Scan(&existingID)
+		} else {
+			err = tx.QueryRow(ctx, "SELECT id FROM songs WHERE title = $1", song.Title).Scan(&existingID)
+		}
+
+		if err == nil {
+			// Song exists
+			if updateMode == "skip" {
+				result.Skipped++
+				continue
+			} else if updateMode == "update" {
+				// Update existing song
+				_, err := tx.Exec(ctx, `
+					UPDATE songs SET
+						artist = COALESCE(NULLIF($1, ''), artist),
+						default_key = COALESCE(NULLIF($2, ''), default_key),
+						tempo = CASE WHEN $3 > 0 THEN $3 ELSE tempo END,
+						ccli_number = COALESCE(NULLIF($4, ''), ccli_number),
+						lyrics = COALESCE(NULLIF($5, ''), lyrics),
+						notes = COALESCE(NULLIF($6, ''), notes),
+						tags = COALESCE(NULLIF($7, ''), tags),
+						updated_at = NOW()
+					WHERE id = $8
+				`,
+					song.Artist, song.Key, song.Tempo, song.CCLINumber, song.Lyrics, song.Notes, song.Tags,
+					existingID,
+				)
+
+				if err != nil {
+					result.Errors = append(result.Errors, fmt.Sprintf("Row %d: %v", i+1, err))
+					continue
+				}
+
+				result.Updated++
+				continue
+			}
+		}
+
+		// Insert new song
+		id := uuid.New().String()
+		_, err = tx.Exec(ctx, `
+			INSERT INTO songs (
+				id, tenant_id, title, artist, default_key, tempo,
+				ccli_number, lyrics, notes, tags, times_used, last_used,
+				created_at, updated_at
+			) VALUES (
+				$1, $2, $3, $4, $5, $6, $7, $8, $9, $10, 0, NULL, NOW(), NOW()
+			)`,
+			id, tenantID, song.Title, song.Artist, song.Key, song.Tempo,
+			song.CCLINumber, song.Lyrics, song.Notes, song.Tags,
+		)
+
+		if err != nil {
+			result.Errors = append(result.Errors, fmt.Sprintf("Row %d: %v", i+1, err))
+			continue
+		}
+
+		result.Imported++
+	}
+
+	// Commit transaction
+	if err := tx.Commit(ctx); err != nil {
+		return nil, fmt.Errorf("failed to commit transaction: %w", err)
+	}
+
+	// Log import to history
+	s.logImport(ctx, tenantID, "pco_songs", result.Imported, result.Updated, result.Skipped, len(result.Errors))
+
+	return result, nil
+}
+
+// logImport logs an import operation to the import_history table
+func (s *Service) logImport(ctx context.Context, tenantID, importType string, imported, updated, skipped, errorCount int) {
+	id := uuid.New().String()
+	_, _ = s.db.Exec(ctx, `
+		INSERT INTO import_history (
+			id, tenant_id, import_type, imported_count, updated_count, skipped_count, error_count, imported_at
+		) VALUES ($1, $2, $3, $4, $5, $6, $7, NOW())
+	`, id, tenantID, importType, imported, updated, skipped, errorCount)
+}
+
+// GetImportHistory returns recent import history for a tenant
+func (s *Service) GetImportHistory(ctx context.Context, tenantID string) ([]ImportHistoryRecord, error) {
+	// Set tenant context
+	_, err := s.db.Exec(ctx, "SELECT set_config('app.current_tenant_id', $1, TRUE)", tenantID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to set tenant context: %w", err)
+	}
+
+	rows, err := s.db.Query(ctx, `
+		SELECT id, import_type, imported_count, updated_count, skipped_count, error_count, imported_at
+		FROM import_history
+		ORDER BY imported_at DESC
+		LIMIT 50
+	`)
+	if err != nil {
+		return nil, fmt.Errorf("failed to query import history: %w", err)
+	}
+	defer rows.Close()
+
+	var history []ImportHistoryRecord
+	for rows.Next() {
+		var record ImportHistoryRecord
+		err := rows.Scan(
+			&record.ID, &record.ImportType, &record.ImportedCount, &record.UpdatedCount,
+			&record.SkippedCount, &record.ErrorCount, &record.ImportedAt,
+		)
+		if err != nil {
+			return nil, fmt.Errorf("failed to scan import history: %w", err)
+		}
+		history = append(history, record)
+	}
+
+	return history, nil
+}

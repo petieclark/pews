@@ -2,6 +2,7 @@ package importpkg
 
 import (
 	"encoding/json"
+	"time"
 )
 
 // ImportPeopleRequest is the request body for bulk person import
@@ -88,4 +89,23 @@ type ImportResult struct {
 	Created int      `json:"created"`
 	Skipped int      `json:"skipped"`
 	Errors  []string `json:"errors,omitempty"`
+}
+
+// PCOImportResult is the response for PCO import operations
+type PCOImportResult struct {
+	Imported int      `json:"imported"`
+	Updated  int      `json:"updated"`
+	Skipped  int      `json:"skipped"`
+	Errors   []string `json:"errors,omitempty"`
+}
+
+// ImportHistoryRecord represents a single import operation
+type ImportHistoryRecord struct {
+	ID             string    `json:"id"`
+	ImportType     string    `json:"import_type"`
+	ImportedCount  int       `json:"imported_count"`
+	UpdatedCount   int       `json:"updated_count"`
+	SkippedCount   int       `json:"skipped_count"`
+	ErrorCount     int       `json:"error_count"`
+	ImportedAt     time.Time `json:"imported_at"`
 }
