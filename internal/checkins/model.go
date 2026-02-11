@@ -94,3 +94,33 @@ type PersonSearchResult struct {
 	Phone     string `json:"phone,omitempty"`
 	PhotoURL  string `json:"photo_url,omitempty"`
 }
+
+// Attendance tracking models
+type AttendanceTrend struct {
+	Period string `json:"period"` // date like "2024-01-01" or "2024-W01"
+	Count  int    `json:"count"`
+}
+
+type PersonAttendance struct {
+	Streak          int                    `json:"streak"`
+	LastAttended    *string                `json:"last_attended,omitempty"`
+	TotalCount      int                    `json:"total_count"`
+	AttendanceData  []AttendanceTrend      `json:"attendance_data"`
+	RecentCheckins  []Checkin              `json:"recent_checkins"`
+}
+
+type ServiceAttendance struct {
+	ServiceID       string   `json:"service_id"`
+	AttendanceCount int      `json:"attendance_count"`
+	AverageCount    float64  `json:"average_count"`
+	Attendees       []Checkin `json:"attendees"`
+}
+
+type FirstTimer struct {
+	ID          string    `json:"id"`
+	PersonID    string    `json:"person_id"`
+	PersonName  string    `json:"person_name"`
+	PersonEmail string    `json:"person_email,omitempty"`
+	EventName   string    `json:"event_name"`
+	CheckedInAt time.Time `json:"checked_in_at"`
+}

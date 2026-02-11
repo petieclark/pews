@@ -376,3 +376,248 @@ func (s *Service) SearchPeople(ctx context.Context, tenantID, query string) ([]P
 	}
 	return results, nil
 }
+
+// ========== Attendance Tracking ==========
+
+func (s *Service) GetAttendanceTrends(ctx context.Context, tenantID, period string, limit int) ([]AttendanceTrend, error) {
+	if err := s.setTenant(ctx, tenantID); err != nil {
+		return nil, err
+	}
+	
+	var query string
+	if period == "weekly" {
+		query = `SELECT 
+			to_char(e.event_date::date, 'IYYY-IW') as period,
+			COUNT(c.id) as count
+		FROM checkin_events e
+		LEFT JOIN checkins c ON c.event_id = e.id
+		WHERE e.event_date >= CURRENT_DATE - INTERVAL '12 weeks'
+		GROUP BY period
+		ORDER BY period DESC
+		LIMIT $1`
+	} else {
+		query = `SELECT 
+			to_char(e.event_date::date, 'YYYY-MM') as period,
+			COUNT(c.id) as count
+		FROM checkin_events e
+		LEFT JOIN checkins c ON c.event_id = e.id
+		WHERE e.event_date >= CURRENT_DATE - INTERVAL '12 months'
+		GROUP BY period
+		ORDER BY period DESC
+		LIMIT $1`
+	}
+	
+	rows, err := s.db.Query(ctx, query, limit)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get attendance trends: %w", err)
+	}
+	defer rows.Close()
+	
+	trends := []AttendanceTrend{}
+	for rows.Next() {
+		var t AttendanceTrend
+		if err := rows.Scan(&t.Period, &t.Count); err != nil {
+			return nil, err
+		}
+		trends = append(trends, t)
+	}
+	return trends, nil
+}
+
+func (s *Service) GetPersonAttendance(ctx context.Context, tenantID, personID string) (*PersonAttendance, error) {
+	if err := s.setTenant(ctx, tenantID); err != nil {
+		return nil, err
+	}
+	
+	attendance := &PersonAttendance{}
+	
+	err := s.db.QueryRow(ctx, `SELECT COUNT(*) FROM checkins WHERE person_id = $1`, personID).Scan(&attendance.TotalCount)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get total count: %w", err)
+	}
+	
+	var lastAttended *time.Time
+	err = s.db.QueryRow(ctx, `SELECT MAX(checked_in_at) FROM checkins WHERE person_id = $1`, personID).Scan(&lastAttended)
+	if err != nil && err != pgx.ErrNoRows {
+		return nil, fmt.Errorf("failed to get last attended: %w", err)
+	}
+	if lastAttended != nil {
+		formatted := lastAttended.Format("2006-01-02")
+		attendance.LastAttended = &formatted
+	}
+	
+	attendance.Streak = s.calculateStreak(ctx, personID)
+	
+	rows, err := s.db.Query(ctx, `
+		SELECT 
+			DATE(c.checked_in_at) as date,
+			COUNT(*) as count
+		FROM checkins c
+		WHERE c.person_id = $1 
+		AND c.checked_in_at >= CURRENT_DATE - INTERVAL '365 days'
+		GROUP BY DATE(c.checked_in_at)
+		ORDER BY date DESC
+	`, personID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get attendance data: %w", err)
+	}
+	defer rows.Close()
+	
+	attendance.AttendanceData = []AttendanceTrend{}
+	for rows.Next() {
+		var t AttendanceTrend
+		if err := rows.Scan(&t.Period, &t.Count); err != nil {
+			return nil, err
+		}
+		attendance.AttendanceData = append(attendance.AttendanceData, t)
+	}
+	
+	attendance.RecentCheckins, err = s.GetPersonHistory(ctx, tenantID, personID)
+	if err != nil {
+		return nil, err
+	}
+	if len(attendance.RecentCheckins) > 10 {
+		attendance.RecentCheckins = attendance.RecentCheckins[:10]
+	}
+	
+	return attendance, nil
+}
+
+func (s *Service) calculateStreak(ctx context.Context, personID string) int {
+	rows, err := s.db.Query(ctx, `
+		SELECT DISTINCT DATE(checked_in_at) as date
+		FROM checkins
+		WHERE person_id = $1
+		ORDER BY date DESC
+	`, personID)
+	if err != nil {
+		return 0
+	}
+	defer rows.Close()
+	
+	dates := []time.Time{}
+	for rows.Next() {
+		var date time.Time
+		if err := rows.Scan(&date); err != nil {
+			return 0
+		}
+		dates = append(dates, date)
+	}
+	
+	if len(dates) == 0 {
+		return 0
+	}
+	
+	streak := 1
+	for i := 0; i < len(dates)-1; i++ {
+		diff := dates[i].Sub(dates[i+1]).Hours() / 24
+		if diff <= 7 {
+			streak++
+		} else {
+			break
+		}
+	}
+	
+	return streak
+}
+
+func (s *Service) GetServiceAttendance(ctx context.Context, tenantID, serviceID string) (*ServiceAttendance, error) {
+	if err := s.setTenant(ctx, tenantID); err != nil {
+		return nil, err
+	}
+	
+	sa := &ServiceAttendance{ServiceID: serviceID}
+	
+	err := s.db.QueryRow(ctx, `
+		SELECT COUNT(c.id)
+		FROM checkins c
+		JOIN checkin_events e ON e.id = c.event_id
+		WHERE e.service_id = $1
+	`, serviceID).Scan(&sa.AttendanceCount)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get attendance count: %w", err)
+	}
+	
+	err = s.db.QueryRow(ctx, `
+		SELECT COALESCE(AVG(event_count), 0)
+		FROM (
+			SELECT e.id, COUNT(c.id) as event_count
+			FROM checkin_events e
+			LEFT JOIN checkins c ON c.event_id = e.id
+			WHERE e.service_id IS NOT NULL
+			GROUP BY e.id
+		) subq
+	`).Scan(&sa.AverageCount)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get average: %w", err)
+	}
+	
+	rows, err := s.db.Query(ctx, `
+		SELECT DISTINCT ON (c.person_id)
+			c.id, c.tenant_id, c.event_id, c.person_id, c.station_id, 
+			c.first_time, c.checked_in_at, c.checked_out_at, c.notes, c.created_at,
+			COALESCE(p.first_name || ' ' || p.last_name, '') as person_name,
+			COALESCE(p.email, '') as person_email,
+			COALESCE(cs.name, '') as station_name
+		FROM checkins c
+		JOIN checkin_events e ON e.id = c.event_id
+		JOIN people p ON p.id = c.person_id
+		LEFT JOIN checkin_stations cs ON cs.id = c.station_id
+		WHERE e.service_id = $1
+		ORDER BY c.person_id, c.checked_in_at DESC
+	`, serviceID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get attendees: %w", err)
+	}
+	defer rows.Close()
+	
+	sa.Attendees = []Checkin{}
+	for rows.Next() {
+		var ci Checkin
+		if err := rows.Scan(&ci.ID, &ci.TenantID, &ci.EventID, &ci.PersonID, &ci.StationID, 
+			&ci.FirstTime, &ci.CheckedInAt, &ci.CheckedOutAt, &ci.Notes, &ci.CreatedAt,
+			&ci.PersonName, &ci.PersonEmail, &ci.StationName); err != nil {
+			return nil, err
+		}
+		sa.Attendees = append(sa.Attendees, ci)
+	}
+	
+	return sa, nil
+}
+
+func (s *Service) GetFirstTimersThisWeek(ctx context.Context, tenantID string) ([]FirstTimer, error) {
+	if err := s.setTenant(ctx, tenantID); err != nil {
+		return nil, err
+	}
+	
+	rows, err := s.db.Query(ctx, `
+		SELECT 
+			c.id, c.person_id, 
+			COALESCE(p.first_name || ' ' || p.last_name, '') as person_name,
+			COALESCE(p.email, '') as person_email,
+			e.name as event_name,
+			c.checked_in_at
+		FROM checkins c
+		JOIN people p ON p.id = c.person_id
+		JOIN checkin_events e ON e.id = c.event_id
+		WHERE c.first_time = true
+		AND c.checked_in_at >= date_trunc('week', CURRENT_DATE)
+		ORDER BY c.checked_in_at DESC
+	`)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get first timers: %w", err)
+	}
+	defer rows.Close()
+	
+	firstTimers := []FirstTimer{}
+	for rows.Next() {
+		var ft FirstTimer
+		if err := rows.Scan(&ft.ID, &ft.PersonID, &ft.PersonName, &ft.PersonEmail, 
+			&ft.EventName, &ft.CheckedInAt); err != nil {
+			return nil, err
+		}
+		firstTimers = append(firstTimers, ft)
+	}
+	
+	return firstTimers, nil
+}

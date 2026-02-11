@@ -366,6 +366,12 @@ func New(
 
 		// Dashboard - KPIs
 		r.Get("/api/dashboard/kpis", engagementHandler.GetDashboardKPIs)
+
+		// Attendance Tracking (Phase 6)
+		r.Get("/api/attendance/trends", checkinsHandler.GetAttendanceTrends)
+		r.Get("/api/attendance/by-person/{id}", checkinsHandler.GetPersonAttendance)
+		r.Get("/api/attendance/by-service/{id}", checkinsHandler.GetServiceAttendance)
+		r.Get("/api/attendance/first-timers", checkinsHandler.GetFirstTimersThisWeek)
 	})
 
 	return &Router{r}

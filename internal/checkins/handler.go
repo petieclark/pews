@@ -2,6 +2,7 @@ package checkins
 
 import (
 	"encoding/json"
+	"fmt"
 	"net/http"
 
 	"github.com/go-chi/chi/v5"
@@ -415,4 +416,86 @@ func (h *Handler) SearchPeople(w http.ResponseWriter, r *http.Request) {
 	}
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(results)
+}
+
+// ========== Attendance Tracking ==========
+
+func (h *Handler) GetAttendanceTrends(w http.ResponseWriter, r *http.Request) {
+	claims, ok := middleware.GetClaims(r.Context())
+	if !ok {
+		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		return
+	}
+	
+	period := r.URL.Query().Get("period")
+	if period == "" {
+		period = "monthly"
+	}
+	
+	limit := 12
+	if limitStr := r.URL.Query().Get("limit"); limitStr != "" {
+		fmt.Sscanf(limitStr, "%d", &limit)
+	}
+	
+	trends, err := h.service.GetAttendanceTrends(r.Context(), claims.TenantID, period, limit)
+	if err != nil {
+		http.Error(w, "Failed to get trends: "+err.Error(), http.StatusInternalServerError)
+		return
+	}
+	
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(trends)
+}
+
+func (h *Handler) GetPersonAttendance(w http.ResponseWriter, r *http.Request) {
+	claims, ok := middleware.GetClaims(r.Context())
+	if !ok {
+		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		return
+	}
+	
+	personID := chi.URLParam(r, "id")
+	attendance, err := h.service.GetPersonAttendance(r.Context(), claims.TenantID, personID)
+	if err != nil {
+		http.Error(w, "Failed to get attendance: "+err.Error(), http.StatusInternalServerError)
+		return
+	}
+	
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(attendance)
+}
+
+func (h *Handler) GetServiceAttendance(w http.ResponseWriter, r *http.Request) {
+	claims, ok := middleware.GetClaims(r.Context())
+	if !ok {
+		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		return
+	}
+	
+	serviceID := chi.URLParam(r, "id")
+	attendance, err := h.service.GetServiceAttendance(r.Context(), claims.TenantID, serviceID)
+	if err != nil {
+		http.Error(w, "Failed to get service attendance: "+err.Error(), http.StatusInternalServerError)
+		return
+	}
+	
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(attendance)
+}
+
+func (h *Handler) GetFirstTimersThisWeek(w http.ResponseWriter, r *http.Request) {
+	claims, ok := middleware.GetClaims(r.Context())
+	if !ok {
+		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		return
+	}
+	
+	firstTimers, err := h.service.GetFirstTimersThisWeek(r.Context(), claims.TenantID)
+	if err != nil {
+		http.Error(w, "Failed to get first timers: "+err.Error(), http.StatusInternalServerError)
+		return
+	}
+	
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(firstTimers)
 }
