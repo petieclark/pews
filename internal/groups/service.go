@@ -106,8 +106,8 @@ func (s *Service) GetGroupByID(ctx context.Context, tenantID, groupID string) (*
 		       COUNT(DISTINCT gm.id) as member_count
 		FROM groups g
 		LEFT JOIN group_members gm ON gm.group_id = g.id
-		WHERE g.id = $1
-		GROUP BY g.id`, groupID).Scan(
+		WHERE g.id = $1 AND g.tenant_id = $2
+		GROUP BY g.id`, groupID, tenantID).Scan(
 		&g.ID, &g.TenantID, &g.Name, &g.Description, &g.GroupType,
 		&g.MeetingDay, &g.MeetingTime, &g.MeetingLocation,
 		&g.IsPublic, &g.MaxMembers, &g.IsActive, &g.PhotoURL,
@@ -158,12 +158,12 @@ func (s *Service) UpdateGroup(ctx context.Context, tenantID, groupID string, g *
 			name = $1, description = $2, group_type = $3, 
 			meeting_day = $4, meeting_time = $5, meeting_location = $6, 
 			is_public = $7, max_members = $8, is_active = $9, photo_url = $10
-		WHERE id = $11
+		WHERE id = $11 AND tenant_id = $12
 		RETURNING created_at, updated_at`,
 		g.Name, g.Description, g.GroupType,
 		g.MeetingDay, g.MeetingTime, g.MeetingLocation,
 		g.IsPublic, g.MaxMembers, g.IsActive, g.PhotoURL,
-		groupID,
+		groupID, tenantID,
 	).Scan(&g.CreatedAt, &g.UpdatedAt)
 
 	if err != nil {
@@ -180,7 +180,7 @@ func (s *Service) UpdateGroup(ctx context.Context, tenantID, groupID string, g *
 }
 
 func (s *Service) DeleteGroup(ctx context.Context, tenantID, groupID string) error {
-	result, err := s.db.Exec(ctx, "DELETE FROM groups WHERE id = $1", groupID)
+	result, err := s.db.Exec(ctx, "DELETE FROM groups WHERE id = $1 AND tenant_id = $2", groupID, tenantID)
 	if err != nil {
 		return fmt.Errorf("failed to delete group: %w", err)
 	}
@@ -203,8 +203,9 @@ func (s *Service) GetGroupMembers(ctx context.Context, tenantID, groupID string)
 		       COALESCE(p.custom_fields, '{}'), p.created_at, p.updated_at
 		FROM group_members gm
 		JOIN people p ON p.id = gm.person_id
-		WHERE gm.group_id = $1
-		ORDER BY gm.role DESC, p.last_name, p.first_name`, groupID)
+		JOIN groups g ON g.id = gm.group_id
+		WHERE gm.group_id = $1 AND g.tenant_id = $2
+		ORDER BY gm.role DESC, p.last_name, p.first_name`, groupID, tenantID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get group members: %w", err)
 	}
@@ -232,9 +233,22 @@ func (s *Service) GetGroupMembers(ctx context.Context, tenantID, groupID string)
 }
 
 func (s *Service) AddMemberToGroup(ctx context.Context, tenantID, groupID, personID, role string) (*Member, error) {
+	// Verify group belongs to tenant
+	var exists bool
+	err := s.db.QueryRow(ctx, "SELECT EXISTS(SELECT 1 FROM groups WHERE id = $1 AND tenant_id = $2)", groupID, tenantID).Scan(&exists)
+	if err != nil || !exists {
+		return nil, fmt.Errorf("group not found or access denied")
+	}
+
+	// Verify person belongs to tenant
+	err = s.db.QueryRow(ctx, "SELECT EXISTS(SELECT 1 FROM people WHERE id = $1 AND tenant_id = $2)", personID, tenantID).Scan(&exists)
+	if err != nil || !exists {
+		return nil, fmt.Errorf("person not found or access denied")
+	}
+
 	memberID := uuid.New().String()
 	var m Member
-	err := s.db.QueryRow(ctx, `
+	err = s.db.QueryRow(ctx, `
 		INSERT INTO group_members (id, group_id, person_id, role) 
 		VALUES ($1, $2, $3, $4)
 		RETURNING id, group_id, person_id, role, joined_at`,
@@ -248,11 +262,13 @@ func (s *Service) AddMemberToGroup(ctx context.Context, tenantID, groupID, perso
 }
 
 func (s *Service) UpdateMemberRole(ctx context.Context, tenantID, memberID, role string) error {
+	// Verify member belongs to a group owned by tenant
 	result, err := s.db.Exec(ctx, `
-		UPDATE group_members 
+		UPDATE group_members gm
 		SET role = $1 
-		WHERE id = $2`,
-		role, memberID)
+		FROM groups g
+		WHERE gm.id = $2 AND gm.group_id = g.id AND g.tenant_id = $3`,
+		role, memberID, tenantID)
 	if err != nil {
 		return fmt.Errorf("failed to update member role: %w", err)
 	}
@@ -265,7 +281,11 @@ func (s *Service) UpdateMemberRole(ctx context.Context, tenantID, memberID, role
 }
 
 func (s *Service) RemoveMemberFromGroup(ctx context.Context, tenantID, memberID string) error {
-	result, err := s.db.Exec(ctx, "DELETE FROM group_members WHERE id = $1", memberID)
+	// Verify member belongs to a group owned by tenant
+	result, err := s.db.Exec(ctx, `
+		DELETE FROM group_members gm
+		USING groups g
+		WHERE gm.id = $1 AND gm.group_id = g.id AND g.tenant_id = $2`, memberID, tenantID)
 	if err != nil {
 		return fmt.Errorf("failed to remove member from group: %w", err)
 	}
@@ -285,8 +305,8 @@ func (s *Service) GetPersonGroups(ctx context.Context, tenantID, personID string
 		       g.created_at, g.updated_at
 		FROM groups g
 		JOIN group_members gm ON gm.group_id = g.id
-		WHERE gm.person_id = $1
-		ORDER BY g.name`, personID)
+		WHERE gm.person_id = $1 AND g.tenant_id = $2
+		ORDER BY g.name`, personID, tenantID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get person groups: %w", err)
 	}

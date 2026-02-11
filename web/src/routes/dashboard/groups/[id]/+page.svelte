@@ -34,8 +34,10 @@
 	const groupTypes = [
 		{ value: 'small_group', label: 'Small Group' },
 		{ value: 'bible_study', label: 'Bible Study' },
+		{ value: 'team', label: 'Team' },
 		{ value: 'ministry_team', label: 'Ministry Team' },
-		{ value: 'class', label: 'Class' }
+		{ value: 'class', label: 'Class' },
+		{ value: 'committee', label: 'Committee' }
 	];
 
 	const meetingDays = [
