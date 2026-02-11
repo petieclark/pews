@@ -20,8 +20,9 @@ type Tenant struct {
 	Logo          string    `json:"logo,omitempty"`
 	About         string    `json:"about,omitempty"`
 	DefaultLocale string    `json:"default_locale"`
-	CreatedAt     time.Time `json:"created_at"`
-	UpdatedAt     time.Time `json:"updated_at"`
+	OnboardingCompleted bool      `json:"onboarding_completed"`
+	CreatedAt           time.Time `json:"created_at"`
+	UpdatedAt           time.Time `json:"updated_at"`
 }
 
 type UpdateProfileRequest struct {

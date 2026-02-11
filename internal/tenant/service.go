@@ -88,12 +88,14 @@ func (s *Service) GetTenantByID(ctx context.Context, id string) (*Tenant, error)
 		        COALESCE(city, ''), COALESCE(state, ''), COALESCE(zip, ''),
 		        COALESCE(phone, ''), COALESCE(website, ''), COALESCE(email, ''),
 		        COALESCE(ein, ''), COALESCE(logo, ''), COALESCE(about, ''),
+		        COALESCE(onboarding_completed, FALSE),
 		        created_at, updated_at 
 		 FROM tenants WHERE id = $1`,
 		id,
 	).Scan(&tenant.ID, &tenant.Name, &tenant.Slug, &tenant.Domain, &tenant.Plan,
 		&tenant.AddressLine1, &tenant.AddressLine2, &tenant.City, &tenant.State, &tenant.Zip,
 		&tenant.Phone, &tenant.Website, &tenant.Email, &tenant.EIN, &tenant.Logo, &tenant.About,
+		&tenant.OnboardingCompleted,
 		&tenant.CreatedAt, &tenant.UpdatedAt)
 
 	if err != nil {
