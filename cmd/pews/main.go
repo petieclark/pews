@@ -71,7 +71,7 @@ func run() error {
 	checkinsService := checkins.NewService(db.Pool)
 
 	// Initialize handlers
-	authHandler := auth.NewHandler(authService, tenantService)
+	authHandler := auth.NewHandler(authService, tenantService, billingService)
 	tenantHandler := tenant.NewHandler(tenantService)
 	moduleHandler := module.NewHandler(moduleService)
 	billingHandler := billing.NewHandler(billingService)

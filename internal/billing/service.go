@@ -47,10 +47,16 @@ func (s *Service) CreateSubscription(ctx context.Context, tenantID string) (*Sub
 	return sub, nil
 }
 
+// EnsureSubscription creates a free subscription if one doesn't exist
+func (s *Service) EnsureSubscription(ctx context.Context, tenantID string) error {
+	_, err := s.CreateSubscription(ctx, tenantID)
+	return err
+}
+
 func (s *Service) GetSubscription(ctx context.Context, tenantID string) (*Subscription, error) {
 	sub := &Subscription{}
 	err := s.db.QueryRow(ctx,
-		`SELECT id, tenant_id, stripe_customer_id, stripe_subscription_id, plan, status, 
+		`SELECT id, tenant_id, COALESCE(stripe_customer_id, ''), COALESCE(stripe_subscription_id, ''), plan, status, 
 		 current_period_start, current_period_end, cancel_at_period_end, created_at, updated_at 
 		 FROM subscriptions WHERE tenant_id = $1`,
 		tenantID,

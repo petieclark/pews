@@ -1,21 +1,30 @@
 package auth
 
 import (
+	"context"
 	"encoding/json"
+	"log"
 	"net/http"
 
 	"github.com/petieclark/pews/internal/tenant"
 )
 
 type Handler struct {
-	authService   *Service
-	tenantService *tenant.Service
+	authService    *Service
+	tenantService  *tenant.Service
+	billingService BillingSubscriptionCreator
 }
 
-func NewHandler(authService *Service, tenantService *tenant.Service) *Handler {
+// BillingSubscriptionCreator allows auth handler to create subscriptions on registration
+type BillingSubscriptionCreator interface {
+	EnsureSubscription(ctx context.Context, tenantID string) error
+}
+
+func NewHandler(authService *Service, tenantService *tenant.Service, billingCreator BillingSubscriptionCreator) *Handler {
 	return &Handler{
-		authService:   authService,
-		tenantService: tenantService,
+		authService:    authService,
+		tenantService:  tenantService,
+		billingService: billingCreator,
 	}
 }
 
@@ -55,6 +64,13 @@ func (h *Handler) Register(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		http.Error(w, "Failed to create tenant: "+err.Error(), http.StatusInternalServerError)
 		return
+	}
+
+	// Create free subscription for tenant
+	if h.billingService != nil {
+		if err := h.billingService.EnsureSubscription(r.Context(), tenant.ID); err != nil {
+			log.Printf("Warning: failed to create subscription for tenant %s: %v", tenant.ID, err)
+		}
 	}
 
 	// Create admin user
