@@ -6,11 +6,10 @@ import (
 	"strings"
 )
 
-type contextKey string
-
+// Using plain strings as context keys for simplicity across packages
 const (
-	TenantIDContextKey contextKey = "tenant_id"
-	ClaimsContextKey   contextKey = "claims"
+	TenantIDContextKey = "tenant_id"
+	ClaimsContextKey   = "claims"
 )
 
 // TenantExtractor extracts tenant ID from X-Tenant-ID header or subdomain

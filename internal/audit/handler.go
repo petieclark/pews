@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	
 	"strconv"
 	"time"
 
@@ -29,7 +30,7 @@ type GetLogsResponse struct {
 
 // GetLogs handles GET /api/audit/logs
 func (h *Handler) GetLogs(w http.ResponseWriter, r *http.Request) {
-	tenantID := r.Context().Value("tenant_id").(string)
+	tenantID, _ := r.Context().Value("tenant_id").(string)
 
 	// Parse query parameters
 	page := 1
@@ -79,7 +80,7 @@ func (h *Handler) GetLogs(w http.ResponseWriter, r *http.Request) {
 
 // GetUserLogs handles GET /api/audit/logs/user/:id
 func (h *Handler) GetUserLogs(w http.ResponseWriter, r *http.Request) {
-	tenantID := r.Context().Value("tenant_id").(string)
+	tenantID, _ := r.Context().Value("tenant_id").(string)
 	userID := chi.URLParam(r, "id")
 
 	if userID == "" {
@@ -123,7 +124,7 @@ func (h *Handler) GetUserLogs(w http.ResponseWriter, r *http.Request) {
 
 // GetSecurityDashboard handles GET /api/audit/security
 func (h *Handler) GetSecurityDashboard(w http.ResponseWriter, r *http.Request) {
-	tenantID := r.Context().Value("tenant_id").(string)
+	tenantID, _ := r.Context().Value("tenant_id").(string)
 
 	dashboard, err := h.service.GetSecurityDashboard(r.Context(), tenantID)
 	if err != nil {
@@ -137,7 +138,7 @@ func (h *Handler) GetSecurityDashboard(w http.ResponseWriter, r *http.Request) {
 
 // ExportLogs handles GET /api/audit/export with CSV output
 func (h *Handler) ExportLogs(w http.ResponseWriter, r *http.Request) {
-	tenantID := r.Context().Value("tenant_id").(string)
+	tenantID, _ := r.Context().Value("tenant_id").(string)
 
 	// Fetch all logs (with reasonable limit)
 	logs, _, err := h.service.GetLogs(r.Context(), tenantID, nil, nil, nil, 10000, 0)

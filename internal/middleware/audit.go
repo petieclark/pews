@@ -53,7 +53,7 @@ func (am *AuditMiddleware) AuditLog(next http.Handler) http.Handler {
 		}
 
 		// Extract request context
-		tenantID, _ := r.Context().Value("tenant_id").(string)
+		tenantID := GetTenantID(r.Context())
 		userID, _ := r.Context().Value("user_id").(string)
 		userEmail, _ := r.Context().Value("email").(string)
 

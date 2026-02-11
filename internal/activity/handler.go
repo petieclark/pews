@@ -17,7 +17,7 @@ func NewHandler(service *Service) *Handler {
 
 // ListActivity handles GET /api/activity
 func (h *Handler) ListActivity(w http.ResponseWriter, r *http.Request) {
-	tenantID := r.Context().Value("tenant_id").(string)
+	tenantID, ok := r.Context().Value("tenant_id").(string); if !ok { http.Error(w, "unauthorized", http.StatusUnauthorized); return }
 
 	// Parse query parameters
 	query := r.URL.Query()
