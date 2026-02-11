@@ -1,0 +1,79 @@
+{{define "content"}}
+<table border="0" cellpadding="0" cellspacing="0" width="100%">
+    <tr>
+        <td style="padding-bottom: 20px;">
+            <h2 style="color: #1e3a5f; margin: 0 0 10px 0; font-size: 24px;">Welcome, {{.FirstName}}! 🎉</h2>
+        </td>
+    </tr>
+    <tr>
+        <td style="padding-bottom: 20px;">
+            <p style="margin: 0 0 15px 0; font-size: 16px; color: #374151; line-height: 1.6;">
+                We're so glad you're here! Welcome to the {{.ChurchName}} family. Whether you're just visiting or making this your church home, we're excited to have you with us.
+            </p>
+        </td>
+    </tr>
+    <tr>
+        <td style="padding-bottom: 20px;">
+            <h3 style="color: #1e3a5f; margin: 0 0 15px 0; font-size: 18px;">What to Expect</h3>
+            <table border="0" cellpadding="0" cellspacing="0" width="100%">
+                <tr>
+                    <td style="padding: 15px; background-color: #f0fdfa; border-left: 4px solid #2dd4bf; margin-bottom: 10px;">
+                        <p style="margin: 0; font-size: 15px; color: #374151; line-height: 1.5;">
+                            <strong style="color: #1e3a5f;">Sunday Services:</strong><br/>
+                            {{.ServiceTimes}}
+                        </p>
+                    </td>
+                </tr>
+                <tr><td style="height: 10px;"></td></tr>
+                <tr>
+                    <td style="padding: 15px; background-color: #f0fdfa; border-left: 4px solid #2dd4bf;">
+                        <p style="margin: 0; font-size: 15px; color: #374151; line-height: 1.5;">
+                            <strong style="color: #1e3a5f;">Location:</strong><br/>
+                            {{.ChurchAddress}}
+                        </p>
+                    </td>
+                </tr>
+            </table>
+        </td>
+    </tr>
+    <tr>
+        <td style="padding-bottom: 20px;">
+            <h3 style="color: #1e3a5f; margin: 0 0 15px 0; font-size: 18px;">Get Connected</h3>
+            <p style="margin: 0 0 15px 0; font-size: 15px; color: #374151; line-height: 1.6;">
+                We'd love to help you get plugged in! Here are some great next steps:
+            </p>
+            <ul style="margin: 0; padding-left: 20px; font-size: 15px; color: #374151; line-height: 1.8;">
+                <li>Join us this Sunday for worship</li>
+                <li>Connect with a small group</li>
+                <li>Attend our next newcomer's lunch</li>
+                <li>Explore volunteer opportunities</li>
+            </ul>
+        </td>
+    </tr>
+    <tr>
+        <td align="center" style="padding: 30px 0;">
+            <table border="0" cellpadding="0" cellspacing="0">
+                <tr>
+                    <td align="center" style="background-color: #2dd4bf; border-radius: 6px;">
+                        <a href="{{.CTALink}}" style="display: inline-block; padding: 15px 40px; color: #ffffff; text-decoration: none; font-size: 16px; font-weight: bold;">
+                            {{.CTAText}}
+                        </a>
+                    </td>
+                </tr>
+            </table>
+        </td>
+    </tr>
+    <tr>
+        <td style="padding-top: 20px;">
+            <p style="margin: 0; font-size: 15px; color: #374151; line-height: 1.6;">
+                If you have any questions, don't hesitate to reach out. We're here to help!
+            </p>
+            <p style="margin: 15px 0 0 0; font-size: 15px; color: #374151; line-height: 1.6;">
+                Blessings,<br/>
+                <strong>{{.PastorName}}</strong><br/>
+                {{.PastorTitle}}
+            </p>
+        </td>
+    </tr>
+</table>
+{{end}}
