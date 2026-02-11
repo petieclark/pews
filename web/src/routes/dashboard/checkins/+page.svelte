@@ -53,14 +53,14 @@
 		<div class="flex gap-3">
 			<button
 				on:click={() => goto('/dashboard/checkins/kiosk')}
-				class="px-4 py-2 border border-custom rounded-md text-secondary hover:bg-gray-50 dark:hover:bg-gray-800"
+				class="px-4 py-2 border border-custom rounded-md text-secondary hover:bg-[var(--surface-hover)] dark:hover:bg-gray-800"
 			>
 				🖥️ Kiosk Mode
 			</button>
-			<a href="/dashboard/checkins/safety" class="px-4 py-2 border border-custom rounded-md text-secondary hover:bg-gray-50 dark:hover:bg-gray-800">
+			<a href="/dashboard/checkins/safety" class="px-4 py-2 border border-custom rounded-md text-secondary hover:bg-[var(--surface-hover)] dark:hover:bg-gray-800">
 				🛡️ Child Safety
 			</a>
-			<a href="/dashboard/checkins/stations" class="px-4 py-2 border border-custom rounded-md text-secondary hover:bg-gray-50 dark:hover:bg-gray-800">
+			<a href="/dashboard/checkins/stations" class="px-4 py-2 border border-custom rounded-md text-secondary hover:bg-[var(--surface-hover)] dark:hover:bg-gray-800">
 				📍 Stations
 			</a>
 		</div>
@@ -117,7 +117,7 @@
 			<div class="space-y-3">
 				{#each events as event}
 					<div
-						class="flex justify-between items-center p-4 border border-custom rounded-lg cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800"
+						class="flex justify-between items-center p-4 border border-custom rounded-lg cursor-pointer hover:bg-[var(--surface-hover)] dark:hover:bg-gray-800"
 						on:click={() => goto(`/dashboard/checkins/events/${event.id}`)}
 					>
 						<div>

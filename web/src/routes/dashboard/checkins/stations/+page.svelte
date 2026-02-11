@@ -63,7 +63,7 @@
 			<p class="text-secondary mt-1">Manage physical check-in locations</p>
 		</div>
 		<div class="flex gap-3">
-			<a href="/dashboard/checkins" class="px-4 py-2 border border-custom rounded-md text-secondary hover:bg-gray-50 dark:hover:bg-gray-800">
+			<a href="/dashboard/checkins" class="px-4 py-2 border border-custom rounded-md text-secondary hover:bg-[var(--surface-hover)] dark:hover:bg-gray-800">
 				← Back
 			</a>
 			<button on:click={openCreate}
@@ -86,7 +86,7 @@
 						<h3 class="text-lg font-semibold text-[var(--text-primary)]">{station.name}</h3>
 						<span class={`px-2 py-0.5 text-xs rounded ${station.is_active
 							? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-100'
-							: 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300'}`}>
+							: 'bg-[var(--surface-hover)] text-primary dark:bg-gray-700 dark:text-gray-300'}`}>
 							{station.is_active ? 'Active' : 'Inactive'}
 						</span>
 					</div>

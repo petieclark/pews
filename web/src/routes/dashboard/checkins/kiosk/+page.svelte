@@ -101,7 +101,7 @@
 		<div class="flex items-center gap-4">
 			{#if events.length > 1}
 				<select bind:value={selectedEventId}
-					class="px-3 py-2 rounded-md bg-white bg-opacity-20 text-white border-0 text-lg">
+					class="px-3 py-2 rounded-md bg-surface bg-opacity-20 text-white border-0 text-lg">
 					{#each events as event}
 						<option value={event.id}>{event.name}</option>
 					{/each}
@@ -109,14 +109,14 @@
 			{/if}
 			{#if stations.length > 0}
 				<select bind:value={selectedStation}
-					class="px-3 py-2 rounded-md bg-white bg-opacity-20 text-white border-0 text-lg">
+					class="px-3 py-2 rounded-md bg-surface bg-opacity-20 text-white border-0 text-lg">
 					<option value={null}>All Stations</option>
 					{#each stations as station}
 						<option value={station.id}>{station.name}</option>
 					{/each}
 				</select>
 			{/if}
-			<button on:click={exitKiosk} class="px-3 py-2 text-sm bg-white bg-opacity-20 rounded-md hover:bg-opacity-30">
+			<button on:click={exitKiosk} class="px-3 py-2 text-sm bg-surface bg-opacity-20 rounded-md hover:bg-opacity-30">
 				Exit Kiosk
 			</button>
 		</div>
@@ -156,7 +156,7 @@
 					{#each searchResults as person}
 						<button
 							on:click={() => checkIn(person)}
-							class="w-full flex justify-between items-center p-5 hover:bg-gray-50 dark:hover:bg-gray-800 border-b border-custom last:border-0 text-left"
+							class="w-full flex justify-between items-center p-5 hover:bg-[var(--surface-hover)] dark:hover:bg-gray-800 border-b border-custom last:border-0 text-left"
 						>
 							<div>
 								<div class="text-xl font-medium text-[var(--text-primary)]">
@@ -186,7 +186,7 @@
 <!-- Medical Alerts Modal -->
 {#if showAlerts}
 	<div class="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-50">
-		<div class="bg-white dark:bg-gray-800 rounded-xl shadow-2xl max-w-lg w-full mx-4 p-8">
+		<div class="bg-surface dark:bg-gray-800 rounded-xl shadow-2xl max-w-lg w-full mx-4 p-8">
 			<h2 class="text-2xl font-bold text-red-600 mb-4">⚠️ Medical Alerts</h2>
 			<div class="space-y-4">
 				{#each currentAlerts as alert}

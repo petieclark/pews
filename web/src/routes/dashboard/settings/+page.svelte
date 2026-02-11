@@ -98,7 +98,7 @@
 						type="text"
 						bind:value={tenant.name}
 						required
-						class="w-full px-4 py-2 border input-border rounded-lg focus:ring-2 focus:ring-[var(--teal)] focus:border-transparent bg-[var(--input-bg)] text-primary"
+						class="w-full px-4 py-2 border input-border bg-[var(--input-bg)] text-primary rounded-lg focus:ring-2 focus:ring-[var(--teal)] focus:border-transparent bg-[var(--input-bg)] text-primary"
 					/>
 				</div>
 
@@ -124,7 +124,7 @@
 						type="text"
 						bind:value={tenant.domain}
 						placeholder="church.example.com"
-						class="w-full px-4 py-2 border input-border rounded-lg focus:ring-2 focus:ring-[var(--teal)] focus:border-transparent bg-[var(--input-bg)] text-primary"
+						class="w-full px-4 py-2 border input-border bg-[var(--input-bg)] text-primary rounded-lg focus:ring-2 focus:ring-[var(--teal)] focus:border-transparent bg-[var(--input-bg)] text-primary"
 					/>
 				</div>
 
@@ -168,7 +168,7 @@
 								on:change={(e) => toggleModule(module.name, e.target.checked)}
 								class="sr-only peer"
 							/>
-							<div class="w-11 h-6 bg-[var(--surface-hover)] peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-[var(--teal)]/30 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-[var(--border)] after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[var(--teal)]"></div>
+							<div class="w-11 h-6 bg-[var(--surface-hover)] peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-[var(--teal)]/30 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-[var(--border)] after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-surface after:border-[var(--border)] after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[var(--teal)]"></div>
 						</label>
 					</div>
 				{/each}

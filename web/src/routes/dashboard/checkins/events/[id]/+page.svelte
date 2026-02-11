@@ -116,7 +116,7 @@
 				<h1 class="text-3xl font-bold text-[var(--text-primary)]">{event.name}</h1>
 				<p class="text-secondary">{event.event_date} · {attendees.length} checked in</p>
 			</div>
-			<a href="/dashboard/checkins" class="px-4 py-2 border border-custom rounded-md text-secondary hover:bg-gray-50 dark:hover:bg-gray-800">
+			<a href="/dashboard/checkins" class="px-4 py-2 border border-custom rounded-md text-secondary hover:bg-[var(--surface-hover)] dark:hover:bg-gray-800">
 				← Back
 			</a>
 		</div>
@@ -138,7 +138,7 @@
 					{#if searchResults.length > 0}
 						<div class="absolute top-full left-0 right-0 mt-1 bg-surface border border-custom rounded-lg shadow-lg z-10 max-h-80 overflow-y-auto">
 							{#each searchResults as person}
-								<div class="flex justify-between items-center p-3 hover:bg-gray-50 dark:hover:bg-gray-800 border-b border-custom last:border-0">
+								<div class="flex justify-between items-center p-3 hover:bg-[var(--surface-hover)] dark:hover:bg-gray-800 border-b border-custom last:border-0">
 									<div>
 										<div class="font-medium text-[var(--text-primary)]">
 											{person.first_name} {person.last_name}
@@ -215,7 +215,7 @@
 							{#if !checkin.checked_out_at}
 								<button
 									on:click={() => checkOutPerson(checkin.person_id)}
-									class="px-3 py-1 text-sm border border-custom rounded-md text-secondary hover:bg-gray-50 dark:hover:bg-gray-800"
+									class="px-3 py-1 text-sm border border-custom rounded-md text-secondary hover:bg-[var(--surface-hover)] dark:hover:bg-gray-800"
 								>
 									Check Out
 								</button>

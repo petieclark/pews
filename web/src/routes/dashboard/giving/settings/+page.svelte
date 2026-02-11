@@ -127,8 +127,8 @@
 
 <div class="p-6 max-w-4xl mx-auto">
 	<div class="mb-6">
-		<h1 class="text-3xl font-bold text-[#1B3A4B]">Giving Settings</h1>
-		<p class="text-gray-600 mt-1">Configure online giving and payment processing</p>
+		<h1 class="text-3xl font-bold text-primary">Giving Settings</h1>
+		<p class="text-secondary mt-1">Configure online giving and payment processing</p>
 	</div>
 
 	{#if loading}
@@ -136,27 +136,27 @@
 			<div class="animate-spin rounded-full h-12 w-12 border-b-2 border-[#4A8B8C]"></div>
 		</div>
 	{:else}
-		<div class="bg-white rounded-lg shadow-lg p-8 mb-6">
+		<div class="bg-surface rounded-lg shadow border border-custom p-8 mb-6">
 			{#if !connectStatus.connected}
 				<!-- Not Connected -->
 				<div class="text-center">
 					<div class="mb-6">
 						<div class="inline-block text-6xl mb-4">💰</div>
-						<h2 class="text-2xl font-bold text-[#1B3A4B] mb-2">Accept Online Donations</h2>
+						<h2 class="text-2xl font-bold text-primary mb-2">Accept Online Donations</h2>
 					</div>
 
 					<div class="max-w-2xl mx-auto text-left mb-8">
-						<p class="text-gray-700 mb-4">
+						<p class="text-primary mb-4">
 							Set up your church to receive online donations via credit card and bank transfer.
 						</p>
-						<p class="text-gray-700 mb-4">
+						<p class="text-primary mb-4">
 							We'll guide you through a quick setup with Stripe, our payment processor. You'll need:
 						</p>
-						<ul class="list-disc list-inside text-gray-700 mb-4 space-y-2">
+						<ul class="list-disc list-inside text-primary mb-4 space-y-2">
 							<li>Your church's bank account details</li>
 							<li>Basic organization information</li>
 						</ul>
-						<p class="text-sm text-gray-600 mb-6">
+						<p class="text-sm text-secondary mb-6">
 							Takes about 5 minutes.
 						</p>
 					</div>
@@ -164,7 +164,7 @@
 					<button
 						on:click={startOnboarding}
 						disabled={creatingLink}
-						class="px-8 py-4 bg-[#4A8B8C] text-white text-lg font-semibold rounded-lg hover:bg-[#3d7576] transition disabled:opacity-50 disabled:cursor-not-allowed shadow-lg"
+						class="px-8 py-4 bg-[var(--teal)] text-white text-lg font-semibold rounded-lg hover:opacity-90 transition disabled:opacity-50 disabled:cursor-not-allowed shadow border border-custom"
 					>
 						{creatingLink ? 'Creating...' : 'Enable Online Giving →'}
 					</button>
@@ -189,10 +189,10 @@
 				<div class="text-center">
 					<div class="mb-6">
 						<div class="inline-block text-6xl mb-4">⏳</div>
-						<h2 class="text-2xl font-bold text-[#1B3A4B] mb-2">Stripe Setup In Progress</h2>
+						<h2 class="text-2xl font-bold text-primary mb-2">Stripe Setup In Progress</h2>
 					</div>
 
-					<p class="text-gray-700 mb-6 max-w-lg mx-auto">
+					<p class="text-primary mb-6 max-w-lg mx-auto">
 						Your Stripe account is being verified. This usually takes 1-2 business days.
 					</p>
 
@@ -200,7 +200,7 @@
 						<button
 							on:click={completeSetup}
 							disabled={creatingLink}
-							class="px-6 py-3 bg-[#4A8B8C] text-white font-semibold rounded-lg hover:bg-[#3d7576] transition disabled:opacity-50 disabled:cursor-not-allowed"
+							class="px-6 py-3 bg-[var(--teal)] text-white font-semibold rounded-lg hover:opacity-90 transition disabled:opacity-50 disabled:cursor-not-allowed"
 						>
 							{creatingLink ? 'Loading...' : 'Complete Setup →'}
 						</button>
@@ -209,7 +209,7 @@
 					<div class="mt-6">
 						<button
 							on:click={refreshStatus}
-							class="text-sm text-[#4A8B8C] hover:underline"
+							class="text-sm text-[var(--teal)] hover:underline"
 						>
 							Refresh Status
 						</button>
@@ -220,18 +220,18 @@
 				<div class="text-center">
 					<div class="mb-6">
 						<div class="inline-block text-6xl mb-4">✅</div>
-						<h2 class="text-2xl font-bold text-[#1B3A4B] mb-2">Online Giving Active</h2>
+						<h2 class="text-2xl font-bold text-primary mb-2">Online Giving Active</h2>
 					</div>
 
 					<div class="max-w-md mx-auto mb-8">
 						<div class="grid grid-cols-2 gap-4 text-left">
-							<div class="flex items-center gap-2 p-3 bg-gray-50 rounded-lg">
+							<div class="flex items-center gap-2 p-3 bg-[var(--surface-hover)] rounded-lg">
 								<span class="text-2xl">{connectStatus.charges_enabled ? '✅' : '❌'}</span>
-								<span class="text-sm text-gray-700">Charges enabled</span>
+								<span class="text-sm text-primary">Charges enabled</span>
 							</div>
-							<div class="flex items-center gap-2 p-3 bg-gray-50 rounded-lg">
+							<div class="flex items-center gap-2 p-3 bg-[var(--surface-hover)] rounded-lg">
 								<span class="text-2xl">{connectStatus.payouts_enabled ? '✅' : '❌'}</span>
-								<span class="text-sm text-gray-700">Payouts enabled</span>
+								<span class="text-sm text-primary">Payouts enabled</span>
 							</div>
 						</div>
 					</div>
@@ -246,7 +246,7 @@
 					<div class="mt-6">
 						<button
 							on:click={refreshStatus}
-							class="text-sm text-[#4A8B8C] hover:underline"
+							class="text-sm text-[var(--teal)] hover:underline"
 						>
 							Refresh Status
 						</button>

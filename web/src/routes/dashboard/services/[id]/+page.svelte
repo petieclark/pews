@@ -203,7 +203,7 @@
 			accepted: 'bg-green-100 text-green-800',
 			declined: 'bg-red-100 text-red-800'
 		};
-		return colors[status] || 'bg-gray-100 text-gray-800';
+		return colors[status] || 'bg-[var(--surface-hover)] text-primary';
 	}
 
 	function formatDate(dateStr) {
@@ -220,7 +220,7 @@
 </script>
 
 {#if loading}
-	<div class="p-8 text-center text-gray-500">Loading...</div>
+	<div class="p-8 text-center text-secondary">Loading...</div>
 {:else if service}
 	<div class="space-y-6">
 		<!-- Header -->
@@ -235,12 +235,12 @@
 				<h1 class="text-3xl font-bold text-navy">
 					{service.service_type?.name || 'Service'}
 				</h1>
-				<p class="text-gray-600">{formatDate(service.service_date)} {service.service_time || ''}</p>
+				<p class="text-secondary">{formatDate(service.service_date)} {service.service_time || ''}</p>
 			</div>
 			<div class="flex gap-2">
 				<select
 					bind:value={service.status}
-					class="px-4 py-2 border border-gray-300 rounded-md"
+					class="px-4 py-2 border input-border bg-[var(--input-bg)] text-primary rounded-md"
 				>
 					<option value="planning">Planning</option>
 					<option value="confirmed">Confirmed</option>
@@ -251,7 +251,7 @@
 
 		<div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
 			<!-- Order of Service -->
-			<div class="lg:col-span-2 bg-white rounded-lg shadow p-6">
+			<div class="lg:col-span-2 bg-surface rounded-lg shadow p-6">
 				<div class="flex justify-between items-center mb-4">
 					<h2 class="text-xl font-semibold text-navy">Order of Service</h2>
 					<button
@@ -263,23 +263,23 @@
 				</div>
 
 				{#if items.length === 0}
-					<p class="text-gray-500 text-center py-8">No items yet. Add your first item to get started.</p>
+					<p class="text-secondary text-center py-8">No items yet. Add your first item to get started.</p>
 				{:else}
 					<div class="space-y-2">
 						{#each items as item, index}
-							<div class="border rounded-lg p-4 hover:bg-gray-50">
+							<div class="border rounded-lg p-4 hover:bg-[var(--surface-hover)]">
 								<div class="flex items-start gap-3">
 									<span class="text-2xl">{getItemTypeIcon(item.item_type)}</span>
 									<div class="flex-1">
 										<div class="font-medium text-navy">{item.title}</div>
 										{#if item.song && item.song_key}
-											<div class="text-sm text-gray-600">Key: {item.song_key}</div>
+											<div class="text-sm text-secondary">Key: {item.song_key}</div>
 										{/if}
 										{#if item.assigned_to}
-											<div class="text-sm text-gray-600">Assigned: {item.assigned_to}</div>
+											<div class="text-sm text-secondary">Assigned: {item.assigned_to}</div>
 										{/if}
 										{#if item.duration_minutes}
-											<div class="text-sm text-gray-500">{item.duration_minutes} min</div>
+											<div class="text-sm text-secondary">{item.duration_minutes} min</div>
 										{/if}
 									</div>
 									<div class="flex flex-col gap-1">
@@ -312,7 +312,7 @@
 			</div>
 
 			<!-- Team -->
-			<div class="bg-white rounded-lg shadow p-6">
+			<div class="bg-surface rounded-lg shadow p-6">
 				<div class="flex justify-between items-center mb-4">
 					<h2 class="text-xl font-semibold text-navy">Team</h2>
 					<button
@@ -324,7 +324,7 @@
 				</div>
 
 				{#if team.length === 0}
-					<p class="text-gray-500 text-sm">No team members assigned yet.</p>
+					<p class="text-secondary text-sm">No team members assigned yet.</p>
 				{:else}
 					<div class="space-y-3">
 						{#each team as member}
@@ -332,7 +332,7 @@
 								<div class="font-medium text-navy text-sm">
 									{member.person_first_name} {member.person_last_name}
 								</div>
-								<div class="text-xs text-gray-600">{member.role}</div>
+								<div class="text-xs text-secondary">{member.role}</div>
 								<div class="mt-2 flex gap-1">
 									<button
 										on:click={() => updateTeamStatus(member.id, 'accepted')}
@@ -371,15 +371,15 @@
 <!-- Add Item Modal -->
 {#if showAddItemModal}
 	<div class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-		<div class="bg-white rounded-lg max-w-md w-full p-6 max-h-[90vh] overflow-y-auto">
+		<div class="bg-surface rounded-lg max-w-md w-full p-6 max-h-[90vh] overflow-y-auto">
 			<h2 class="text-2xl font-bold text-navy mb-4">Add Item</h2>
 			<form on:submit|preventDefault={addItem} class="space-y-4">
 				<div>
-					<label class="block text-sm font-medium text-gray-700">Type *</label>
+					<label class="block text-sm font-medium text-primary">Type *</label>
 					<select
 						bind:value={newItem.item_type}
 						required
-						class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-teal"
+						class="mt-1 block w-full px-3 py-2 border input-border bg-[var(--input-bg)] text-primary rounded-md focus:outline-none focus:ring-2 focus:ring-teal"
 					>
 						<option value="song">Song</option>
 						<option value="prayer">Prayer</option>
@@ -392,14 +392,14 @@
 
 				{#if newItem.item_type === 'song'}
 					<div>
-						<label class="block text-sm font-medium text-gray-700">Song *</label>
+						<label class="block text-sm font-medium text-primary">Song *</label>
 						<div class="flex gap-2 mt-1">
 							<input
 								type="text"
 								bind:value={newItem.title}
 								placeholder="Select a song"
 								readonly
-								class="flex-1 px-3 py-2 border border-gray-300 rounded-md bg-gray-50"
+								class="flex-1 px-3 py-2 border input-border bg-[var(--input-bg)] text-primary rounded-md bg-[var(--surface-hover)]"
 							/>
 							<button
 								type="button"
@@ -412,52 +412,52 @@
 					</div>
 					{#if newItem.song_id}
 						<div>
-							<label class="block text-sm font-medium text-gray-700">Key</label>
+							<label class="block text-sm font-medium text-primary">Key</label>
 							<input
 								type="text"
 								bind:value={newItem.song_key}
 								placeholder="G, C, Bb, etc."
-								class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-teal"
+								class="mt-1 block w-full px-3 py-2 border input-border bg-[var(--input-bg)] text-primary rounded-md focus:outline-none focus:ring-2 focus:ring-teal"
 							/>
 						</div>
 					{/if}
 				{:else}
 					<div>
-						<label class="block text-sm font-medium text-gray-700">Title *</label>
+						<label class="block text-sm font-medium text-primary">Title *</label>
 						<input
 							type="text"
 							bind:value={newItem.title}
 							required
-							class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-teal"
+							class="mt-1 block w-full px-3 py-2 border input-border bg-[var(--input-bg)] text-primary rounded-md focus:outline-none focus:ring-2 focus:ring-teal"
 						/>
 					</div>
 				{/if}
 
 				<div>
-					<label class="block text-sm font-medium text-gray-700">Assigned To</label>
+					<label class="block text-sm font-medium text-primary">Assigned To</label>
 					<input
 						type="text"
 						bind:value={newItem.assigned_to}
 						placeholder="Person or role"
-						class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-teal"
+						class="mt-1 block w-full px-3 py-2 border input-border bg-[var(--input-bg)] text-primary rounded-md focus:outline-none focus:ring-2 focus:ring-teal"
 					/>
 				</div>
 
 				<div>
-					<label class="block text-sm font-medium text-gray-700">Duration (minutes)</label>
+					<label class="block text-sm font-medium text-primary">Duration (minutes)</label>
 					<input
 						type="number"
 						bind:value={newItem.duration_minutes}
-						class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-teal"
+						class="mt-1 block w-full px-3 py-2 border input-border bg-[var(--input-bg)] text-primary rounded-md focus:outline-none focus:ring-2 focus:ring-teal"
 					/>
 				</div>
 
 				<div>
-					<label class="block text-sm font-medium text-gray-700">Notes</label>
+					<label class="block text-sm font-medium text-primary">Notes</label>
 					<textarea
 						bind:value={newItem.notes}
 						rows="2"
-						class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-teal"
+						class="mt-1 block w-full px-3 py-2 border input-border bg-[var(--input-bg)] text-primary rounded-md focus:outline-none focus:ring-2 focus:ring-teal"
 					></textarea>
 				</div>
 
@@ -465,7 +465,7 @@
 					<button
 						type="button"
 						on:click={() => (showAddItemModal = false)}
-						class="flex-1 px-4 py-2 border border-gray-300 rounded-md hover:bg-gray-50"
+						class="flex-1 px-4 py-2 border input-border bg-[var(--input-bg)] text-primary rounded-md hover:bg-[var(--surface-hover)]"
 					>
 						Cancel
 					</button>
@@ -484,33 +484,33 @@
 <!-- Song Search Modal -->
 {#if showSongSearchModal}
 	<div class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-		<div class="bg-white rounded-lg max-w-2xl w-full p-6 max-h-[90vh] overflow-y-auto">
+		<div class="bg-surface rounded-lg max-w-2xl w-full p-6 max-h-[90vh] overflow-y-auto">
 			<h2 class="text-2xl font-bold text-navy mb-4">Select a Song</h2>
 			<input
 				type="text"
 				bind:value={searchQuery}
 				placeholder="Search songs..."
-				class="w-full px-4 py-2 border border-gray-300 rounded-md mb-4"
+				class="w-full px-4 py-2 border input-border bg-[var(--input-bg)] text-primary rounded-md mb-4"
 			/>
 			<div class="space-y-2 max-h-96 overflow-y-auto">
 				{#each filteredSongs as song}
 					<div
 						on:click={() => selectSong(song)}
-						class="p-3 border rounded hover:bg-gray-50 cursor-pointer"
+						class="p-3 border rounded hover:bg-[var(--surface-hover)] cursor-pointer"
 					>
 						<div class="font-medium">{song.title}</div>
 						{#if song.artist}
-							<div class="text-sm text-gray-600">{song.artist}</div>
+							<div class="text-sm text-secondary">{song.artist}</div>
 						{/if}
 						{#if song.default_key}
-							<div class="text-xs text-gray-500">Key: {song.default_key}</div>
+							<div class="text-xs text-secondary">Key: {song.default_key}</div>
 						{/if}
 					</div>
 				{/each}
 			</div>
 			<button
 				on:click={() => { showSongSearchModal = false; searchQuery = ''; }}
-				class="mt-4 w-full px-4 py-2 border border-gray-300 rounded-md hover:bg-gray-50"
+				class="mt-4 w-full px-4 py-2 border input-border bg-[var(--input-bg)] text-primary rounded-md hover:bg-[var(--surface-hover)]"
 			>
 				Close
 			</button>
@@ -521,15 +521,15 @@
 <!-- Add Team Member Modal -->
 {#if showAddTeamModal}
 	<div class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-		<div class="bg-white rounded-lg max-w-md w-full p-6">
+		<div class="bg-surface rounded-lg max-w-md w-full p-6">
 			<h2 class="text-2xl font-bold text-navy mb-4">Add Team Member</h2>
 			<form on:submit|preventDefault={addTeamMember} class="space-y-4">
 				<div>
-					<label class="block text-sm font-medium text-gray-700">Person *</label>
+					<label class="block text-sm font-medium text-primary">Person *</label>
 					<select
 						bind:value={newTeamMember.person_id}
 						required
-						class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-teal"
+						class="mt-1 block w-full px-3 py-2 border input-border bg-[var(--input-bg)] text-primary rounded-md focus:outline-none focus:ring-2 focus:ring-teal"
 					>
 						<option value="">Select a person</option>
 						{#each people as person}
@@ -538,20 +538,20 @@
 					</select>
 				</div>
 				<div>
-					<label class="block text-sm font-medium text-gray-700">Role *</label>
+					<label class="block text-sm font-medium text-primary">Role *</label>
 					<input
 						type="text"
 						bind:value={newTeamMember.role}
 						required
 						placeholder="Worship Leader, Keys, Sound, etc."
-						class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-teal"
+						class="mt-1 block w-full px-3 py-2 border input-border bg-[var(--input-bg)] text-primary rounded-md focus:outline-none focus:ring-2 focus:ring-teal"
 					/>
 				</div>
 				<div class="flex gap-2 pt-4">
 					<button
 						type="button"
 						on:click={() => (showAddTeamModal = false)}
-						class="flex-1 px-4 py-2 border border-gray-300 rounded-md hover:bg-gray-50"
+						class="flex-1 px-4 py-2 border input-border bg-[var(--input-bg)] text-primary rounded-md hover:bg-[var(--surface-hover)]"
 					>
 						Cancel
 					</button>

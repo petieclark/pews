@@ -114,7 +114,7 @@
 			<h1 class="text-3xl font-bold text-[var(--text-primary)]">🛡️ Child Safety</h1>
 			<p class="text-secondary mt-1">Manage medical alerts and authorized pickups</p>
 		</div>
-		<a href="/dashboard/checkins" class="px-4 py-2 border border-custom rounded-md text-secondary hover:bg-gray-50 dark:hover:bg-gray-800">
+		<a href="/dashboard/checkins" class="px-4 py-2 border border-custom rounded-md text-secondary hover:bg-[var(--surface-hover)] dark:hover:bg-gray-800">
 			← Back
 		</a>
 	</div>
@@ -130,7 +130,7 @@
 				<div class="absolute top-full left-0 right-0 mt-1 bg-surface border border-custom rounded-lg shadow-lg z-10">
 					{#each searchResults as person}
 						<button on:click={() => selectPerson(person)}
-							class="w-full text-left p-3 hover:bg-gray-50 dark:hover:bg-gray-800 border-b border-custom last:border-0">
+							class="w-full text-left p-3 hover:bg-[var(--surface-hover)] dark:hover:bg-gray-800 border-b border-custom last:border-0">
 							<span class="font-medium text-[var(--text-primary)]">{person.first_name} {person.last_name}</span>
 							{#if person.email}<span class="text-sm text-secondary ml-2">{person.email}</span>{/if}
 						</button>
@@ -207,7 +207,7 @@
 								<div class="flex items-center gap-3">
 									<span class={`px-2 py-0.5 text-xs rounded ${pickup.is_active
 										? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-100'
-										: 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300'}`}>
+										: 'bg-[var(--surface-hover)] text-primary dark:bg-gray-700 dark:text-gray-300'}`}>
 										{pickup.is_active ? 'Active' : 'Inactive'}
 									</span>
 									<button on:click={() => deletePickup(pickup.id)}
@@ -274,7 +274,7 @@
 						<div class="absolute top-full left-0 right-0 mt-1 bg-surface border border-custom rounded-lg shadow-lg z-20 max-h-40 overflow-y-auto">
 							{#each pickupSearchResults as person}
 								<button type="button" on:click={() => selectPickupPerson(person)}
-									class="w-full text-left p-2 hover:bg-gray-50 dark:hover:bg-gray-800 text-sm border-b border-custom last:border-0">
+									class="w-full text-left p-2 hover:bg-[var(--surface-hover)] dark:hover:bg-gray-800 text-sm border-b border-custom last:border-0">
 									{person.first_name} {person.last_name}
 								</button>
 							{/each}

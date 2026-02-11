@@ -76,9 +76,9 @@
 		const colors = {
 			planning: 'bg-blue-100 text-blue-800',
 			confirmed: 'bg-green-100 text-green-800',
-			completed: 'bg-gray-100 text-gray-800'
+			completed: 'bg-[var(--surface-hover)] text-primary'
 		};
-		return colors[status] || 'bg-gray-100 text-gray-800';
+		return colors[status] || 'bg-[var(--surface-hover)] text-primary';
 	}
 
 	function formatDate(dateStr) {
@@ -93,7 +93,7 @@
 		<div class="flex gap-2">
 			<button
 				on:click={() => goto('/dashboard/services/songs')}
-				class="px-4 py-2 bg-white border border-navy text-navy rounded-md hover:bg-gray-50"
+				class="px-4 py-2 bg-surface border border-navy text-navy rounded-md hover:bg-[var(--surface-hover)]"
 			>
 				Song Library
 			</button>
@@ -108,7 +108,7 @@
 
 	<!-- Upcoming Services -->
 	{#if upcomingServices.length > 0}
-		<div class="bg-white rounded-lg shadow p-6">
+		<div class="bg-surface rounded-lg shadow p-6">
 			<h2 class="text-xl font-semibold text-navy mb-4">Upcoming Services</h2>
 			<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
 				{#each upcomingServices as service}
@@ -117,12 +117,12 @@
 						class="border rounded-lg p-4 cursor-pointer hover:shadow-md transition-shadow"
 						style="border-left: 4px solid {service.service_type?.color || '#4A8B8C'}"
 					>
-						<div class="text-sm text-gray-500">{formatDate(service.service_date)}</div>
+						<div class="text-sm text-secondary">{formatDate(service.service_date)}</div>
 						<div class="font-semibold text-navy mt-1">
 							{service.service_type?.name || 'Service'}
 						</div>
 						{#if service.service_time}
-							<div class="text-sm text-gray-600">{service.service_time}</div>
+							<div class="text-sm text-secondary">{service.service_time}</div>
 						{/if}
 						<span
 							class="inline-block mt-2 px-2 py-1 text-xs rounded {getStatusColor(service.status)}"
@@ -136,34 +136,34 @@
 	{/if}
 
 	<!-- All Services List -->
-	<div class="bg-white rounded-lg shadow overflow-hidden">
+	<div class="bg-surface rounded-lg shadow overflow-hidden">
 		<div class="p-4 border-b">
 			<h2 class="text-lg font-semibold text-navy">All Services</h2>
 		</div>
 		{#if loading}
-			<div class="p-8 text-center text-gray-500">Loading...</div>
+			<div class="p-8 text-center text-secondary">Loading...</div>
 		{:else if services.length === 0}
-			<div class="p-8 text-center text-gray-500">
+			<div class="p-8 text-center text-secondary">
 				No services found. Plan your first service to get started.
 			</div>
 		{:else}
 			<table class="min-w-full divide-y divide-gray-200">
-				<thead class="bg-gray-50">
+				<thead class="bg-[var(--surface-hover)]">
 					<tr>
-						<th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
-						<th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Type</th>
-						<th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Time</th>
-						<th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+						<th class="px-6 py-3 text-left text-xs font-medium text-secondary uppercase tracking-wider">Date</th>
+						<th class="px-6 py-3 text-left text-xs font-medium text-secondary uppercase tracking-wider">Type</th>
+						<th class="px-6 py-3 text-left text-xs font-medium text-secondary uppercase tracking-wider">Time</th>
+						<th class="px-6 py-3 text-left text-xs font-medium text-secondary uppercase tracking-wider">Status</th>
 					</tr>
 				</thead>
-				<tbody class="bg-white divide-y divide-gray-200">
+				<tbody class="bg-surface divide-y divide-gray-200">
 					{#each services as service}
 						<tr
 							on:click={() => viewService(service.id)}
-							class="hover:bg-gray-50 cursor-pointer"
+							class="hover:bg-[var(--surface-hover)] cursor-pointer"
 						>
 							<td class="px-6 py-4 whitespace-nowrap">
-								<div class="text-sm font-medium text-gray-900">{formatDate(service.service_date)}</div>
+								<div class="text-sm font-medium text-primary">{formatDate(service.service_date)}</div>
 							</td>
 							<td class="px-6 py-4 whitespace-nowrap">
 								<div class="flex items-center">
@@ -171,11 +171,11 @@
 										class="w-2 h-8 rounded mr-2"
 										style="background-color: {service.service_type?.color || '#4A8B8C'}"
 									></div>
-									<span class="text-sm text-gray-900">{service.service_type?.name || 'Service'}</span>
+									<span class="text-sm text-primary">{service.service_type?.name || 'Service'}</span>
 								</div>
 							</td>
 							<td class="px-6 py-4 whitespace-nowrap">
-								<div class="text-sm text-gray-500">{service.service_time || '—'}</div>
+								<div class="text-sm text-secondary">{service.service_time || '—'}</div>
 							</td>
 							<td class="px-6 py-4 whitespace-nowrap">
 								<span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full {getStatusColor(service.status)}">
@@ -193,15 +193,15 @@
 <!-- Create service modal -->
 {#if showCreateModal}
 	<div class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-		<div class="bg-white rounded-lg max-w-md w-full p-6">
+		<div class="bg-surface rounded-lg max-w-md w-full p-6">
 			<h2 class="text-2xl font-bold text-navy mb-4">Plan a Service</h2>
 			<form on:submit|preventDefault={createService} class="space-y-4">
 				<div>
-					<label class="block text-sm font-medium text-gray-700">Service Type *</label>
+					<label class="block text-sm font-medium text-primary">Service Type *</label>
 					<select
 						bind:value={newService.service_type_id}
 						required
-						class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-teal"
+						class="mt-1 block w-full px-3 py-2 border input-border bg-[var(--input-bg)] text-primary rounded-md focus:outline-none focus:ring-2 focus:ring-teal"
 					>
 						<option value="">Select a type</option>
 						{#each serviceTypes as type}
@@ -210,28 +210,28 @@
 					</select>
 				</div>
 				<div>
-					<label class="block text-sm font-medium text-gray-700">Date *</label>
+					<label class="block text-sm font-medium text-primary">Date *</label>
 					<input
 						type="date"
 						bind:value={newService.service_date}
 						required
-						class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-teal"
+						class="mt-1 block w-full px-3 py-2 border input-border bg-[var(--input-bg)] text-primary rounded-md focus:outline-none focus:ring-2 focus:ring-teal"
 					/>
 				</div>
 				<div>
-					<label class="block text-sm font-medium text-gray-700">Time</label>
+					<label class="block text-sm font-medium text-primary">Time</label>
 					<input
 						type="text"
 						bind:value={newService.service_time}
 						placeholder="10:30 AM"
-						class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-teal"
+						class="mt-1 block w-full px-3 py-2 border input-border bg-[var(--input-bg)] text-primary rounded-md focus:outline-none focus:ring-2 focus:ring-teal"
 					/>
 				</div>
 				<div>
-					<label class="block text-sm font-medium text-gray-700">Status</label>
+					<label class="block text-sm font-medium text-primary">Status</label>
 					<select
 						bind:value={newService.status}
-						class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-teal"
+						class="mt-1 block w-full px-3 py-2 border input-border bg-[var(--input-bg)] text-primary rounded-md focus:outline-none focus:ring-2 focus:ring-teal"
 					>
 						<option value="planning">Planning</option>
 						<option value="confirmed">Confirmed</option>
@@ -242,7 +242,7 @@
 					<button
 						type="button"
 						on:click={() => (showCreateModal = false)}
-						class="flex-1 px-4 py-2 border border-gray-300 rounded-md hover:bg-gray-50"
+						class="flex-1 px-4 py-2 border input-border bg-[var(--input-bg)] text-primary rounded-md hover:bg-[var(--surface-hover)]"
 					>
 						Cancel
 					</button>

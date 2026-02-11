@@ -61,10 +61,10 @@
 		const badges = {
 			scheduled: 'bg-blue-100 text-blue-800',
 			live: 'bg-red-100 text-red-800 animate-pulse',
-			ended: 'bg-gray-100 text-gray-800',
-			archived: 'bg-gray-100 text-gray-600'
+			ended: 'bg-[var(--surface-hover)] text-primary',
+			archived: 'bg-[var(--surface-hover)] text-secondary'
 		};
-		return badges[status] || 'bg-gray-100 text-gray-800';
+		return badges[status] || 'bg-[var(--surface-hover)] text-primary';
 	}
 </script>
 
