@@ -10,11 +10,13 @@ import (
 	"github.com/petieclark/pews/internal/communication"
 	"github.com/petieclark/pews/internal/giving"
 	"github.com/petieclark/pews/internal/groups"
+	importpkg "github.com/petieclark/pews/internal/import"
 	"github.com/petieclark/pews/internal/middleware"
 	"github.com/petieclark/pews/internal/module"
 	"github.com/petieclark/pews/internal/people"
 	"github.com/petieclark/pews/internal/services"
 	"github.com/petieclark/pews/internal/streaming"
+	"github.com/petieclark/pews/internal/team"
 	"github.com/petieclark/pews/internal/tenant"
 )
 
@@ -35,6 +37,9 @@ func New(
 	streamingHandler *streaming.Handler,
 	communicationHandler *communication.Handler,
 	checkinsHandler *checkins.Handler,
+	importHandler *importpkg.Handler,
+	teamHandler *team.Handler,
+	teamService *team.Service,
 	webhookSecret string,
 	givingWebhookSecret string,
 	frontendURL string,
@@ -49,6 +54,8 @@ func New(
 	// Public routes
 	r.Post("/api/auth/register", authHandler.Register)
 	r.Post("/api/auth/login", authHandler.Login)
+	r.Post("/api/auth/accept-invite", authHandler.AcceptInvite(teamService))
+	r.Get("/api/team/invite", teamHandler.GetInvite)
 	r.Post("/api/billing/webhook", billingHandler.HandleWebhook(webhookSecret))
 	r.Post("/api/giving/webhook", givingHandler.HandleWebhook(givingWebhookSecret))
 
@@ -74,6 +81,14 @@ func New(
 
 		// Auth
 		r.Post("/api/auth/logout", authHandler.Logout)
+
+		// Team
+		r.Get("/api/team/members", teamHandler.ListTeamMembers)
+		r.Post("/api/team/invite", middleware.RequireAdmin(http.HandlerFunc(teamHandler.CreateInvite)).ServeHTTP)
+		r.Get("/api/team/invites", middleware.RequireAdmin(http.HandlerFunc(teamHandler.ListPendingInvites)).ServeHTTP)
+		r.Delete("/api/team/invites/{id}", middleware.RequireAdmin(http.HandlerFunc(teamHandler.CancelInvite)).ServeHTTP)
+		r.Put("/api/team/members/{id}/role", middleware.RequireAdmin(http.HandlerFunc(teamHandler.UpdateMemberRole)).ServeHTTP)
+		r.Delete("/api/team/members/{id}", middleware.RequireAdmin(http.HandlerFunc(teamHandler.RemoveMember)).ServeHTTP)
 
 		// Tenant
 		r.Get("/api/tenant", tenantHandler.GetTenant)
@@ -258,6 +273,12 @@ func New(
 		// Check-ins - Stats & Search
 		r.Get("/api/checkins/stats", checkinsHandler.GetStats)
 		r.Get("/api/checkins/search", checkinsHandler.SearchPeople)
+
+		// Import - Bulk Data Import
+		r.Post("/api/import/people", importHandler.ImportPeople)
+		r.Post("/api/import/groups", importHandler.ImportGroups)
+		r.Post("/api/import/songs", importHandler.ImportSongs)
+		r.Post("/api/import/giving", importHandler.ImportGiving)
 	})
 
 	return &Router{r}

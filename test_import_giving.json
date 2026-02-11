@@ -1,0 +1,21 @@
+{
+  "donations": [
+    {
+      "donor_email": "john.doe@example.com",
+      "fund_name": "General Fund",
+      "amount_cents": 10000,
+      "currency": "USD",
+      "payment_method": "check",
+      "donated_at": "2026-01-15T10:00:00Z"
+    },
+    {
+      "donor_email": "jane.smith@example.com",
+      "fund_name": "Building Fund",
+      "amount_cents": 25000,
+      "currency": "USD",
+      "payment_method": "cash",
+      "donated_at": "2026-01-20T14:30:00Z"
+    }
+  ],
+  "dry_run": false
+}

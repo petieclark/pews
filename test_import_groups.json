@@ -1,0 +1,21 @@
+{
+  "groups": [
+    {
+      "name": "Monday Bible Study",
+      "description": "Weekly Bible study on Monday evenings",
+      "type": "small_group",
+      "meeting_day": "Monday",
+      "meeting_time": "19:00",
+      "is_public": true,
+      "members": ["john.doe@example.com", "jane.smith@example.com"]
+    },
+    {
+      "name": "Youth Ministry",
+      "description": "Ministry for teens and young adults",
+      "type": "ministry",
+      "is_public": true,
+      "max_members": 50
+    }
+  ],
+  "dry_run": false
+}
