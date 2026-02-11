@@ -117,14 +117,14 @@
 </script>
 
 <div class="p-6">
-	<div class="mb-6 flex justify-between items-center">
+	<div class="mb-6 flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
 		<div>
 			<h1 class="text-3xl font-bold text-primary">Donations</h1>
 			<p class="text-secondary mt-1">View and manage all donations</p>
 		</div>
 		<a
 			href="/dashboard/giving/donations/new"
-			class="px-4 py-2 bg-[var(--teal)] text-white rounded-lg hover:opacity-90 transition"
+			class="px-4 py-2 bg-[var(--teal)] text-white rounded-lg hover:opacity-90 transition text-center"
 		>
 			Record Donation
 		</a>
@@ -138,7 +138,7 @@
 				<label class="block text-sm font-medium text-primary mb-1">Fund</label>
 				<select
 					bind:value={fundFilter}
-					class="w-full px-3 py-2 border input-border bg-[var(--input-bg)] text-primary rounded-lg focus:ring-2 focus:ring-[var(--teal)] focus:border-transparent bg-[var(--input-bg)] text-primary"
+					class="w-full px-3 py-2 border input-border bg-[var(--input-bg)] text-primary rounded-lg focus:ring-2 focus:ring-[var(--teal)] focus:border-transparent"
 				>
 					<option value="">All Funds</option>
 					{#each funds as fund}
@@ -152,7 +152,7 @@
 				<input
 					type="date"
 					bind:value={fromDate}
-					class="w-full px-3 py-2 border input-border bg-[var(--input-bg)] text-primary rounded-lg focus:ring-2 focus:ring-[var(--teal)] focus:border-transparent bg-[var(--input-bg)] text-primary"
+					class="w-full px-3 py-2 border input-border bg-[var(--input-bg)] text-primary rounded-lg focus:ring-2 focus:ring-[var(--teal)] focus:border-transparent"
 				/>
 			</div>
 
@@ -161,7 +161,7 @@
 				<input
 					type="date"
 					bind:value={toDate}
-					class="w-full px-3 py-2 border input-border bg-[var(--input-bg)] text-primary rounded-lg focus:ring-2 focus:ring-[var(--teal)] focus:border-transparent bg-[var(--input-bg)] text-primary"
+					class="w-full px-3 py-2 border input-border bg-[var(--input-bg)] text-primary rounded-lg focus:ring-2 focus:ring-[var(--teal)] focus:border-transparent"
 				/>
 			</div>
 
@@ -193,7 +193,8 @@
 				<p class="text-secondary">No donations found</p>
 			</div>
 		{:else}
-			<table class="min-w-full divide-y divide-[var(--border)]">
+			<div class="overflow-x-auto">
+				<table class="min-w-full divide-y divide-[var(--border)]">
 				<thead class="bg-[var(--surface-hover)]">
 					<tr>
 						<th class="px-6 py-3 text-left text-xs font-medium text-secondary uppercase tracking-wider">
@@ -243,6 +244,7 @@
 					{/each}
 				</tbody>
 			</table>
+			</div>
 
 			<!-- Pagination -->
 			<div class="px-6 py-4 border-t border-custom flex justify-between items-center">

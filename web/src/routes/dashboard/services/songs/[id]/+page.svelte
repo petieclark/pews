@@ -149,6 +149,76 @@
 			</div>
 		</div>
 
+		<!-- PDF Attachment -->
+		<div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+			<h2 class="text-lg font-semibold text-navy mb-3">Chord Chart / Lyrics PDF</h2>
+			<p class="text-sm text-gray-600 mb-4">
+				Upload a PDF file with chord charts or lyric sheets for this song (max 10MB)
+			</p>
+			
+			{#if song.pdf_filename}
+				<div class="flex items-center justify-between p-4 bg-gray-50 rounded-lg border border-gray-200">
+					<div class="flex items-center space-x-3">
+						<svg class="h-8 w-8 text-red-500" fill="currentColor" viewBox="0 0 24 24">
+							<path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8l-6-6z"/>
+							<path d="M14 2v6h6"/>
+						</svg>
+						<div>
+							<p class="text-sm font-medium text-gray-900">{song.pdf_filename}</p>
+							<p class="text-xs text-gray-500">
+								{Math.round(song.pdf_size / 1024)} KB • Uploaded {formatDate(song.pdf_uploaded_at)}
+							</p>
+						</div>
+					</div>
+					<div class="flex space-x-2">
+						<button
+							on:click={downloadPDF}
+							class="px-4 py-2 bg-teal text-white rounded-md hover:bg-opacity-90 text-sm font-medium"
+						>
+							Download
+						</button>
+						<button
+							on:click={deletePDF}
+							disabled={pdfDeleting}
+							class="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-opacity-90 text-sm font-medium disabled:opacity-50"
+						>
+							{pdfDeleting ? 'Deleting...' : 'Delete'}
+						</button>
+					</div>
+				</div>
+			{:else}
+				<div class="flex items-center justify-center w-full">
+					<label
+						for="pdf-upload"
+						class="flex flex-col items-center justify-center w-full h-32 border-2 border-gray-300 border-dashed rounded-lg cursor-pointer bg-gray-50 hover:bg-gray-100"
+					>
+						<div class="flex flex-col items-center justify-center pt-5 pb-6">
+							{#if pdfUploading}
+								<div class="inline-block animate-spin rounded-full h-8 w-8 border-4 border-teal border-t-transparent mb-2"></div>
+								<p class="text-sm text-gray-500">Uploading...</p>
+							{:else}
+								<svg class="w-10 h-10 mb-3 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+									<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+								</svg>
+								<p class="mb-2 text-sm text-gray-500">
+									<span class="font-semibold">Click to upload</span> or drag and drop
+								</p>
+								<p class="text-xs text-gray-500">PDF files only (MAX. 10MB)</p>
+							{/if}
+						</div>
+						<input
+							id="pdf-upload"
+							type="file"
+							accept="application/pdf"
+							class="hidden"
+							on:change={handlePDFUpload}
+							disabled={pdfUploading}
+						/>
+					</label>
+				</div>
+			{/if}
+		</div>
+
 		<!-- Notes -->
 		{#if song.notes}
 			<div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
