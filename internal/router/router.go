@@ -28,6 +28,7 @@ import (
 	"github.com/petieclark/pews/internal/sermons"
 	"github.com/petieclark/pews/internal/sms"
 	"github.com/petieclark/pews/internal/streaming"
+	"github.com/petieclark/pews/internal/teams"
 	"github.com/petieclark/pews/internal/tenant"
 	"github.com/petieclark/pews/internal/website"
 )
@@ -62,6 +63,7 @@ func New(
 	smsHandler *sms.Handler,
 	i18nHandler *i18n.Handler,
 	importHandler *importpkg.Handler,
+	teamsHandler *teams.Handler,
 	webhookSecret string,
 	givingWebhookSecret string,
 	frontendURL string,
@@ -151,6 +153,8 @@ func New(
 		// People
 		r.Get("/api/people", peopleHandler.ListPeople)
 		r.Post("/api/people", peopleHandler.CreatePerson)
+		r.Post("/api/people/bulk/status", peopleHandler.BulkUpdateStatus)
+		r.Get("/api/people/export", peopleHandler.ExportCSV)
 		r.Get("/api/people/{id}", peopleHandler.GetPerson)
 		r.Put("/api/people/{id}", peopleHandler.UpdatePerson)
 		r.Delete("/api/people/{id}", peopleHandler.DeletePerson)
@@ -184,6 +188,14 @@ func New(
 		r.Get("/api/services/types", servicesHandler.ListServiceTypes)
 		r.Post("/api/services/types", servicesHandler.CreateServiceType)
 		r.Put("/api/services/types/{id}", servicesHandler.UpdateServiceType)
+		r.Delete("/api/services/types/{id}", servicesHandler.DeleteServiceType)
+
+		// Services - Templates
+		r.Get("/api/services/templates", servicesHandler.ListTemplates)
+		r.Post("/api/services/templates", servicesHandler.CreateTemplate)
+		r.Get("/api/services/templates/{id}", servicesHandler.GetTemplate)
+		r.Put("/api/services/templates/{id}", servicesHandler.UpdateTemplate)
+		r.Delete("/api/services/templates/{id}", servicesHandler.DeleteTemplate)
 
 		// Services - Services
 		r.Get("/api/services", servicesHandler.ListServices)
@@ -192,12 +204,15 @@ func New(
 		r.Get("/api/services/{id}", servicesHandler.GetService)
 		r.Put("/api/services/{id}", servicesHandler.UpdateService)
 		r.Delete("/api/services/{id}", servicesHandler.DeleteService)
+		r.Post("/api/services/{id}/copy", servicesHandler.CopyService)
+		r.Post("/api/services/{id}/save-template", servicesHandler.SaveAsTemplate)
 
 		// Services - Service Items
 		r.Get("/api/services/{id}/items", servicesHandler.GetServiceItems)
 		r.Post("/api/services/{id}/items", servicesHandler.AddServiceItem)
 		r.Put("/api/services/{id}/items/{itemId}", servicesHandler.UpdateServiceItem)
 		r.Delete("/api/services/{id}/items/{itemId}", servicesHandler.DeleteServiceItem)
+		r.Put("/api/services/{id}/items/reorder", servicesHandler.ReorderItems)
 
 		// Services - Service Teams
 		r.Get("/api/services/{id}/team", servicesHandler.GetServiceTeam)
@@ -429,8 +444,21 @@ func New(
 		r.Post("/api/import/pco/songs", importHandler.ImportPCOSongs)
 		r.Get("/api/import/status", importHandler.GetImportStatus)
 
-		// Dashboard - KPIs
+		// Volunteer Teams
+		r.Get("/api/teams", teamsHandler.ListTeams)
+		r.Post("/api/teams", teamsHandler.CreateTeam)
+		r.Get("/api/teams/{id}", teamsHandler.GetTeam)
+		r.Put("/api/teams/{id}", teamsHandler.UpdateTeam)
+		r.Delete("/api/teams/{id}", teamsHandler.DeleteTeam)
+		r.Post("/api/teams/{id}/positions", teamsHandler.AddPosition)
+		r.Delete("/api/teams/{id}/positions/{positionId}", teamsHandler.DeletePosition)
+		r.Post("/api/teams/{id}/members", teamsHandler.AddMember)
+		r.Put("/api/teams/{id}/members/{memberId}", teamsHandler.UpdateMember)
+		r.Delete("/api/teams/{id}/members/{memberId}", teamsHandler.DeleteMember)
+
+		// Dashboard
 		r.Get("/api/dashboard/kpis", engagementHandler.GetDashboardKPIs)
+		r.Get("/api/dashboard/activity", engagementHandler.GetDashboardActivity)
 
 		// Attendance Tracking (Phase 6)
 		r.Get("/api/attendance/trends", checkinsHandler.GetAttendanceTrends)

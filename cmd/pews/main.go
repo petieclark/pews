@@ -37,6 +37,7 @@ import (
 	"github.com/petieclark/pews/internal/sermons"
 	"github.com/petieclark/pews/internal/sms"
 	"github.com/petieclark/pews/internal/streaming"
+	"github.com/petieclark/pews/internal/teams"
 	"github.com/petieclark/pews/internal/tenant"
 	"github.com/petieclark/pews/internal/website"
 )
@@ -134,6 +135,10 @@ func run() error {
 	importService := importpkg.NewService(db.Pool)
 	importHandler := importpkg.NewHandler(importService)
 
+	// Teams
+	teamsService := teams.NewService(db.Pool)
+	teamsHandler := teams.NewHandler(teamsService)
+
 	// Setup router
 	r := router.New(
 		authHandler,
@@ -161,6 +166,7 @@ func run() error {
 		smsHandler,
 		i18nHandler,
 		importHandler,
+		teamsHandler,
 		cfg.StripeWebhookSecret,
 		cfg.StripeWebhookSecret, // Use same webhook secret for giving
 		cfg.FrontendURL,
