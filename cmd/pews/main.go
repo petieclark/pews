@@ -38,6 +38,7 @@ import (
 	"github.com/petieclark/pews/internal/streaming"
 	"github.com/petieclark/pews/internal/tenant"
 	"github.com/petieclark/pews/internal/website"
+	"github.com/petieclark/pews/internal/worship"
 )
 
 func main() {
@@ -79,6 +80,7 @@ func run() error {
 	peopleService := people.NewService(db.Pool)
 	groupsService := groups.NewService(db.Pool)
 	servicesService := services.NewService(db.Pool)
+	worshipService := worship.NewService(db.Pool)
 	sermonsService := sermons.NewService(db.Pool)
 	givingService := giving.NewService(db.Pool)
 	givingStripeService := giving.NewStripeService(db.Pool, cfg.StripeSecretKey, cfg.FrontendURL)
