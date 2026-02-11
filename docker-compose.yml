@@ -28,7 +28,7 @@ services:
       STRIPE_WEBHOOK_SECRET: ${STRIPE_WEBHOOK_SECRET:-whsec_xxx}
       STRIPE_PRICE_ID: ${STRIPE_PRICE_ID:-price_xxx}
       PORT: 8080
-      FRONTEND_URL: http://localhost:5173
+      FRONTEND_URL: http://localhost:5273
     depends_on:
       postgres:
         condition: service_healthy
