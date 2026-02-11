@@ -70,7 +70,7 @@ func run() error {
 	streamingService := streaming.NewService(db.Pool)
 	communicationService := communication.NewService(db.Pool)
 	checkinsService := checkins.NewService(db.Pool)
-	followupService := followup.NewService(db.Pool)
+	roomsService := rooms.NewService(db.Pool)
 
 	// Initialize handlers
 	authHandler := auth.NewHandler(authService, tenantService, billingService)
@@ -84,7 +84,7 @@ func run() error {
 	streamingHandler := streaming.NewHandler(streamingService)
 	communicationHandler := communication.NewHandler(communicationService)
 	checkinsHandler := checkins.NewHandler(checkinsService)
-	followupHandler := followup.NewHandler(followupService)
+	roomsHandler := rooms.NewHandler(roomsService)
 
 	// Setup router
 	r := router.New(
@@ -100,7 +100,7 @@ func run() error {
 		streamingHandler,
 		communicationHandler,
 		checkinsHandler,
-		followupHandler,
+		roomsHandler,
 		cfg.StripeWebhookSecret,
 		cfg.StripeWebhookSecret, // Use same webhook secret for giving
 		cfg.FrontendURL,

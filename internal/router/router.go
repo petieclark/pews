@@ -8,12 +8,12 @@ import (
 	"github.com/petieclark/pews/internal/billing"
 	"github.com/petieclark/pews/internal/checkins"
 	"github.com/petieclark/pews/internal/communication"
-	"github.com/petieclark/pews/internal/followup"
 	"github.com/petieclark/pews/internal/giving"
 	"github.com/petieclark/pews/internal/groups"
 	"github.com/petieclark/pews/internal/middleware"
 	"github.com/petieclark/pews/internal/module"
 	"github.com/petieclark/pews/internal/people"
+	"github.com/petieclark/pews/internal/rooms"
 	"github.com/petieclark/pews/internal/services"
 	"github.com/petieclark/pews/internal/streaming"
 	"github.com/petieclark/pews/internal/tenant"
@@ -36,7 +36,7 @@ func New(
 	streamingHandler *streaming.Handler,
 	communicationHandler *communication.Handler,
 	checkinsHandler *checkins.Handler,
-	followupHandler *followup.Handler,
+	roomsHandler *rooms.Handler,
 	webhookSecret string,
 	givingWebhookSecret string,
 	frontendURL string,
@@ -261,15 +261,17 @@ func New(
 		r.Get("/api/checkins/stats", checkinsHandler.GetStats)
 		r.Get("/api/checkins/search", checkinsHandler.SearchPeople)
 
-		// Follow-ups
-		r.Get("/api/follow-ups", followupHandler.ListFollowUps)
-		r.Post("/api/follow-ups", followupHandler.CreateFollowUp)
-		r.Get("/api/follow-ups/my", followupHandler.GetMyFollowUps)
-		r.Get("/api/follow-ups/overdue", followupHandler.GetOverdueFollowUps)
-		r.Get("/api/follow-ups/stats", followupHandler.GetDashboardStats)
-		r.Get("/api/follow-ups/{id}", followupHandler.GetFollowUp)
-		r.Put("/api/follow-ups/{id}", followupHandler.UpdateFollowUp)
-		r.Delete("/api/follow-ups/{id}", followupHandler.DeleteFollowUp)
+		// Rooms
+		r.Get("/api/rooms", roomsHandler.ListRooms)
+		r.Post("/api/rooms", roomsHandler.CreateRoom)
+		r.Get("/api/rooms/availability", roomsHandler.CheckAvailability)
+		r.Get("/api/rooms/{id}", roomsHandler.GetRoom)
+		r.Put("/api/rooms/{id}", roomsHandler.UpdateRoom)
+		r.Delete("/api/rooms/{id}", roomsHandler.DeleteRoom)
+		r.Get("/api/rooms/{id}/bookings", roomsHandler.ListRoomBookings)
+		r.Post("/api/rooms/{id}/bookings", roomsHandler.CreateBooking)
+		r.Put("/api/rooms/{id}/bookings/{bookingId}", roomsHandler.UpdateBooking)
+		r.Delete("/api/rooms/{id}/bookings/{bookingId}", roomsHandler.DeleteBooking)
 	})
 
 	return &Router{r}
