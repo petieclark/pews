@@ -474,12 +474,15 @@ func (s *Service) GetServiceTeam(ctx context.Context, tenantID, serviceID string
 	}
 
 	rows, err := s.db.Query(ctx, `
-		SELECT st.id, st.service_id, st.person_id, st.role, st.status, st.notes,
-		       p.first_name, p.last_name
+		SELECT st.id, st.service_id, st.person_id, st.team_id, st.role, st.status, st.notes,
+		       st.notified_at, st.responded_at, st.notification_sent,
+		       p.first_name, p.last_name, p.email,
+		       vt.name
 		FROM service_teams st
 		JOIN people p ON p.id = st.person_id
+		LEFT JOIN volunteer_teams vt ON vt.id = st.team_id
 		WHERE st.service_id = $1
-		ORDER BY st.role`, serviceID)
+		ORDER BY vt.name, st.role`, serviceID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get service team: %w", err)
 	}
@@ -488,8 +491,9 @@ func (s *Service) GetServiceTeam(ctx context.Context, tenantID, serviceID string
 	team := []ServiceTeam{}
 	for rows.Next() {
 		var member ServiceTeam
-		err := rows.Scan(&member.ID, &member.ServiceID, &member.PersonID, &member.Role, &member.Status, &member.Notes,
-			&member.PersonFirstName, &member.PersonLastName)
+		err := rows.Scan(&member.ID, &member.ServiceID, &member.PersonID, &member.TeamID, &member.Role, 
+			&member.Status, &member.Notes, &member.NotifiedAt, &member.RespondedAt, &member.NotificationSent,
+			&member.PersonFirstName, &member.PersonLastName, &member.PersonEmail, &member.TeamName)
 		if err != nil {
 			return nil, fmt.Errorf("failed to scan service team member: %w", err)
 		}
@@ -715,6 +719,480 @@ func (s *Service) DeleteSong(ctx context.Context, tenantID, songID string) error
 
 	if result.RowsAffected() == 0 {
 		return fmt.Errorf("song not found")
+	}
+
+	return nil
+}
+
+// Volunteer Teams operations
+
+func (s *Service) ListVolunteerTeams(ctx context.Context, tenantID string) ([]VolunteerTeam, error) {
+	_, err := s.db.Exec(ctx, "SELECT set_config('app.current_tenant_id', $1, TRUE)", tenantID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to set tenant context: %w", err)
+	}
+
+	rows, err := s.db.Query(ctx, `
+		SELECT vt.id, vt.tenant_id, vt.name, vt.description, vt.color, vt.is_active, 
+		       vt.created_at, vt.updated_at,
+		       COUNT(tm.id) as member_count
+		FROM volunteer_teams vt
+		LEFT JOIN team_members tm ON tm.team_id = vt.id AND tm.is_active = TRUE
+		GROUP BY vt.id
+		ORDER BY vt.name`)
+	if err != nil {
+		return nil, fmt.Errorf("failed to list volunteer teams: %w", err)
+	}
+	defer rows.Close()
+
+	teams := []VolunteerTeam{}
+	for rows.Next() {
+		var team VolunteerTeam
+		err := rows.Scan(&team.ID, &team.TenantID, &team.Name, &team.Description, &team.Color,
+			&team.IsActive, &team.CreatedAt, &team.UpdatedAt, &team.MemberCount)
+		if err != nil {
+			return nil, fmt.Errorf("failed to scan volunteer team: %w", err)
+		}
+		teams = append(teams, team)
+	}
+
+	return teams, nil
+}
+
+func (s *Service) GetVolunteerTeamByID(ctx context.Context, tenantID, teamID string) (*VolunteerTeam, error) {
+	_, err := s.db.Exec(ctx, "SELECT set_config('app.current_tenant_id', $1, TRUE)", tenantID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to set tenant context: %w", err)
+	}
+
+	var team VolunteerTeam
+	err = s.db.QueryRow(ctx, `
+		SELECT id, tenant_id, name, description, color, is_active, created_at, updated_at
+		FROM volunteer_teams WHERE id = $1`, teamID).Scan(
+		&team.ID, &team.TenantID, &team.Name, &team.Description, &team.Color,
+		&team.IsActive, &team.CreatedAt, &team.UpdatedAt,
+	)
+	if err != nil {
+		if err == pgx.ErrNoRows {
+			return nil, fmt.Errorf("volunteer team not found")
+		}
+		return nil, fmt.Errorf("failed to get volunteer team: %w", err)
+	}
+
+	return &team, nil
+}
+
+func (s *Service) CreateVolunteerTeam(ctx context.Context, tenantID string, team *VolunteerTeam) (*VolunteerTeam, error) {
+	_, err := s.db.Exec(ctx, "SELECT set_config('app.current_tenant_id', $1, TRUE)", tenantID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to set tenant context: %w", err)
+	}
+
+	team.ID = uuid.New().String()
+	team.TenantID = tenantID
+
+	err = s.db.QueryRow(ctx, `
+		INSERT INTO volunteer_teams (id, tenant_id, name, description, color, is_active)
+		VALUES ($1, $2, $3, $4, $5, $6)
+		RETURNING created_at, updated_at`,
+		team.ID, team.TenantID, team.Name, team.Description, team.Color, team.IsActive,
+	).Scan(&team.CreatedAt, &team.UpdatedAt)
+
+	if err != nil {
+		return nil, fmt.Errorf("failed to create volunteer team: %w", err)
+	}
+
+	return team, nil
+}
+
+func (s *Service) UpdateVolunteerTeam(ctx context.Context, tenantID, teamID string, team *VolunteerTeam) (*VolunteerTeam, error) {
+	_, err := s.db.Exec(ctx, "SELECT set_config('app.current_tenant_id', $1, TRUE)", tenantID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to set tenant context: %w", err)
+	}
+
+	err = s.db.QueryRow(ctx, `
+		UPDATE volunteer_teams SET 
+			name = $1, description = $2, color = $3, is_active = $4
+		WHERE id = $5
+		RETURNING created_at, updated_at`,
+		team.Name, team.Description, team.Color, team.IsActive, teamID,
+	).Scan(&team.CreatedAt, &team.UpdatedAt)
+
+	if err != nil {
+		if err == pgx.ErrNoRows {
+			return nil, fmt.Errorf("volunteer team not found")
+		}
+		return nil, fmt.Errorf("failed to update volunteer team: %w", err)
+	}
+
+	team.ID = teamID
+	team.TenantID = tenantID
+
+	return team, nil
+}
+
+func (s *Service) DeleteVolunteerTeam(ctx context.Context, tenantID, teamID string) error {
+	_, err := s.db.Exec(ctx, "SELECT set_config('app.current_tenant_id', $1, TRUE)", tenantID)
+	if err != nil {
+		return fmt.Errorf("failed to set tenant context: %w", err)
+	}
+
+	result, err := s.db.Exec(ctx, "DELETE FROM volunteer_teams WHERE id = $1", teamID)
+	if err != nil {
+		return fmt.Errorf("failed to delete volunteer team: %w", err)
+	}
+
+	if result.RowsAffected() == 0 {
+		return fmt.Errorf("volunteer team not found")
+	}
+
+	return nil
+}
+
+// Team Members operations
+
+func (s *Service) GetTeamMembers(ctx context.Context, tenantID, teamID string) ([]TeamMember, error) {
+	_, err := s.db.Exec(ctx, "SELECT set_config('app.current_tenant_id', $1, TRUE)", tenantID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to set tenant context: %w", err)
+	}
+
+	rows, err := s.db.Query(ctx, `
+		SELECT tm.id, tm.team_id, tm.person_id, tm.role, tm.is_active, tm.added_at,
+		       p.first_name, p.last_name, p.email,
+		       vt.name, vt.color
+		FROM team_members tm
+		JOIN people p ON p.id = tm.person_id
+		JOIN volunteer_teams vt ON vt.id = tm.team_id
+		WHERE tm.team_id = $1
+		ORDER BY tm.is_active DESC, p.first_name, p.last_name`, teamID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get team members: %w", err)
+	}
+	defer rows.Close()
+
+	members := []TeamMember{}
+	for rows.Next() {
+		var member TeamMember
+		err := rows.Scan(&member.ID, &member.TeamID, &member.PersonID, &member.Role,
+			&member.IsActive, &member.AddedAt, &member.PersonFirstName, &member.PersonLastName,
+			&member.PersonEmail, &member.TeamName, &member.TeamColor)
+		if err != nil {
+			return nil, fmt.Errorf("failed to scan team member: %w", err)
+		}
+		members = append(members, member)
+	}
+
+	return members, nil
+}
+
+func (s *Service) GetPersonTeams(ctx context.Context, tenantID, personID string) ([]TeamMember, error) {
+	_, err := s.db.Exec(ctx, "SELECT set_config('app.current_tenant_id', $1, TRUE)", tenantID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to set tenant context: %w", err)
+	}
+
+	rows, err := s.db.Query(ctx, `
+		SELECT tm.id, tm.team_id, tm.person_id, tm.role, tm.is_active, tm.added_at,
+		       p.first_name, p.last_name, p.email,
+		       vt.name, vt.color
+		FROM team_members tm
+		JOIN people p ON p.id = tm.person_id
+		JOIN volunteer_teams vt ON vt.id = tm.team_id
+		WHERE tm.person_id = $1
+		ORDER BY tm.is_active DESC, vt.name`, personID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get person teams: %w", err)
+	}
+	defer rows.Close()
+
+	members := []TeamMember{}
+	for rows.Next() {
+		var member TeamMember
+		err := rows.Scan(&member.ID, &member.TeamID, &member.PersonID, &member.Role,
+			&member.IsActive, &member.AddedAt, &member.PersonFirstName, &member.PersonLastName,
+			&member.PersonEmail, &member.TeamName, &member.TeamColor)
+		if err != nil {
+			return nil, fmt.Errorf("failed to scan team member: %w", err)
+		}
+		members = append(members, member)
+	}
+
+	return members, nil
+}
+
+func (s *Service) AddTeamMember(ctx context.Context, tenantID string, member *TeamMember) (*TeamMember, error) {
+	_, err := s.db.Exec(ctx, "SELECT set_config('app.current_tenant_id', $1, TRUE)", tenantID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to set tenant context: %w", err)
+	}
+
+	member.ID = uuid.New().String()
+
+	err = s.db.QueryRow(ctx, `
+		INSERT INTO team_members (id, team_id, person_id, role, is_active)
+		VALUES ($1, $2, $3, $4, $5)
+		RETURNING added_at`,
+		member.ID, member.TeamID, member.PersonID, member.Role, member.IsActive,
+	).Scan(&member.AddedAt)
+
+	if err != nil {
+		return nil, fmt.Errorf("failed to add team member: %w", err)
+	}
+
+	return member, nil
+}
+
+func (s *Service) UpdateTeamMember(ctx context.Context, tenantID, memberID string, member *TeamMember) (*TeamMember, error) {
+	_, err := s.db.Exec(ctx, "SELECT set_config('app.current_tenant_id', $1, TRUE)", tenantID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to set tenant context: %w", err)
+	}
+
+	err = s.db.QueryRow(ctx, `
+		UPDATE team_members SET role = $1, is_active = $2
+		WHERE id = $3
+		RETURNING added_at`,
+		member.Role, member.IsActive, memberID,
+	).Scan(&member.AddedAt)
+
+	if err != nil {
+		if err == pgx.ErrNoRows {
+			return nil, fmt.Errorf("team member not found")
+		}
+		return nil, fmt.Errorf("failed to update team member: %w", err)
+	}
+
+	member.ID = memberID
+
+	return member, nil
+}
+
+func (s *Service) RemoveTeamMember(ctx context.Context, tenantID, memberID string) error {
+	_, err := s.db.Exec(ctx, "SELECT set_config('app.current_tenant_id', $1, TRUE)", tenantID)
+	if err != nil {
+		return fmt.Errorf("failed to set tenant context: %w", err)
+	}
+
+	result, err := s.db.Exec(ctx, "DELETE FROM team_members WHERE id = $1", memberID)
+	if err != nil {
+		return fmt.Errorf("failed to remove team member: %w", err)
+	}
+
+	if result.RowsAffected() == 0 {
+		return fmt.Errorf("team member not found")
+	}
+
+	return nil
+}
+
+// Volunteer Availability operations
+
+func (s *Service) GetPersonAvailability(ctx context.Context, tenantID, personID string) ([]VolunteerAvailability, error) {
+	_, err := s.db.Exec(ctx, "SELECT set_config('app.current_tenant_id', $1, TRUE)", tenantID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to set tenant context: %w", err)
+	}
+
+	rows, err := s.db.Query(ctx, `
+		SELECT va.id, va.person_id, va.team_id, va.start_date, va.end_date, va.reason,
+		       va.created_at, va.updated_at,
+		       p.first_name, p.last_name
+		FROM volunteer_availability va
+		JOIN people p ON p.id = va.person_id
+		WHERE va.person_id = $1
+		ORDER BY va.start_date DESC`, personID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get person availability: %w", err)
+	}
+	defer rows.Close()
+
+	avail := []VolunteerAvailability{}
+	for rows.Next() {
+		var a VolunteerAvailability
+		err := rows.Scan(&a.ID, &a.PersonID, &a.TeamID, &a.StartDate, &a.EndDate, &a.Reason,
+			&a.CreatedAt, &a.UpdatedAt, &a.PersonFirstName, &a.PersonLastName)
+		if err != nil {
+			return nil, fmt.Errorf("failed to scan availability: %w", err)
+		}
+		avail = append(avail, a)
+	}
+
+	return avail, nil
+}
+
+func (s *Service) AddAvailability(ctx context.Context, tenantID string, avail *VolunteerAvailability) (*VolunteerAvailability, error) {
+	_, err := s.db.Exec(ctx, "SELECT set_config('app.current_tenant_id', $1, TRUE)", tenantID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to set tenant context: %w", err)
+	}
+
+	avail.ID = uuid.New().String()
+
+	err = s.db.QueryRow(ctx, `
+		INSERT INTO volunteer_availability (id, person_id, team_id, start_date, end_date, reason)
+		VALUES ($1, $2, $3, $4, $5, $6)
+		RETURNING created_at, updated_at`,
+		avail.ID, avail.PersonID, avail.TeamID, avail.StartDate, avail.EndDate, avail.Reason,
+	).Scan(&avail.CreatedAt, &avail.UpdatedAt)
+
+	if err != nil {
+		return nil, fmt.Errorf("failed to add availability: %w", err)
+	}
+
+	return avail, nil
+}
+
+func (s *Service) UpdateAvailability(ctx context.Context, tenantID, availID string, avail *VolunteerAvailability) (*VolunteerAvailability, error) {
+	_, err := s.db.Exec(ctx, "SELECT set_config('app.current_tenant_id', $1, TRUE)", tenantID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to set tenant context: %w", err)
+	}
+
+	err = s.db.QueryRow(ctx, `
+		UPDATE volunteer_availability SET 
+			start_date = $1, end_date = $2, reason = $3, team_id = $4
+		WHERE id = $5
+		RETURNING created_at, updated_at`,
+		avail.StartDate, avail.EndDate, avail.Reason, avail.TeamID, availID,
+	).Scan(&avail.CreatedAt, &avail.UpdatedAt)
+
+	if err != nil {
+		if err == pgx.ErrNoRows {
+			return nil, fmt.Errorf("availability not found")
+		}
+		return nil, fmt.Errorf("failed to update availability: %w", err)
+	}
+
+	avail.ID = availID
+
+	return avail, nil
+}
+
+func (s *Service) DeleteAvailability(ctx context.Context, tenantID, availID string) error {
+	_, err := s.db.Exec(ctx, "SELECT set_config('app.current_tenant_id', $1, TRUE)", tenantID)
+	if err != nil {
+		return fmt.Errorf("failed to set tenant context: %w", err)
+	}
+
+	result, err := s.db.Exec(ctx, "DELETE FROM volunteer_availability WHERE id = $1", availID)
+	if err != nil {
+		return fmt.Errorf("failed to delete availability: %w", err)
+	}
+
+	if result.RowsAffected() == 0 {
+		return fmt.Errorf("availability not found")
+	}
+
+	return nil
+}
+
+func (s *Service) IsPersonAvailable(ctx context.Context, tenantID, personID string, date time.Time) (bool, error) {
+	_, err := s.db.Exec(ctx, "SELECT set_config('app.current_tenant_id', $1, TRUE)", tenantID)
+	if err != nil {
+		return false, fmt.Errorf("failed to set tenant context: %w", err)
+	}
+
+	var available bool
+	err = s.db.QueryRow(ctx, "SELECT is_person_available($1, $2)", personID, date).Scan(&available)
+	if err != nil {
+		return false, fmt.Errorf("failed to check availability: %w", err)
+	}
+
+	return available, nil
+}
+
+// Scheduling helpers
+
+func (s *Service) GetSchedulingConflicts(ctx context.Context, tenantID string, serviceDate time.Time) ([]SchedulingConflict, error) {
+	_, err := s.db.Exec(ctx, "SELECT set_config('app.current_tenant_id', $1, TRUE)", tenantID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to set tenant context: %w", err)
+	}
+
+	rows, err := s.db.Query(ctx, `
+		SELECT person_id, first_name, last_name, service_count
+		FROM get_scheduling_conflicts($1, $2)`, serviceDate, tenantID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get scheduling conflicts: %w", err)
+	}
+	defer rows.Close()
+
+	conflicts := []SchedulingConflict{}
+	for rows.Next() {
+		var c SchedulingConflict
+		err := rows.Scan(&c.PersonID, &c.FirstName, &c.LastName, &c.ServiceCount)
+		if err != nil {
+			return nil, fmt.Errorf("failed to scan conflict: %w", err)
+		}
+		conflicts = append(conflicts, c)
+	}
+
+	return conflicts, nil
+}
+
+func (s *Service) GetAvailableVolunteers(ctx context.Context, tenantID, teamID string, date time.Time) ([]TeamMember, error) {
+	_, err := s.db.Exec(ctx, "SELECT set_config('app.current_tenant_id', $1, TRUE)", tenantID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to set tenant context: %w", err)
+	}
+
+	rows, err := s.db.Query(ctx, `
+		SELECT tm.id, tm.team_id, tm.person_id, tm.role, tm.is_active, tm.added_at,
+		       p.first_name, p.last_name, p.email,
+		       vt.name, vt.color
+		FROM team_members tm
+		JOIN people p ON p.id = tm.person_id
+		JOIN volunteer_teams vt ON vt.id = tm.team_id
+		WHERE tm.team_id = $1 
+		AND tm.is_active = TRUE
+		AND is_person_available(tm.person_id, $2)
+		AND NOT EXISTS (
+			SELECT 1 FROM service_teams st
+			JOIN services s ON s.id = st.service_id
+			WHERE st.person_id = tm.person_id
+			AND s.service_date = $2
+		)
+		ORDER BY p.first_name, p.last_name`, teamID, date)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get available volunteers: %w", err)
+	}
+	defer rows.Close()
+
+	members := []TeamMember{}
+	for rows.Next() {
+		var member TeamMember
+		err := rows.Scan(&member.ID, &member.TeamID, &member.PersonID, &member.Role,
+			&member.IsActive, &member.AddedAt, &member.PersonFirstName, &member.PersonLastName,
+			&member.PersonEmail, &member.TeamName, &member.TeamColor)
+		if err != nil {
+			return nil, fmt.Errorf("failed to scan available volunteer: %w", err)
+		}
+		members = append(members, member)
+	}
+
+	return members, nil
+}
+
+func (s *Service) UpdateServiceTeamStatus(ctx context.Context, tenantID, teamMemberID, status string) error {
+	_, err := s.db.Exec(ctx, "SELECT set_config('app.current_tenant_id', $1, TRUE)", tenantID)
+	if err != nil {
+		return fmt.Errorf("failed to set tenant context: %w", err)
+	}
+
+	result, err := s.db.Exec(ctx, `
+		UPDATE service_teams SET status = $1, responded_at = NOW()
+		WHERE id = $2`,
+		status, teamMemberID,
+	)
+
+	if err != nil {
+		return fmt.Errorf("failed to update service team status: %w", err)
+	}
+
+	if result.RowsAffected() == 0 {
+		return fmt.Errorf("service team member not found")
 	}
 
 	return nil
