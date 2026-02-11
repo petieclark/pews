@@ -31,6 +31,12 @@ func NewStripeService(db *pgxpool.Pool, stripeKey, frontendURL string) *StripeSe
 
 // Stripe Connect
 
+func (s *StripeService) GetTenantName(ctx context.Context, tenantID string) (string, error) {
+	var name string
+	err := s.db.QueryRow(ctx, `SELECT name FROM tenants WHERE id = $1`, tenantID).Scan(&name)
+	return name, err
+}
+
 func (s *StripeService) CreateConnectOnboardingLink(ctx context.Context, tenantID, tenantName, tenantEmail string) (string, error) {
 	// Check if account already exists
 	var stripeAccountID string
@@ -82,11 +88,44 @@ func (s *StripeService) CreateConnectOnboardingLink(ctx context.Context, tenantI
 		stripeAccountID = acc.ID
 	}
 
-	// Create account link
+	// Create account link with hardcoded return URLs (TODO: use env var)
+	returnURL := "http://localhost:5273/dashboard/giving/settings?setup=complete"
+	refreshURL := "http://localhost:5273/dashboard/giving/settings?setup=refresh"
+
 	linkParams := &stripe.AccountLinkParams{
 		Account:    stripe.String(stripeAccountID),
-		RefreshURL: stripe.String(s.frontendURL + "/dashboard/giving/settings"),
-		ReturnURL:  stripe.String(s.frontendURL + "/dashboard/giving/settings?onboarding=complete"),
+		RefreshURL: stripe.String(refreshURL),
+		ReturnURL:  stripe.String(returnURL),
+		Type:       stripe.String("account_onboarding"),
+	}
+
+	link, err := accountlink.New(linkParams)
+	if err != nil {
+		return "", fmt.Errorf("failed to create account link: %w", err)
+	}
+
+	return link.URL, nil
+}
+
+func (s *StripeService) RefreshOnboardingLink(ctx context.Context, tenantID string) (string, error) {
+	// Get existing account ID
+	var stripeAccountID string
+	err := s.db.QueryRow(ctx,
+		`SELECT stripe_account_id FROM tenants WHERE id = $1`,
+		tenantID,
+	).Scan(&stripeAccountID)
+	if err != nil || stripeAccountID == "" {
+		return "", fmt.Errorf("no Stripe account found for this tenant")
+	}
+
+	// Create new account link
+	returnURL := "http://localhost:5273/dashboard/giving/settings?setup=complete"
+	refreshURL := "http://localhost:5273/dashboard/giving/settings?setup=refresh"
+
+	linkParams := &stripe.AccountLinkParams{
+		Account:    stripe.String(stripeAccountID),
+		RefreshURL: stripe.String(refreshURL),
+		ReturnURL:  stripe.String(returnURL),
 		Type:       stripe.String("account_onboarding"),
 	}
 

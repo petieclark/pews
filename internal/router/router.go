@@ -110,6 +110,8 @@ func New(
 		// Giving - Stripe Connect
 		r.Post("/api/giving/connect/onboard", givingHandler.CreateConnectOnboard)
 		r.Get("/api/giving/connect/status", givingHandler.GetConnectStatus)
+		r.Get("/api/giving/connect/return", givingHandler.HandleConnectReturn)
+		r.Get("/api/giving/connect/refresh", givingHandler.HandleConnectRefresh)
 		r.Post("/api/giving/checkout", givingHandler.CreateCheckout)
 	})
 

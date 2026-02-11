@@ -13,9 +13,13 @@
 
 	let recentDonations = [];
 	let loading = true;
+	let connectStatus = {
+		connected: false,
+		onboarding_completed: false
+	};
 
 	onMount(async () => {
-		await Promise.all([loadStats(), loadRecentDonations()]);
+		await Promise.all([loadStats(), loadRecentDonations(), loadConnectStatus()]);
 		loading = false;
 	});
 
@@ -50,6 +54,21 @@
 		}
 	}
 
+	async function loadConnectStatus() {
+		try {
+			const response = await fetch('/api/giving/connect/status', {
+				headers: {
+					'Authorization': `Bearer ${localStorage.getItem('token')}`
+				}
+			});
+			if (response.ok) {
+				connectStatus = await response.json();
+			}
+		} catch (error) {
+			console.error('Failed to load connect status:', error);
+		}
+	}
+
 	function formatCurrency(cents: number): string {
 		return new Intl.NumberFormat('en-US', {
 			style: 'currency',
@@ -77,6 +96,26 @@
 			<div class="animate-spin rounded-full h-12 w-12 border-b-2 border-[#4A8B8C]"></div>
 		</div>
 	{:else}
+		<!-- Stripe Not Connected Banner -->
+		{#if !connectStatus.connected}
+			<div class="bg-yellow-50 border-l-4 border-yellow-400 p-4 mb-6 rounded-lg shadow">
+				<div class="flex items-center justify-between">
+					<div class="flex items-center gap-3">
+						<span class="text-2xl">⚠️</span>
+						<div>
+							<p class="font-semibold text-yellow-900">Online giving is not set up yet.</p>
+							<p class="text-sm text-yellow-800">Connect with Stripe to start accepting online donations.</p>
+						</div>
+					</div>
+					<a
+						href="/dashboard/giving/settings"
+						class="px-4 py-2 bg-yellow-600 text-white rounded-lg hover:bg-yellow-700 transition font-medium whitespace-nowrap"
+					>
+						Set up now →
+					</a>
+				</div>
+			</div>
+		{/if}
 		<!-- Stats Cards -->
 		<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
 			<div class="bg-white rounded-lg shadow p-6">

@@ -357,11 +357,6 @@ func (h *Handler) ListRecurringDonations(w http.ResponseWriter, r *http.Request)
 
 // Stripe Connect
 
-type ConnectOnboardRequest struct {
-	TenantName  string `json:"tenant_name"`
-	TenantEmail string `json:"tenant_email"`
-}
-
 func (h *Handler) CreateConnectOnboard(w http.ResponseWriter, r *http.Request) {
 	claims, ok := middleware.GetClaims(r.Context())
 	if !ok {
@@ -374,13 +369,15 @@ func (h *Handler) CreateConnectOnboard(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var req ConnectOnboardRequest
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		http.Error(w, "Invalid request body", http.StatusBadRequest)
+	// Get tenant info from database
+	tenantName, err := h.stripeService.GetTenantName(r.Context(), claims.TenantID)
+	if err != nil {
+		http.Error(w, "Failed to get tenant info: "+err.Error(), http.StatusInternalServerError)
 		return
 	}
 
-	url, err := h.stripeService.CreateConnectOnboardingLink(r.Context(), claims.TenantID, req.TenantName, req.TenantEmail)
+	// Use logged-in user's email from claims
+	url, err := h.stripeService.CreateConnectOnboardingLink(r.Context(), claims.TenantID, tenantName, claims.Email)
 	if err != nil {
 		http.Error(w, "Failed to create onboarding link: "+err.Error(), http.StatusInternalServerError)
 		return
@@ -406,6 +403,49 @@ func (h *Handler) GetConnectStatus(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(status)
+}
+
+func (h *Handler) HandleConnectReturn(w http.ResponseWriter, r *http.Request) {
+	claims, ok := middleware.GetClaims(r.Context())
+	if !ok {
+		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		return
+	}
+
+	// Refresh the Connect status to update onboarding completion
+	status, err := h.stripeService.GetConnectStatus(r.Context(), claims.TenantID)
+	if err != nil {
+		http.Error(w, "Failed to get connect status: "+err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	// Return status to frontend
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(status)
+}
+
+func (h *Handler) HandleConnectRefresh(w http.ResponseWriter, r *http.Request) {
+	claims, ok := middleware.GetClaims(r.Context())
+	if !ok {
+		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		return
+	}
+
+	if claims.Role != "admin" {
+		http.Error(w, "Forbidden: admin role required", http.StatusForbidden)
+		return
+	}
+
+	// Generate new onboarding link
+	url, err := h.stripeService.RefreshOnboardingLink(r.Context(), claims.TenantID)
+	if err != nil {
+		http.Error(w, "Failed to refresh onboarding link: "+err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	resp := map[string]string{"url": url}
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(resp)
 }
 
 // Checkout
