@@ -2,7 +2,6 @@ package media
 
 import (
 	"context"
-	"database/sql"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -12,16 +11,17 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5/pgxpool"
 )
 
 const MaxFileSize = 50 * 1024 * 1024 // 50MB
 
 type Service struct {
-	db          *sql.DB
+	db          *pgxpool.Pool
 	uploadsPath string
 }
 
-func NewService(db *sql.DB, uploadsPath string) *Service {
+func NewService(db *pgxpool.Pool, uploadsPath string) *Service {
 	// Ensure uploads directory exists
 	os.MkdirAll(uploadsPath, 0755)
 	return &Service{
@@ -76,7 +76,7 @@ func (s *Service) UploadFile(ctx context.Context, tenantID, userID string, file 
 		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
 		RETURNING id, tenant_id, filename, original_name, content_type, size_bytes, url, folder, uploaded_by, tags, created_at, updated_at
 	`
-	err = s.db.QueryRowContext(ctx, query, tenantID, filename, header.Filename, contentType, header.Size, url, folder, userID, tagsJSON).Scan(
+	err = s.db.QueryRow(ctx, query, tenantID, filename, header.Filename, contentType, header.Size, url, folder, userID, tagsJSON).Scan(
 		&mediaFile.ID,
 		&mediaFile.TenantID,
 		&mediaFile.Filename,
@@ -142,7 +142,7 @@ func (s *Service) ListFiles(ctx context.Context, tenantID string, mediaType Medi
 
 	query += " ORDER BY created_at DESC"
 
-	rows, err := s.db.QueryContext(ctx, query, args...)
+	rows, err := s.db.Query(ctx, query, args...)
 	if err != nil {
 		return nil, err
 	}
@@ -181,7 +181,7 @@ func (s *Service) GetFile(ctx context.Context, tenantID, fileID string) (*MediaF
 		FROM media_files
 		WHERE id = $1 AND tenant_id = $2
 	`
-	err := s.db.QueryRowContext(ctx, query, fileID, tenantID).Scan(
+	err := s.db.QueryRow(ctx, query, fileID, tenantID).Scan(
 		&file.ID,
 		&file.TenantID,
 		&file.Filename,
@@ -195,11 +195,8 @@ func (s *Service) GetFile(ctx context.Context, tenantID, fileID string) (*MediaF
 		&file.CreatedAt,
 		&file.UpdatedAt,
 	)
-	if err == sql.ErrNoRows {
-		return nil, fmt.Errorf("file not found")
-	}
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("file not found: %w", err)
 	}
 	return &file, nil
 }
@@ -242,7 +239,7 @@ func (s *Service) UpdateFile(ctx context.Context, tenantID, fileID string, folde
 	}
 
 	var file MediaFile
-	err := s.db.QueryRowContext(ctx, query, args...).Scan(
+	err := s.db.QueryRow(ctx, query, args...).Scan(
 		&file.ID,
 		&file.TenantID,
 		&file.Filename,
@@ -271,7 +268,7 @@ func (s *Service) DeleteFile(ctx context.Context, tenantID, fileID string) error
 	}
 
 	// Delete from database
-	_, err = s.db.ExecContext(ctx, "DELETE FROM media_files WHERE id = $1 AND tenant_id = $2", fileID, tenantID)
+	_, err = s.db.Exec(ctx, "DELETE FROM media_files WHERE id = $1 AND tenant_id = $2", fileID, tenantID)
 	if err != nil {
 		return err
 	}
@@ -290,7 +287,7 @@ func (s *Service) ListFolders(ctx context.Context, tenantID string) ([]string, e
 		WHERE tenant_id = $1 AND folder != ''
 		ORDER BY folder
 	`
-	rows, err := s.db.QueryContext(ctx, query, tenantID)
+	rows, err := s.db.Query(ctx, query, tenantID)
 	if err != nil {
 		return nil, err
 	}
