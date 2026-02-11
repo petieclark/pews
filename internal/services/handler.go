@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"net/http"
 	"strconv"
+	"time"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/petieclark/pews/internal/middleware"
@@ -208,10 +209,16 @@ func (h *Handler) CreateService(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	serviceDate, err := time.Parse("2006-01-02", req.ServiceDate)
+	if err != nil {
+		http.Error(w, "Invalid service_date format (expected YYYY-MM-DD)", http.StatusBadRequest)
+		return
+	}
+
 	svc := &ChurchService{
 		ServiceTypeID: req.ServiceTypeID,
 		Name:          req.Name,
-		ServiceDate:   req.ServiceDate,
+		ServiceDate:   serviceDate,
 		ServiceTime:   req.ServiceTime,
 		Notes:         req.Notes,
 		Status:        req.Status,
@@ -247,10 +254,16 @@ func (h *Handler) UpdateService(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	serviceDate, err := time.Parse("2006-01-02", req.ServiceDate)
+	if err != nil {
+		http.Error(w, "Invalid service_date format (expected YYYY-MM-DD)", http.StatusBadRequest)
+		return
+	}
+
 	svc := &ChurchService{
 		ServiceTypeID: req.ServiceTypeID,
 		Name:          req.Name,
-		ServiceDate:   req.ServiceDate,
+		ServiceDate:   serviceDate,
 		ServiceTime:   req.ServiceTime,
 		Notes:         req.Notes,
 		Status:        req.Status,

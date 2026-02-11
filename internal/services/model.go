@@ -19,7 +19,7 @@ type ChurchService struct {
 	TenantID      string         `json:"tenant_id"`
 	ServiceTypeID string         `json:"service_type_id"`
 	Name          string         `json:"name,omitempty"`
-	ServiceDate   string         `json:"service_date"` // DATE format YYYY-MM-DD
+	ServiceDate   time.Time      `json:"service_date"`
 	ServiceTime   string         `json:"service_time,omitempty"`
 	Notes         string         `json:"notes,omitempty"`
 	Status        string         `json:"status"`
@@ -41,7 +41,7 @@ type Song struct {
 	Lyrics     string    `json:"lyrics,omitempty"`
 	Notes      string    `json:"notes,omitempty"`
 	Tags       string    `json:"tags,omitempty"`
-	LastUsed   *string   `json:"last_used,omitempty"`
+	LastUsed   *time.Time `json:"last_used,omitempty"`
 	TimesUsed  int       `json:"times_used"`
 	CreatedAt  time.Time `json:"created_at"`
 	UpdatedAt  time.Time `json:"updated_at"`
