@@ -22,6 +22,7 @@ import (
 	"github.com/petieclark/pews/internal/people"
 	"github.com/petieclark/pews/internal/router"
 	"github.com/petieclark/pews/internal/services"
+	"github.com/petieclark/pews/internal/sermons"
 	"github.com/petieclark/pews/internal/streaming"
 	"github.com/petieclark/pews/internal/tenant"
 )
@@ -64,6 +65,7 @@ func run() error {
 	peopleService := people.NewService(db.Pool)
 	groupsService := groups.NewService(db.Pool)
 	servicesService := services.NewService(db.Pool)
+	sermonsService := sermons.NewService(db.Pool)
 	givingService := giving.NewService(db.Pool)
 	givingStripeService := giving.NewStripeService(db.Pool, cfg.StripeSecretKey, cfg.FrontendURL)
 	streamingService := streaming.NewService(db.Pool)
@@ -78,6 +80,7 @@ func run() error {
 	peopleHandler := people.NewHandler(peopleService)
 	groupsHandler := groups.NewHandler(groupsService)
 	servicesHandler := services.NewHandler(servicesService)
+	sermonsHandler := sermons.NewHandler(sermonsService)
 	givingHandler := giving.NewHandler(givingService, givingStripeService)
 	streamingHandler := streaming.NewHandler(streamingService)
 	communicationHandler := communication.NewHandler(communicationService)
@@ -93,6 +96,7 @@ func run() error {
 		peopleHandler,
 		groupsHandler,
 		servicesHandler,
+		sermonsHandler,
 		givingHandler,
 		streamingHandler,
 		communicationHandler,

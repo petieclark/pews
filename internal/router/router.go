@@ -14,6 +14,7 @@ import (
 	"github.com/petieclark/pews/internal/module"
 	"github.com/petieclark/pews/internal/people"
 	"github.com/petieclark/pews/internal/services"
+	"github.com/petieclark/pews/internal/sermons"
 	"github.com/petieclark/pews/internal/streaming"
 	"github.com/petieclark/pews/internal/tenant"
 )
@@ -31,6 +32,7 @@ func New(
 	peopleHandler *people.Handler,
 	groupsHandler *groups.Handler,
 	servicesHandler *services.Handler,
+	sermonsHandler *sermons.Handler,
 	givingHandler *giving.Handler,
 	streamingHandler *streaming.Handler,
 	communicationHandler *communication.Handler,
@@ -61,6 +63,10 @@ func New(
 
 	// Public communication route - connection card submission (no auth required)
 	r.Post("/api/communication/cards", communicationHandler.SubmitConnectionCard)
+
+	// Public sermon routes (no auth required)
+	r.Get("/api/sermons/public", sermonsHandler.GetPublicSermons)
+	r.Get("/api/sermons/feed.xml", sermonsHandler.GetPodcastFeed)
 
 	// Health check
 	r.Get("/api/health", func(w http.ResponseWriter, r *http.Request) {
@@ -152,6 +158,13 @@ func New(
 		r.Put("/api/services/songs/{id}", servicesHandler.UpdateSong)
 		r.Delete("/api/services/songs/{id}", servicesHandler.DeleteSong)
 
+
+		// Sermons
+		r.Get("/api/sermons", sermonsHandler.ListSermons)
+		r.Post("/api/sermons", sermonsHandler.CreateSermon)
+		r.Get("/api/sermons/{id}", sermonsHandler.GetSermon)
+		r.Put("/api/sermons/{id}", sermonsHandler.UpdateSermon)
+		r.Delete("/api/sermons/{id}", sermonsHandler.DeleteSermon)
 		// Giving - Funds
 		r.Get("/api/giving/funds", givingHandler.ListFunds)
 		r.Post("/api/giving/funds", givingHandler.CreateFund)
