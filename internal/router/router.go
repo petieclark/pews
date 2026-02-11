@@ -16,6 +16,7 @@ import (
 	"github.com/petieclark/pews/internal/services"
 	"github.com/petieclark/pews/internal/streaming"
 	"github.com/petieclark/pews/internal/tenant"
+	"github.com/petieclark/pews/internal/worship"
 )
 
 type Router struct {
@@ -35,6 +36,7 @@ func New(
 	streamingHandler *streaming.Handler,
 	communicationHandler *communication.Handler,
 	checkinsHandler *checkins.Handler,
+	worshipHandler *worship.Handler,
 	webhookSecret string,
 	givingWebhookSecret string,
 	frontendURL string,
@@ -62,6 +64,11 @@ func New(
 	// Public communication route - connection card submission (no auth required)
 	r.Post("/api/communication/cards", communicationHandler.SubmitConnectionCard)
 
+	// Public group finder routes (no auth required)
+	r.Get("/api/groups/public", groupsHandler.ListPublicGroups)
+	r.Get("/api/groups/public/{id}", groupsHandler.GetPublicGroup)
+	r.Post("/api/groups/public/{id}/join", groupsHandler.JoinGroup)
+
 	// Health check
 	r.Get("/api/health", func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
@@ -88,6 +95,7 @@ func New(
 		r.Get("/api/billing/subscription", billingHandler.GetSubscription)
 		r.Post("/api/billing/checkout", billingHandler.CreateCheckout)
 		r.Post("/api/billing/portal", billingHandler.CreatePortal)
+		r.Get("/api/billing/invoices", billingHandler.GetInvoices)
 
 		// People
 		r.Get("/api/people", peopleHandler.ListPeople)
@@ -120,6 +128,10 @@ func New(
 		r.Put("/api/groups/{id}/members/{memberId}", groupsHandler.UpdateMemberRole)
 		r.Delete("/api/groups/{id}/members/{memberId}", groupsHandler.RemoveMemberFromGroup)
 		r.Get("/api/groups/person/{personId}", groupsHandler.GetPersonGroups)
+
+		// Group Join Requests (admin)
+		r.Get("/api/groups/join-requests", groupsHandler.ListJoinRequests)
+		r.Put("/api/groups/join-requests/{requestId}", groupsHandler.UpdateJoinRequestStatus)
 
 		// Services - Service Types
 		r.Get("/api/services/types", servicesHandler.ListServiceTypes)
@@ -258,6 +270,19 @@ func New(
 		// Check-ins - Stats & Search
 		r.Get("/api/checkins/stats", checkinsHandler.GetStats)
 		r.Get("/api/checkins/search", checkinsHandler.SearchPeople)
+
+		// Worship Planning - Service Plans
+		r.Get("/api/worship/plans", worshipHandler.ListPlans)
+		r.Post("/api/worship/plans", worshipHandler.CreatePlan)
+		r.Get("/api/worship/plans/{id}", worshipHandler.GetPlan)
+		r.Put("/api/worship/plans/{id}", worshipHandler.UpdatePlan)
+		r.Post("/api/worship/plans/{id}/publish", worshipHandler.PublishPlan)
+		r.Get("/api/worship/plans/{id}/export", worshipHandler.ExportPlan)
+
+		// Worship Planning - Plan Items
+		r.Post("/api/worship/plans/{id}/items", worshipHandler.AddItem)
+		r.Put("/api/worship/plans/{id}/items/{itemId}", worshipHandler.UpdateItem)
+		r.Delete("/api/worship/plans/{id}/items/{itemId}", worshipHandler.DeleteItem)
 	})
 
 	return &Router{r}
