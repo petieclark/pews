@@ -6,6 +6,7 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/petieclark/pews/internal/auth"
 	"github.com/petieclark/pews/internal/billing"
+	"github.com/petieclark/pews/internal/checkins"
 	"github.com/petieclark/pews/internal/communication"
 	"github.com/petieclark/pews/internal/giving"
 	"github.com/petieclark/pews/internal/groups"
@@ -33,6 +34,7 @@ func New(
 	givingHandler *giving.Handler,
 	streamingHandler *streaming.Handler,
 	communicationHandler *communication.Handler,
+	checkinsHandler *checkins.Handler,
 	webhookSecret string,
 	givingWebhookSecret string,
 	frontendURL string,
@@ -229,6 +231,33 @@ func New(
 
 		// Communication - Stats
 		r.Get("/api/communication/stats", communicationHandler.GetStats)
+
+		// Check-ins - Events
+		r.Get("/api/checkins/events", checkinsHandler.ListEvents)
+		r.Post("/api/checkins/events", checkinsHandler.CreateEvent)
+		r.Get("/api/checkins/events/{id}", checkinsHandler.GetEvent)
+		r.Put("/api/checkins/events/{id}", checkinsHandler.UpdateEvent)
+		r.Post("/api/checkins/events/{id}/checkin", checkinsHandler.CheckIn)
+		r.Post("/api/checkins/events/{id}/checkout", checkinsHandler.CheckOut)
+		r.Get("/api/checkins/events/{id}/attendees", checkinsHandler.GetAttendees)
+
+		// Check-ins - Stations
+		r.Get("/api/checkins/stations", checkinsHandler.ListStations)
+		r.Post("/api/checkins/stations", checkinsHandler.CreateStation)
+		r.Put("/api/checkins/stations/{id}", checkinsHandler.UpdateStation)
+
+		// Check-ins - Person
+		r.Get("/api/checkins/person/{personId}/history", checkinsHandler.GetPersonHistory)
+		r.Get("/api/checkins/person/{personId}/alerts", checkinsHandler.GetAlerts)
+		r.Post("/api/checkins/person/{personId}/alerts", checkinsHandler.CreateAlert)
+		r.Delete("/api/checkins/person/{personId}/alerts/{alertId}", checkinsHandler.DeleteAlert)
+		r.Get("/api/checkins/person/{personId}/pickups", checkinsHandler.GetPickups)
+		r.Post("/api/checkins/person/{personId}/pickups", checkinsHandler.CreatePickup)
+		r.Delete("/api/checkins/person/{personId}/pickups/{pickupId}", checkinsHandler.DeletePickup)
+
+		// Check-ins - Stats & Search
+		r.Get("/api/checkins/stats", checkinsHandler.GetStats)
+		r.Get("/api/checkins/search", checkinsHandler.SearchPeople)
 	})
 
 	return &Router{r}
