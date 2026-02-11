@@ -31,6 +31,7 @@ import (
 	"github.com/petieclark/pews/internal/search"
 	"github.com/petieclark/pews/internal/services"
 	"github.com/petieclark/pews/internal/sermons"
+	"github.com/petieclark/pews/internal/sms"
 	"github.com/petieclark/pews/internal/streaming"
 	"github.com/petieclark/pews/internal/tenant"
 	"github.com/petieclark/pews/internal/website"
@@ -88,6 +89,7 @@ func run() error {
 	notificationService := notification.NewService(db.Pool)
 	websiteService := website.NewService(db.Pool)
 	qrService := qr.NewService(cfg.FrontendURL)
+	smsService := sms.NewService(db.Pool, cfg.SMSEncryptionKey)
 
 	// Initialize handlers
 	authHandler := auth.NewHandler(authService, tenantService, billingService)
@@ -113,6 +115,9 @@ func run() error {
 	// Engagement (Phase 6)
 	engagementService := engagement.NewService(db.Pool)
 	engagementHandler := engagement.NewHandler(engagementService)
+	
+	// SMS (Phase 7)
+	smsHandler := sms.NewHandler(smsService)
 
 	// Setup router
 	r := router.New(
@@ -137,6 +142,7 @@ func run() error {
 		websiteHandler,
 		qrHandler,
 		engagementHandler,
+		smsHandler,
 		cfg.StripeWebhookSecret,
 		cfg.StripeWebhookSecret, // Use same webhook secret for giving
 		cfg.FrontendURL,
