@@ -208,7 +208,7 @@ func (h *Handler) CreateService(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	svc := &Service{
+	svc := &ChurchService{
 		ServiceTypeID: req.ServiceTypeID,
 		Name:          req.Name,
 		ServiceDate:   req.ServiceDate,
@@ -247,7 +247,7 @@ func (h *Handler) UpdateService(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	svc := &Service{
+	svc := &ChurchService{
 		ServiceTypeID: req.ServiceTypeID,
 		Name:          req.Name,
 		ServiceDate:   req.ServiceDate,
