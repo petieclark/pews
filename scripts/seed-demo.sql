@@ -8,6 +8,51 @@ SET app.current_tenant_id = '';
 BEGIN;
 
 -- ============================================================================
+-- CLEANUP (for idempotency)
+-- ============================================================================
+-- Delete all existing data for the demo tenant to ensure clean re-seeding
+
+-- Delete in reverse dependency order
+DELETE FROM stream_chat WHERE stream_id IN (SELECT id FROM streams WHERE tenant_id = '00000000-0000-0000-0000-000000000001');
+DELETE FROM stream_viewers WHERE stream_id IN (SELECT id FROM streams WHERE tenant_id = '00000000-0000-0000-0000-000000000001');
+DELETE FROM stream_notes WHERE stream_id IN (SELECT id FROM streams WHERE tenant_id = '00000000-0000-0000-0000-000000000001');
+DELETE FROM streams WHERE tenant_id = '00000000-0000-0000-0000-000000000001';
+
+DELETE FROM journey_enrollments WHERE journey_id IN (SELECT id FROM journeys WHERE tenant_id = '00000000-0000-0000-0000-000000000001');
+DELETE FROM journey_steps WHERE journey_id IN (SELECT id FROM journeys WHERE tenant_id = '00000000-0000-0000-0000-000000000001');
+DELETE FROM journeys WHERE tenant_id = '00000000-0000-0000-0000-000000000001';
+
+DELETE FROM campaign_recipients WHERE campaign_id IN (SELECT id FROM campaigns WHERE tenant_id = '00000000-0000-0000-0000-000000000001');
+DELETE FROM campaigns WHERE tenant_id = '00000000-0000-0000-0000-000000000001';
+DELETE FROM message_templates WHERE tenant_id = '00000000-0000-0000-0000-000000000001';
+DELETE FROM connection_cards WHERE tenant_id = '00000000-0000-0000-0000-000000000001';
+
+DELETE FROM checkins WHERE tenant_id = '00000000-0000-0000-0000-000000000001';
+DELETE FROM checkin_events WHERE tenant_id = '00000000-0000-0000-0000-000000000001';
+DELETE FROM checkin_stations WHERE tenant_id = '00000000-0000-0000-0000-000000000001';
+DELETE FROM authorized_pickups WHERE tenant_id = '00000000-0000-0000-0000-000000000001';
+DELETE FROM medical_alerts WHERE tenant_id = '00000000-0000-0000-0000-000000000001';
+
+DELETE FROM donations WHERE tenant_id = '00000000-0000-0000-0000-000000000001';
+DELETE FROM giving_statements WHERE tenant_id = '00000000-0000-0000-0000-000000000001';
+DELETE FROM funds WHERE tenant_id = '00000000-0000-0000-0000-000000000001';
+
+DELETE FROM service_teams WHERE service_id IN (SELECT id FROM services WHERE tenant_id = '00000000-0000-0000-0000-000000000001');
+DELETE FROM service_items WHERE service_id IN (SELECT id FROM services WHERE tenant_id = '00000000-0000-0000-0000-000000000001');
+DELETE FROM services WHERE tenant_id = '00000000-0000-0000-0000-000000000001';
+DELETE FROM service_types WHERE tenant_id = '00000000-0000-0000-0000-000000000001';
+DELETE FROM songs WHERE tenant_id = '00000000-0000-0000-0000-000000000001';
+
+DELETE FROM group_members WHERE group_id IN (SELECT id FROM groups WHERE tenant_id = '00000000-0000-0000-0000-000000000001');
+DELETE FROM groups WHERE tenant_id = '00000000-0000-0000-0000-000000000001';
+
+DELETE FROM person_tags WHERE person_id IN (SELECT id FROM people WHERE tenant_id = '00000000-0000-0000-0000-000000000001');
+DELETE FROM household_members WHERE household_id IN (SELECT id FROM households WHERE tenant_id = '00000000-0000-0000-0000-000000000001');
+DELETE FROM households WHERE tenant_id = '00000000-0000-0000-0000-000000000001';
+DELETE FROM people WHERE tenant_id = '00000000-0000-0000-0000-000000000001';
+DELETE FROM tags WHERE tenant_id = '00000000-0000-0000-0000-000000000001';
+
+-- ============================================================================
 -- TENANT
 -- ============================================================================
 
