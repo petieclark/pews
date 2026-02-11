@@ -15,9 +15,11 @@ import (
 	"github.com/petieclark/pews/internal/config"
 	"github.com/petieclark/pews/internal/database"
 	"github.com/petieclark/pews/internal/giving"
+	"github.com/petieclark/pews/internal/groups"
 	"github.com/petieclark/pews/internal/module"
 	"github.com/petieclark/pews/internal/people"
 	"github.com/petieclark/pews/internal/router"
+	"github.com/petieclark/pews/internal/services"
 	"github.com/petieclark/pews/internal/tenant"
 )
 
@@ -57,6 +59,8 @@ func run() error {
 	moduleService := module.NewService(db.Pool)
 	billingService := billing.NewService(db.Pool, cfg.StripeSecretKey, cfg.StripePriceID, cfg.FrontendURL)
 	peopleService := people.NewService(db.Pool)
+	groupsService := groups.NewService(db.Pool)
+	servicesService := services.NewService(db.Pool)
 	givingService := giving.NewService(db.Pool)
 	givingStripeService := giving.NewStripeService(db.Pool, cfg.StripeSecretKey, cfg.FrontendURL)
 
@@ -66,6 +70,8 @@ func run() error {
 	moduleHandler := module.NewHandler(moduleService)
 	billingHandler := billing.NewHandler(billingService)
 	peopleHandler := people.NewHandler(peopleService)
+	groupsHandler := groups.NewHandler(groupsService)
+	servicesHandler := services.NewHandler(servicesService)
 	givingHandler := giving.NewHandler(givingService, givingStripeService)
 
 	// Setup router
@@ -76,6 +82,8 @@ func run() error {
 		moduleHandler,
 		billingHandler,
 		peopleHandler,
+		groupsHandler,
+		servicesHandler,
 		givingHandler,
 		cfg.StripeWebhookSecret,
 		cfg.StripeWebhookSecret, // Use same webhook secret for giving

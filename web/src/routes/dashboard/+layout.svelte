@@ -29,6 +29,7 @@
 					<a href="/dashboard" class="text-2xl font-bold text-[var(--text-primary)]">Pews</a>
 					<a href="/dashboard" class="text-secondary hover:text-primary">Dashboard</a>
 					<a href="/dashboard/people" class="text-secondary hover:text-primary">People</a>
+					<a href="/dashboard/groups" class="text-secondary hover:text-primary">Groups</a>
 					<a href="/dashboard/giving" class="text-secondary hover:text-primary">Giving</a>
 					<a href="/dashboard/settings" class="text-secondary hover:text-primary">Settings</a>
 				</div>

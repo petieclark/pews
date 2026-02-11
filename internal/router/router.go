@@ -7,9 +7,11 @@ import (
 	"github.com/petieclark/pews/internal/auth"
 	"github.com/petieclark/pews/internal/billing"
 	"github.com/petieclark/pews/internal/giving"
+	"github.com/petieclark/pews/internal/groups"
 	"github.com/petieclark/pews/internal/middleware"
 	"github.com/petieclark/pews/internal/module"
 	"github.com/petieclark/pews/internal/people"
+	"github.com/petieclark/pews/internal/services"
 	"github.com/petieclark/pews/internal/tenant"
 )
 
@@ -24,6 +26,8 @@ func New(
 	moduleHandler *module.Handler,
 	billingHandler *billing.Handler,
 	peopleHandler *people.Handler,
+	groupsHandler *groups.Handler,
+	servicesHandler *services.Handler,
 	givingHandler *giving.Handler,
 	webhookSecret string,
 	givingWebhookSecret string,
@@ -88,6 +92,49 @@ func New(
 		r.Put("/api/households/{id}", peopleHandler.UpdateHousehold)
 		r.Post("/api/households/{id}/members", peopleHandler.AddMemberToHousehold)
 		r.Delete("/api/households/{id}/members/{personId}", peopleHandler.RemoveMemberFromHousehold)
+
+		// Groups
+		r.Get("/api/groups", groupsHandler.ListGroups)
+		r.Post("/api/groups", groupsHandler.CreateGroup)
+		r.Get("/api/groups/{id}", groupsHandler.GetGroup)
+		r.Put("/api/groups/{id}", groupsHandler.UpdateGroup)
+		r.Delete("/api/groups/{id}", groupsHandler.DeleteGroup)
+		r.Get("/api/groups/{id}/members", groupsHandler.GetGroupMembers)
+		r.Post("/api/groups/{id}/members", groupsHandler.AddMemberToGroup)
+		r.Put("/api/groups/{id}/members/{memberId}", groupsHandler.UpdateMemberRole)
+		r.Delete("/api/groups/{id}/members/{memberId}", groupsHandler.RemoveMemberFromGroup)
+		r.Get("/api/groups/person/{personId}", groupsHandler.GetPersonGroups)
+
+		// Services - Service Types
+		r.Get("/api/services/types", servicesHandler.ListServiceTypes)
+		r.Post("/api/services/types", servicesHandler.CreateServiceType)
+		r.Put("/api/services/types/{id}", servicesHandler.UpdateServiceType)
+
+		// Services - Services
+		r.Get("/api/services", servicesHandler.ListServices)
+		r.Get("/api/services/upcoming", servicesHandler.GetUpcomingServices)
+		r.Post("/api/services", servicesHandler.CreateService)
+		r.Get("/api/services/{id}", servicesHandler.GetService)
+		r.Put("/api/services/{id}", servicesHandler.UpdateService)
+		r.Delete("/api/services/{id}", servicesHandler.DeleteService)
+
+		// Services - Service Items
+		r.Get("/api/services/{id}/items", servicesHandler.GetServiceItems)
+		r.Post("/api/services/{id}/items", servicesHandler.AddServiceItem)
+		r.Put("/api/services/{id}/items/{itemId}", servicesHandler.UpdateServiceItem)
+		r.Delete("/api/services/{id}/items/{itemId}", servicesHandler.DeleteServiceItem)
+
+		// Services - Service Teams
+		r.Get("/api/services/{id}/team", servicesHandler.GetServiceTeam)
+		r.Post("/api/services/{id}/team", servicesHandler.AddServiceTeamMember)
+		r.Put("/api/services/{id}/team/{teamId}", servicesHandler.UpdateServiceTeamMember)
+		r.Delete("/api/services/{id}/team/{teamId}", servicesHandler.DeleteServiceTeamMember)
+
+		// Services - Songs
+		r.Get("/api/services/songs", servicesHandler.ListSongs)
+		r.Post("/api/services/songs", servicesHandler.CreateSong)
+		r.Put("/api/services/songs/{id}", servicesHandler.UpdateSong)
+		r.Delete("/api/services/songs/{id}", servicesHandler.DeleteSong)
 
 		// Giving - Funds
 		r.Get("/api/giving/funds", givingHandler.ListFunds)
