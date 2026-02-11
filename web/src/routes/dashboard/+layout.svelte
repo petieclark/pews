@@ -28,6 +28,7 @@
 				<div class="flex items-center space-x-8">
 					<a href="/dashboard" class="text-2xl font-bold text-[var(--text-primary)]">Pews</a>
 					<a href="/dashboard" class="text-secondary hover:text-primary">Dashboard</a>
+					<a href="/dashboard/reports" class="text-secondary hover:text-primary">Reports</a>
 					<a href="/dashboard/people" class="text-secondary hover:text-primary">People</a>
 					<a href="/dashboard/groups" class="text-secondary hover:text-primary">Groups</a>
 					<a href="/dashboard/services" class="text-secondary hover:text-primary">Services</a>

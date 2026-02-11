@@ -13,6 +13,7 @@ import (
 	"github.com/petieclark/pews/internal/middleware"
 	"github.com/petieclark/pews/internal/module"
 	"github.com/petieclark/pews/internal/people"
+	"github.com/petieclark/pews/internal/reports"
 	"github.com/petieclark/pews/internal/services"
 	"github.com/petieclark/pews/internal/streaming"
 	"github.com/petieclark/pews/internal/tenant"
@@ -35,6 +36,7 @@ func New(
 	streamingHandler *streaming.Handler,
 	communicationHandler *communication.Handler,
 	checkinsHandler *checkins.Handler,
+	reportsHandler *reports.Handler,
 	webhookSecret string,
 	givingWebhookSecret string,
 	frontendURL string,
@@ -78,6 +80,9 @@ func New(
 		// Tenant
 		r.Get("/api/tenant", tenantHandler.GetTenant)
 		r.Put("/api/tenant", tenantHandler.UpdateTenant)
+		r.Get("/api/tenant/profile", tenantHandler.GetProfile)
+		r.Put("/api/tenant/profile", tenantHandler.UpdateProfile)
+		r.Post("/api/tenant/profile/logo", tenantHandler.UploadLogo)
 
 		// Modules
 		r.Get("/api/tenant/modules", moduleHandler.ListModules)
@@ -258,6 +263,12 @@ func New(
 		// Check-ins - Stats & Search
 		r.Get("/api/checkins/stats", checkinsHandler.GetStats)
 		r.Get("/api/checkins/search", checkinsHandler.SearchPeople)
+
+		// Reports
+		r.Get("/api/reports/attendance", reportsHandler.GetAttendanceReport)
+		r.Get("/api/reports/giving", reportsHandler.GetGivingReport)
+		r.Get("/api/reports/membership", reportsHandler.GetMembershipReport)
+		r.Get("/api/reports/groups", reportsHandler.GetGroupParticipationReport)
 	})
 
 	return &Router{r}
