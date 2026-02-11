@@ -5,7 +5,78 @@
 @tailwind utilities;
 
 @layer base {
+	:root {
+		/* Light mode colors */
+		--bg: #F7FAFA;
+		--surface: #FFFFFF;
+		--surface-hover: #F0F4F5;
+		--border: #E5E7EB;
+		--text-primary: #1B3A4B;
+		--text-secondary: #6B7280;
+		--navy: #1B3A4B;
+		--teal: #4A8B8C;
+		--sage: #8FBCB0;
+		--input-bg: #FFFFFF;
+		--input-border: #D1D5DB;
+		--error-bg: #FEF2F2;
+		--error-border: #FECACA;
+		--error-text: #991B1B;
+	}
+
+	:root.dark {
+		/* Dark mode colors */
+		--bg: #0F1A21;
+		--surface: #162028;
+		--surface-hover: #1C2A34;
+		--border: #253540;
+		--text-primary: #E8EDEF;
+		--text-secondary: #8BA0AD;
+		--navy: #E8EDEF;
+		--teal: #5A9EA0;
+		--sage: #9DCDC0;
+		--input-bg: #1C2A34;
+		--input-border: #2E4050;
+		--error-bg: #2D1515;
+		--error-border: #4A2020;
+		--error-text: #FCA5A5;
+	}
+
 	body {
-		@apply bg-bg text-navy;
+		@apply bg-[var(--bg)] text-[var(--text-primary)];
+		transition: background-color 0.2s, color 0.2s;
+	}
+
+	* {
+		transition: background-color 0.2s, border-color 0.2s;
+	}
+}
+
+@layer utilities {
+	.bg-surface {
+		background-color: var(--surface);
+	}
+	
+	.bg-surface-hover:hover {
+		background-color: var(--surface-hover);
+	}
+	
+	.border-custom {
+		border-color: var(--border);
+	}
+	
+	.text-primary {
+		color: var(--text-primary);
+	}
+	
+	.text-secondary {
+		color: var(--text-secondary);
+	}
+	
+	.input-bg {
+		background-color: var(--input-bg);
+	}
+	
+	.input-border {
+		border-color: var(--input-border);
 	}
 }

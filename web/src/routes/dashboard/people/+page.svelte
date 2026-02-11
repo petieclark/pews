@@ -83,39 +83,39 @@
 
 	function getStatusColor(status) {
 		const colors = {
-			active: 'bg-green-100 text-green-800',
-			inactive: 'bg-gray-100 text-gray-800',
-			visitor: 'bg-blue-100 text-blue-800',
-			member: 'bg-teal-100 text-teal-800'
+			active: 'status-active',
+			inactive: 'status-inactive',
+			visitor: 'status-visitor',
+			member: 'status-member'
 		};
-		return colors[status] || 'bg-gray-100 text-gray-800';
+		return colors[status] || 'status-inactive';
 	}
 </script>
 
 <div class="space-y-6">
 	<div class="flex justify-between items-center">
-		<h1 class="text-3xl font-bold text-navy">People</h1>
+		<h1 class="text-3xl font-bold text-primary">People</h1>
 		<button
 			on:click={() => (showCreateModal = true)}
-			class="px-4 py-2 bg-teal text-white rounded-md hover:bg-opacity-90"
+			class="px-4 py-2 bg-[var(--teal)] text-white rounded-md hover:opacity-90"
 		>
 			Add Person
 		</button>
 	</div>
 
 	<!-- Search and filters -->
-	<div class="bg-white rounded-lg shadow p-4">
+	<div class="bg-surface rounded-lg shadow p-4 border border-custom">
 		<div class="flex gap-4">
 			<input
 				type="text"
 				bind:value={searchQuery}
 				on:keyup={(e) => e.key === 'Enter' && handleSearch()}
 				placeholder="Search by name, email, or phone..."
-				class="flex-1 px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-teal"
+				class="flex-1 px-4 py-2 border input-border rounded-md focus:outline-none focus:ring-2 focus:ring-[var(--teal)] bg-[var(--input-bg)] text-primary"
 			/>
 			<button
 				on:click={handleSearch}
-				class="px-6 py-2 bg-navy text-white rounded-md hover:bg-opacity-90"
+				class="px-6 py-2 bg-[var(--navy)] text-white rounded-md hover:opacity-90"
 			>
 				Search
 			</button>
@@ -123,52 +123,52 @@
 	</div>
 
 	<!-- People table -->
-	<div class="bg-white rounded-lg shadow overflow-hidden">
+	<div class="bg-surface rounded-lg shadow overflow-hidden border border-custom">
 		{#if loading}
-			<div class="p-8 text-center text-gray-500">Loading...</div>
+			<div class="p-8 text-center text-secondary">Loading...</div>
 		{:else if people.length === 0}
-			<div class="p-8 text-center text-gray-500">
+			<div class="p-8 text-center text-secondary">
 				No people found. {#if searchQuery}Try a different search.{:else}Add your first person to get
 					started.{/if}
 			</div>
 		{:else}
-			<table class="min-w-full divide-y divide-gray-200">
-				<thead class="bg-gray-50">
+			<table class="min-w-full divide-y divide-[var(--border)]">
+				<thead class="bg-[var(--surface-hover)]">
 					<tr>
-						<th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+						<th class="px-6 py-3 text-left text-xs font-medium text-secondary uppercase tracking-wider"
 							>Name</th
 						>
-						<th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+						<th class="px-6 py-3 text-left text-xs font-medium text-secondary uppercase tracking-wider"
 							>Email</th
 						>
-						<th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+						<th class="px-6 py-3 text-left text-xs font-medium text-secondary uppercase tracking-wider"
 							>Phone</th
 						>
-						<th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+						<th class="px-6 py-3 text-left text-xs font-medium text-secondary uppercase tracking-wider"
 							>Status</th
 						>
-						<th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+						<th class="px-6 py-3 text-left text-xs font-medium text-secondary uppercase tracking-wider"
 							>Tags</th
 						>
 					</tr>
 				</thead>
-				<tbody class="bg-white divide-y divide-gray-200">
+				<tbody class="bg-surface divide-y divide-[var(--border)]">
 					{#each people as person}
 						<tr
 							on:click={() => viewPerson(person.id)}
-							class="hover:bg-gray-50 cursor-pointer"
+							class="hover:bg-[var(--surface-hover)] cursor-pointer"
 						>
 							<td class="px-6 py-4 whitespace-nowrap">
-								<div class="text-sm font-medium text-gray-900">
+								<div class="text-sm font-medium text-primary">
 									{person.first_name}
 									{person.last_name}
 								</div>
 							</td>
 							<td class="px-6 py-4 whitespace-nowrap">
-								<div class="text-sm text-gray-500">{person.email || '—'}</div>
+								<div class="text-sm text-secondary">{person.email || '—'}</div>
 							</td>
 							<td class="px-6 py-4 whitespace-nowrap">
-								<div class="text-sm text-gray-500">{person.phone || '—'}</div>
+								<div class="text-sm text-secondary">{person.phone || '—'}</div>
 							</td>
 							<td class="px-6 py-4 whitespace-nowrap">
 								<span
@@ -191,7 +191,7 @@
 											</span>
 										{/each}
 										{#if person.tags.length > 3}
-											<span class="text-xs text-gray-500">+{person.tags.length - 3}</span>
+											<span class="text-xs text-secondary">+{person.tags.length - 3}</span>
 										{/if}
 									{/if}
 								</div>
@@ -212,11 +212,11 @@
 					loadPeople();
 				}}
 				disabled={page === 1}
-				class="px-4 py-2 bg-white border rounded-md disabled:opacity-50"
+				class="px-4 py-2 bg-surface border border-custom rounded-md disabled:opacity-50 text-primary"
 			>
 				Previous
 			</button>
-			<span class="px-4 py-2">
+			<span class="px-4 py-2 text-primary">
 				Page {page} of {Math.ceil(total / limit)}
 			</span>
 			<button
@@ -225,7 +225,7 @@
 					loadPeople();
 				}}
 				disabled={page >= Math.ceil(total / limit)}
-				class="px-4 py-2 bg-white border rounded-md disabled:opacity-50"
+				class="px-4 py-2 bg-surface border border-custom rounded-md disabled:opacity-50 text-primary"
 			>
 				Next
 			</button>
@@ -236,48 +236,48 @@
 <!-- Create person modal -->
 {#if showCreateModal}
 	<div class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-		<div class="bg-white rounded-lg max-w-md w-full p-6">
-			<h2 class="text-2xl font-bold text-navy mb-4">Add Person</h2>
+		<div class="bg-surface rounded-lg max-w-md w-full p-6 border border-custom">
+			<h2 class="text-2xl font-bold text-primary mb-4">Add Person</h2>
 			<form on:submit|preventDefault={createPerson} class="space-y-4">
 				<div>
-					<label class="block text-sm font-medium text-gray-700">First Name *</label>
+					<label class="block text-sm font-medium text-primary">First Name *</label>
 					<input
 						type="text"
 						bind:value={newPerson.first_name}
 						required
-						class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-teal"
+						class="mt-1 block w-full px-3 py-2 border input-border rounded-md focus:outline-none focus:ring-2 focus:ring-[var(--teal)] bg-[var(--input-bg)] text-primary"
 					/>
 				</div>
 				<div>
-					<label class="block text-sm font-medium text-gray-700">Last Name *</label>
+					<label class="block text-sm font-medium text-primary">Last Name *</label>
 					<input
 						type="text"
 						bind:value={newPerson.last_name}
 						required
-						class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-teal"
+						class="mt-1 block w-full px-3 py-2 border input-border rounded-md focus:outline-none focus:ring-2 focus:ring-[var(--teal)] bg-[var(--input-bg)] text-primary"
 					/>
 				</div>
 				<div>
-					<label class="block text-sm font-medium text-gray-700">Email</label>
+					<label class="block text-sm font-medium text-primary">Email</label>
 					<input
 						type="email"
 						bind:value={newPerson.email}
-						class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-teal"
+						class="mt-1 block w-full px-3 py-2 border input-border rounded-md focus:outline-none focus:ring-2 focus:ring-[var(--teal)] bg-[var(--input-bg)] text-primary"
 					/>
 				</div>
 				<div>
-					<label class="block text-sm font-medium text-gray-700">Phone</label>
+					<label class="block text-sm font-medium text-primary">Phone</label>
 					<input
 						type="tel"
 						bind:value={newPerson.phone}
-						class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-teal"
+						class="mt-1 block w-full px-3 py-2 border input-border rounded-md focus:outline-none focus:ring-2 focus:ring-[var(--teal)] bg-[var(--input-bg)] text-primary"
 					/>
 				</div>
 				<div>
-					<label class="block text-sm font-medium text-gray-700">Status</label>
+					<label class="block text-sm font-medium text-primary">Status</label>
 					<select
 						bind:value={newPerson.membership_status}
-						class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-teal"
+						class="mt-1 block w-full px-3 py-2 border input-border rounded-md focus:outline-none focus:ring-2 focus:ring-[var(--teal)] bg-[var(--input-bg)] text-primary"
 					>
 						<option value="active">Active</option>
 						<option value="inactive">Inactive</option>
@@ -289,13 +289,13 @@
 					<button
 						type="button"
 						on:click={() => (showCreateModal = false)}
-						class="flex-1 px-4 py-2 border border-gray-300 rounded-md hover:bg-gray-50"
+						class="flex-1 px-4 py-2 border border-custom rounded-md hover:bg-[var(--surface-hover)] text-primary"
 					>
 						Cancel
 					</button>
 					<button
 						type="submit"
-						class="flex-1 px-4 py-2 bg-teal text-white rounded-md hover:bg-opacity-90"
+						class="flex-1 px-4 py-2 bg-[var(--teal)] text-white rounded-md hover:opacity-90"
 					>
 						Create
 					</button>
@@ -306,19 +306,39 @@
 {/if}
 
 <style>
-	:global(.bg-navy) {
-		background-color: #1b3a4b;
+	.status-active {
+		background-color: #D1FAE5;
+		color: #065F46;
 	}
-	:global(.text-navy) {
-		color: #1b3a4b;
+	:global(.dark) .status-active {
+		background-color: #064E3B;
+		color: #6EE7B7;
 	}
-	:global(.bg-teal) {
-		background-color: #4a8b8c;
+	
+	.status-inactive {
+		background-color: #F3F4F6;
+		color: #374151;
 	}
-	:global(.text-teal) {
-		color: #4a8b8c;
+	:global(.dark) .status-inactive {
+		background-color: #1F2937;
+		color: #9CA3AF;
 	}
-	:global(.ring-teal) {
-		--tw-ring-color: #4a8b8c;
+	
+	.status-visitor {
+		background-color: #DBEAFE;
+		color: #1E40AF;
+	}
+	:global(.dark) .status-visitor {
+		background-color: #1E3A8A;
+		color: #93C5FD;
+	}
+	
+	.status-member {
+		background-color: #CCFBF1;
+		color: #115E59;
+	}
+	:global(.dark) .status-member {
+		background-color: #134E4A;
+		color: #5EEAD4;
 	}
 </style>

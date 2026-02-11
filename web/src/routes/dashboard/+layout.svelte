@@ -2,6 +2,7 @@
 	import { goto } from '$app/navigation';
 	import { onMount } from 'svelte';
 	import { getToken, clearToken } from '$lib/api';
+	import ThemeToggle from '$lib/ThemeToggle.svelte';
 
 	let email = '';
 
@@ -20,22 +21,23 @@
 	}
 </script>
 
-<div class="min-h-screen bg-bg">
-	<nav class="bg-white shadow-sm">
+<div class="min-h-screen bg-[var(--bg)]">
+	<nav class="bg-surface shadow-sm border-b border-custom">
 		<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
 			<div class="flex justify-between h-16">
 				<div class="flex items-center space-x-8">
-					<a href="/dashboard" class="text-2xl font-bold text-navy">Pews</a>
-					<a href="/dashboard" class="text-gray-600 hover:text-navy">Dashboard</a>
-					<a href="/dashboard/people" class="text-gray-600 hover:text-navy">People</a>
-					<a href="/dashboard/giving" class="text-gray-600 hover:text-navy">Giving</a>
-					<a href="/dashboard/settings" class="text-gray-600 hover:text-navy">Settings</a>
+					<a href="/dashboard" class="text-2xl font-bold text-[var(--text-primary)]">Pews</a>
+					<a href="/dashboard" class="text-secondary hover:text-primary">Dashboard</a>
+					<a href="/dashboard/people" class="text-secondary hover:text-primary">People</a>
+					<a href="/dashboard/giving" class="text-secondary hover:text-primary">Giving</a>
+					<a href="/dashboard/settings" class="text-secondary hover:text-primary">Settings</a>
 				</div>
 				<div class="flex items-center space-x-4">
-					<span class="text-sm text-gray-600">{email}</span>
+					<ThemeToggle />
+					<span class="text-sm text-secondary">{email}</span>
 					<button
 						on:click={logout}
-						class="text-sm text-gray-600 hover:text-navy"
+						class="text-sm text-secondary hover:text-primary"
 					>
 						Logout
 					</button>

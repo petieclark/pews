@@ -95,17 +95,17 @@
 
 	function getStatusColor(status) {
 		const colors = {
-			active: 'bg-green-100 text-green-800',
-			inactive: 'bg-gray-100 text-gray-800',
-			visitor: 'bg-blue-100 text-blue-800',
-			member: 'bg-teal-100 text-teal-800'
+			active: 'status-active',
+			inactive: 'status-inactive',
+			visitor: 'status-visitor',
+			member: 'status-member'
 		};
-		return colors[status] || 'bg-gray-100 text-gray-800';
+		return colors[status] || 'status-inactive';
 	}
 </script>
 
 {#if loading}
-	<div class="p-8 text-center text-gray-500">Loading...</div>
+	<div class="p-8 text-center text-secondary">Loading...</div>
 {:else if person}
 	<div class="space-y-6">
 		<!-- Header -->
@@ -113,11 +113,11 @@
 			<div>
 				<button
 					on:click={() => goto('/dashboard/people')}
-					class="text-teal hover:underline mb-2"
+					class="text-[var(--teal)] hover:underline mb-2"
 				>
 					← Back to People
 				</button>
-				<h1 class="text-3xl font-bold text-navy">
+				<h1 class="text-3xl font-bold text-primary">
 					{person.first_name}
 					{person.last_name}
 				</h1>
@@ -136,7 +136,7 @@
 							editing = true;
 							editForm = { ...person };
 						}}
-						class="px-4 py-2 bg-teal text-white rounded-md hover:bg-opacity-90"
+						class="px-4 py-2 bg-[var(--teal)] text-white rounded-md hover:opacity-90"
 					>
 						Edit
 					</button>
@@ -153,93 +153,93 @@
 		<!-- Main content -->
 		<div class="grid grid-cols-1 md:grid-cols-3 gap-6">
 			<!-- Info card -->
-			<div class="md:col-span-2 bg-white rounded-lg shadow p-6">
+			<div class="md:col-span-2 bg-surface rounded-lg shadow p-6 border border-custom">
 				{#if editing}
 					<form on:submit|preventDefault={savePerson} class="space-y-4">
 						<div class="grid grid-cols-2 gap-4">
 							<div>
-								<label class="block text-sm font-medium text-gray-700">First Name</label>
+								<label class="block text-sm font-medium text-primary">First Name</label>
 								<input
 									type="text"
 									bind:value={editForm.first_name}
 									required
-									class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-teal"
+									class="mt-1 block w-full px-3 py-2 border input-border rounded-md focus:outline-none focus:ring-2 focus:ring-[var(--teal)] bg-[var(--input-bg)] text-primary"
 								/>
 							</div>
 							<div>
-								<label class="block text-sm font-medium text-gray-700">Last Name</label>
+								<label class="block text-sm font-medium text-primary">Last Name</label>
 								<input
 									type="text"
 									bind:value={editForm.last_name}
 									required
-									class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-teal"
+									class="mt-1 block w-full px-3 py-2 border input-border rounded-md focus:outline-none focus:ring-2 focus:ring-[var(--teal)] bg-[var(--input-bg)] text-primary"
 								/>
 							</div>
 						</div>
 						<div>
-							<label class="block text-sm font-medium text-gray-700">Email</label>
+							<label class="block text-sm font-medium text-primary">Email</label>
 							<input
 								type="email"
 								bind:value={editForm.email}
-								class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-teal"
+								class="mt-1 block w-full px-3 py-2 border input-border rounded-md focus:outline-none focus:ring-2 focus:ring-[var(--teal)] bg-[var(--input-bg)] text-primary"
 							/>
 						</div>
 						<div>
-							<label class="block text-sm font-medium text-gray-700">Phone</label>
+							<label class="block text-sm font-medium text-primary">Phone</label>
 							<input
 								type="tel"
 								bind:value={editForm.phone}
-								class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-teal"
+								class="mt-1 block w-full px-3 py-2 border input-border rounded-md focus:outline-none focus:ring-2 focus:ring-[var(--teal)] bg-[var(--input-bg)] text-primary"
 							/>
 						</div>
 						<div>
-							<label class="block text-sm font-medium text-gray-700">Address</label>
+							<label class="block text-sm font-medium text-primary">Address</label>
 							<input
 								type="text"
 								bind:value={editForm.address_line1}
 								placeholder="Street address"
-								class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-teal"
+								class="mt-1 block w-full px-3 py-2 border input-border rounded-md focus:outline-none focus:ring-2 focus:ring-[var(--teal)] bg-[var(--input-bg)] text-primary"
 							/>
 							<input
 								type="text"
 								bind:value={editForm.address_line2}
 								placeholder="Apt, suite, etc."
-								class="mt-2 block w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-teal"
+								class="mt-2 block w-full px-3 py-2 border input-border rounded-md focus:outline-none focus:ring-2 focus:ring-[var(--teal)] bg-[var(--input-bg)] text-primary"
 							/>
 							<div class="grid grid-cols-3 gap-2 mt-2">
 								<input
 									type="text"
 									bind:value={editForm.city}
 									placeholder="City"
-									class="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-teal"
+									class="px-3 py-2 border input-border rounded-md focus:outline-none focus:ring-2 focus:ring-[var(--teal)] bg-[var(--input-bg)] text-primary"
 								/>
 								<input
 									type="text"
 									bind:value={editForm.state}
 									placeholder="State"
-									class="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-teal"
+									class="px-3 py-2 border input-border rounded-md focus:outline-none focus:ring-2 focus:ring-[var(--teal)] bg-[var(--input-bg)] text-primary"
 								/>
 								<input
 									type="text"
 									bind:value={editForm.zip}
 									placeholder="ZIP"
-									class="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-teal"
+									class="px-3 py-2 border input-border rounded-md focus:outline-none focus:ring-2 focus:ring-[var(--teal)] bg-[var(--input-bg)] text-primary"
 								/>
 							</div>
 						</div>
 						<div>
-							<label class="block text-sm font-medium text-gray-700">Gender</label>
+							<label class="block text-sm font-medium text-primary">Gender</label>
 							<input
 								type="text"
 								bind:value={editForm.gender}
-								class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-teal"
+								class="mt-1 block w-full px-3 py-2 border input-border rounded-md focus:outline-none focus:ring-2 focus:ring-[var(--teal)] bg-[var(--input-bg)] text-primary"
 							/>
 						</div>
 						<div>
-							<label class="block text-sm font-medium text-gray-700">Status</label>
+							<label class="block text-sm font-medium text-primary">Status</label>
 							<select
 								bind:value={editForm.membership_status}
-								class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-teal"
+								class="mt-1 block w-full px-3 py-2 border input-border rounded-md focus:outline-none focus:ring-2 focus:ring-[var(--teal)] bg-[var(--input-bg)] text-primary"
 							>
 								<option value="active">Active</option>
 								<option value="inactive">Inactive</option>
@@ -248,24 +248,24 @@
 							</select>
 						</div>
 						<div>
-							<label class="block text-sm font-medium text-gray-700">Notes</label>
+							<label class="block text-sm font-medium text-primary">Notes</label>
 							<textarea
 								bind:value={editForm.notes}
 								rows="4"
-								class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-teal"
+								class="mt-1 block w-full px-3 py-2 border input-border rounded-md focus:outline-none focus:ring-2 focus:ring-[var(--teal)] bg-[var(--input-bg)] text-primary"
 							/>
 						</div>
 						<div class="flex gap-2 pt-4">
 							<button
 								type="button"
 								on:click={() => (editing = false)}
-								class="flex-1 px-4 py-2 border border-gray-300 rounded-md hover:bg-gray-50"
+								class="flex-1 px-4 py-2 border border-custom rounded-md hover:bg-[var(--surface-hover)] text-primary"
 							>
 								Cancel
 							</button>
 							<button
 								type="submit"
-								class="flex-1 px-4 py-2 bg-teal text-white rounded-md hover:bg-opacity-90"
+								class="flex-1 px-4 py-2 bg-[var(--teal)] text-white rounded-md hover:opacity-90"
 							>
 								Save
 							</button>
@@ -274,17 +274,17 @@
 				{:else}
 					<dl class="space-y-4">
 						<div>
-							<dt class="text-sm font-medium text-gray-500">Email</dt>
-							<dd class="mt-1 text-sm text-gray-900">{person.email || '—'}</dd>
+							<dt class="text-sm font-medium text-secondary">Email</dt>
+							<dd class="mt-1 text-sm text-primary">{person.email || '—'}</dd>
 						</div>
 						<div>
-							<dt class="text-sm font-medium text-gray-500">Phone</dt>
-							<dd class="mt-1 text-sm text-gray-900">{person.phone || '—'}</dd>
+							<dt class="text-sm font-medium text-secondary">Phone</dt>
+							<dd class="mt-1 text-sm text-primary">{person.phone || '—'}</dd>
 						</div>
 						{#if person.address_line1}
 							<div>
-								<dt class="text-sm font-medium text-gray-500">Address</dt>
-								<dd class="mt-1 text-sm text-gray-900">
+								<dt class="text-sm font-medium text-secondary">Address</dt>
+								<dd class="mt-1 text-sm text-primary">
 									{person.address_line1}<br />
 									{#if person.address_line2}{person.address_line2}<br />{/if}
 									{#if person.city || person.state || person.zip}
@@ -296,20 +296,20 @@
 						{/if}
 						{#if person.gender}
 							<div>
-								<dt class="text-sm font-medium text-gray-500">Gender</dt>
-								<dd class="mt-1 text-sm text-gray-900">{person.gender}</dd>
+								<dt class="text-sm font-medium text-secondary">Gender</dt>
+								<dd class="mt-1 text-sm text-primary">{person.gender}</dd>
 							</div>
 						{/if}
 						{#if person.household}
 							<div>
-								<dt class="text-sm font-medium text-gray-500">Household</dt>
-								<dd class="mt-1 text-sm text-gray-900">{person.household.name}</dd>
+								<dt class="text-sm font-medium text-secondary">Household</dt>
+								<dd class="mt-1 text-sm text-primary">{person.household.name}</dd>
 							</div>
 						{/if}
 						{#if person.notes}
 							<div>
-								<dt class="text-sm font-medium text-gray-500">Notes</dt>
-								<dd class="mt-1 text-sm text-gray-900 whitespace-pre-wrap">{person.notes}</dd>
+								<dt class="text-sm font-medium text-secondary">Notes</dt>
+								<dd class="mt-1 text-sm text-primary whitespace-pre-wrap">{person.notes}</dd>
 							</div>
 						{/if}
 					</dl>
@@ -318,12 +318,12 @@
 
 			<!-- Tags sidebar -->
 			<div class="space-y-6">
-				<div class="bg-white rounded-lg shadow p-6">
+				<div class="bg-surface rounded-lg shadow p-6 border border-custom">
 					<div class="flex justify-between items-center mb-4">
-						<h2 class="text-lg font-semibold text-navy">Tags</h2>
+						<h2 class="text-lg font-semibold text-primary">Tags</h2>
 						<button
 							on:click={() => (showAddTag = !showAddTag)}
-							class="text-teal hover:underline text-sm"
+							class="text-[var(--teal)] hover:underline text-sm"
 						>
 							+ Add
 						</button>
@@ -332,7 +332,7 @@
 						<div class="mb-4 space-y-2">
 							<select
 								bind:value={selectedTagId}
-								class="block w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-teal text-sm"
+								class="block w-full px-3 py-2 border input-border rounded-md focus:outline-none focus:ring-2 focus:ring-[var(--teal)] text-sm bg-[var(--input-bg)] text-primary"
 							>
 								<option value="">Select tag...</option>
 								{#each availableTags as tag}
@@ -341,7 +341,7 @@
 							</select>
 							<button
 								on:click={addTag}
-								class="w-full px-3 py-2 bg-teal text-white rounded-md hover:bg-opacity-90 text-sm"
+								class="w-full px-3 py-2 bg-[var(--teal)] text-white rounded-md hover:opacity-90 text-sm"
 							>
 								Add Tag
 							</button>
@@ -364,14 +364,14 @@
 								</div>
 							{/each}
 						{:else}
-							<p class="text-sm text-gray-500">No tags</p>
+							<p class="text-sm text-secondary">No tags</p>
 						{/if}
 					</div>
 				</div>
 
-				<div class="bg-white rounded-lg shadow p-6">
-					<h2 class="text-lg font-semibold text-navy mb-4">Activity Timeline</h2>
-					<p class="text-sm text-gray-500">Coming soon...</p>
+				<div class="bg-surface rounded-lg shadow p-6 border border-custom">
+					<h2 class="text-lg font-semibold text-primary mb-4">Activity Timeline</h2>
+					<p class="text-sm text-secondary">Coming soon...</p>
 				</div>
 			</div>
 		</div>
@@ -379,19 +379,39 @@
 {/if}
 
 <style>
-	:global(.bg-navy) {
-		background-color: #1b3a4b;
+	.status-active {
+		background-color: #D1FAE5;
+		color: #065F46;
 	}
-	:global(.text-navy) {
-		color: #1b3a4b;
+	:global(.dark) .status-active {
+		background-color: #064E3B;
+		color: #6EE7B7;
 	}
-	:global(.bg-teal) {
-		background-color: #4a8b8c;
+	
+	.status-inactive {
+		background-color: #F3F4F6;
+		color: #374151;
 	}
-	:global(.text-teal) {
-		color: #4a8b8c;
+	:global(.dark) .status-inactive {
+		background-color: #1F2937;
+		color: #9CA3AF;
 	}
-	:global(.ring-teal) {
-		--tw-ring-color: #4a8b8c;
+	
+	.status-visitor {
+		background-color: #DBEAFE;
+		color: #1E40AF;
+	}
+	:global(.dark) .status-visitor {
+		background-color: #1E3A8A;
+		color: #93C5FD;
+	}
+	
+	.status-member {
+		background-color: #CCFBF1;
+		color: #115E59;
+	}
+	:global(.dark) .status-member {
+		background-color: #134E4A;
+		color: #5EEAD4;
 	}
 </style>
