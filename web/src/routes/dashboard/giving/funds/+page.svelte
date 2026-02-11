@@ -9,6 +9,7 @@
 	let formData = {
 		name: '',
 		description: '',
+		goal_cents: null,
 		is_default: false,
 		is_active: true
 	};
@@ -39,6 +40,7 @@
 			formData = {
 				name: fund.name,
 				description: fund.description || '',
+				goal_cents: fund.goal_cents,
 				is_default: fund.is_default,
 				is_active: fund.is_active
 			};
@@ -47,6 +49,7 @@
 			formData = {
 				name: '',
 				description: '',
+				goal_cents: null,
 				is_default: false,
 				is_active: true
 			};
