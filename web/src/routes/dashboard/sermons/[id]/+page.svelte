@@ -83,15 +83,15 @@
 <div class="p-6 max-w-4xl mx-auto">
 	{#if loading}
 		<div class="flex justify-center items-center py-12">
-			<div class="animate-spin rounded-full h-12 w-12 border-b-2 border-teal-600"></div>
+			<div class="animate-spin rounded-full h-12 w-12 border-b-2 border-[var(--teal)]"></div>
 		</div>
 	{:else}
 		<div class="mb-6">
-			<h1 class="text-3xl font-bold">Edit Sermon</h1>
-			<p class="mt-1 text-gray-600">Update sermon details</p>
+			<h1 class="text-3xl font-bold text-[var(--text-primary)]">Edit Sermon</h1>
+			<p class="mt-1 text-secondary">Update sermon details</p>
 		</div>
 
-		<form on:submit|preventDefault={handleSubmit} class="bg-white rounded-lg shadow p-6 space-y-4">
+		<form on:submit|preventDefault={handleSubmit} class="bg-surface border border-custom rounded-lg shadow p-6 space-y-4">
 			<div class="grid grid-cols-1 md:grid-cols-2 gap-4">
 				<div>
 					<label class="block text-sm font-medium mb-1">Title *</label>

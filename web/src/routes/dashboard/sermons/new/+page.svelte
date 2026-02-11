@@ -57,56 +57,56 @@
 	<form on:submit|preventDefault={handleSubmit} class="bg-white rounded-lg shadow p-6 space-y-4">
 		<div class="grid grid-cols-1 md:grid-cols-2 gap-4">
 			<div>
-				<label class="block text-sm font-medium mb-1">Title *</label>
-				<input type="text" bind:value={form.title} required class="w-full px-4 py-2 border rounded" />
+				<label class="block text-sm font-medium mb-1 text-[var(--text-primary)]">Title *</label>
+				<input type="text" bind:value={form.title} required class="w-full px-4 py-2 border border-custom rounded bg-surface text-primary" />
 			</div>
 			<div>
-				<label class="block text-sm font-medium mb-1">Speaker *</label>
-				<input type="text" bind:value={form.speaker} required class="w-full px-4 py-2 border rounded" />
+				<label class="block text-sm font-medium mb-1 text-[var(--text-primary)]">Speaker *</label>
+				<input type="text" bind:value={form.speaker} required class="w-full px-4 py-2 border border-custom rounded bg-surface text-primary" />
 			</div>
 			<div>
-				<label class="block text-sm font-medium mb-1">Date *</label>
-				<input type="date" bind:value={form.sermon_date} required class="w-full px-4 py-2 border rounded" />
+				<label class="block text-sm font-medium mb-1 text-[var(--text-primary)]">Date *</label>
+				<input type="date" bind:value={form.sermon_date} required class="w-full px-4 py-2 border border-custom rounded bg-surface text-primary" />
 			</div>
 			<div>
-				<label class="block text-sm font-medium mb-1">Scripture Reference</label>
-				<input type="text" bind:value={form.scripture_reference} placeholder="John 3:16" class="w-full px-4 py-2 border rounded" />
+				<label class="block text-sm font-medium mb-1 text-[var(--text-primary)]">Scripture Reference</label>
+				<input type="text" bind:value={form.scripture_reference} placeholder="John 3:16" class="w-full px-4 py-2 border border-custom rounded bg-surface text-primary" />
 			</div>
 			<div>
-				<label class="block text-sm font-medium mb-1">Series Name</label>
-				<input type="text" bind:value={form.series_name} class="w-full px-4 py-2 border rounded" />
+				<label class="block text-sm font-medium mb-1 text-[var(--text-primary)]">Series Name</label>
+				<input type="text" bind:value={form.series_name} class="w-full px-4 py-2 border border-custom rounded bg-surface text-primary" />
 			</div>
 			<div>
-				<label class="block text-sm font-medium mb-1">Audio Duration (seconds)</label>
-				<input type="number" bind:value={form.audio_duration_seconds} placeholder="2400" class="w-full px-4 py-2 border rounded" />
+				<label class="block text-sm font-medium mb-1 text-[var(--text-primary)]">Audio Duration (seconds)</label>
+				<input type="number" bind:value={form.audio_duration_seconds} placeholder="2400" class="w-full px-4 py-2 border border-custom rounded bg-surface text-primary" />
 			</div>
 			<div class="md:col-span-2">
-				<label class="block text-sm font-medium mb-1">Audio URL</label>
-				<input type="url" bind:value={form.audio_url} placeholder="https://..." class="w-full px-4 py-2 border rounded" />
+				<label class="block text-sm font-medium mb-1 text-[var(--text-primary)]">Audio URL</label>
+				<input type="url" bind:value={form.audio_url} placeholder="https://..." class="w-full px-4 py-2 border border-custom rounded bg-surface text-primary" />
 			</div>
 			<div class="md:col-span-2">
-				<label class="block text-sm font-medium mb-1">Video URL</label>
-				<input type="url" bind:value={form.video_url} placeholder="https://..." class="w-full px-4 py-2 border rounded" />
+				<label class="block text-sm font-medium mb-1 text-[var(--text-primary)]">Video URL</label>
+				<input type="url" bind:value={form.video_url} placeholder="https://..." class="w-full px-4 py-2 border border-custom rounded bg-surface text-primary" />
 			</div>
 		</div>
 
 		<div>
-			<label class="block text-sm font-medium mb-1">Sermon Notes (Markdown)</label>
-			<textarea bind:value={form.notes_text} rows="12" class="w-full px-4 py-2 border rounded font-mono text-sm" placeholder="## Main Points
+			<label class="block text-sm font-medium mb-1 text-[var(--text-primary)]">Sermon Notes (Markdown)</label>
+			<textarea bind:value={form.notes_text} rows="12" class="w-full px-4 py-2 border border-custom rounded font-mono text-sm bg-surface text-primary" placeholder="## Main Points
 
 1. First point..."></textarea>
 		</div>
 
 		<div class="flex items-center gap-2">
 			<input type="checkbox" bind:checked={form.published} id="published" class="w-4 h-4" />
-			<label for="published" class="text-sm font-medium">Publish immediately</label>
+			<label for="published" class="text-sm font-medium text-[var(--text-primary)]">Publish immediately</label>
 		</div>
 
 		<div class="flex gap-4 pt-4">
-			<button type="submit" disabled={saving} class="bg-teal-600 text-white px-6 py-2 rounded hover:bg-teal-700 disabled:opacity-50">
+			<button type="submit" disabled={saving} class="bg-[var(--teal)] text-white px-6 py-2 rounded hover:opacity-90 disabled:opacity-50">
 				{saving ? 'Creating...' : 'Create Sermon'}
 			</button>
-			<button type="button" on:click={() => goto('/dashboard/sermons')} class="px-6 py-2 border rounded hover:bg-gray-50">
+			<button type="button" on:click={() => goto('/dashboard/sermons')} class="px-6 py-2 border border-custom rounded hover:bg-[var(--surface-hover)] dark:hover:bg-gray-800 text-[var(--text-primary)]">
 				Cancel
 			</button>
 		</div>
