@@ -29,12 +29,6 @@ func (s *Service) ListGroups(ctx context.Context, tenantID string, groupType str
 	}
 	offset := (page - 1) * limit
 
-	// Set tenant context
-	_, err := s.db.Exec(ctx, "SELECT set_config('app.current_tenant_id', $1, TRUE)", tenantID)
-	if err != nil {
-		return nil, 0, fmt.Errorf("failed to set tenant context: %w", err)
-	}
-
 	// Build query
 	sqlQuery := `
 		SELECT g.id, g.tenant_id, g.name, g.description, g.group_type, 
@@ -103,12 +97,6 @@ func (s *Service) ListGroups(ctx context.Context, tenantID string, groupType str
 }
 
 func (s *Service) GetGroupByID(ctx context.Context, tenantID, groupID string) (*Group, error) {
-	// Set tenant context
-	_, err := s.db.Exec(ctx, "SELECT set_config('app.current_tenant_id', $1, TRUE)", tenantID)
-	if err != nil {
-		return nil, fmt.Errorf("failed to set tenant context: %w", err)
-	}
-
 	var g Group
 	err = s.db.QueryRow(ctx, `
 		SELECT g.id, g.tenant_id, g.name, g.description, g.group_type, 
@@ -142,12 +130,6 @@ func (s *Service) GetGroupByID(ctx context.Context, tenantID, groupID string) (*
 }
 
 func (s *Service) CreateGroup(ctx context.Context, tenantID string, g *Group) (*Group, error) {
-	// Set tenant context
-	_, err := s.db.Exec(ctx, "SELECT set_config('app.current_tenant_id', $1, TRUE)", tenantID)
-	if err != nil {
-		return nil, fmt.Errorf("failed to set tenant context: %w", err)
-	}
-
 	g.ID = uuid.New().String()
 	g.TenantID = tenantID
 
@@ -171,12 +153,6 @@ func (s *Service) CreateGroup(ctx context.Context, tenantID string, g *Group) (*
 }
 
 func (s *Service) UpdateGroup(ctx context.Context, tenantID, groupID string, g *Group) (*Group, error) {
-	// Set tenant context
-	_, err := s.db.Exec(ctx, "SELECT set_config('app.current_tenant_id', $1, TRUE)", tenantID)
-	if err != nil {
-		return nil, fmt.Errorf("failed to set tenant context: %w", err)
-	}
-
 	err = s.db.QueryRow(ctx, `
 		UPDATE groups SET 
 			name = $1, description = $2, group_type = $3, 
@@ -204,12 +180,6 @@ func (s *Service) UpdateGroup(ctx context.Context, tenantID, groupID string, g *
 }
 
 func (s *Service) DeleteGroup(ctx context.Context, tenantID, groupID string) error {
-	// Set tenant context
-	_, err := s.db.Exec(ctx, "SELECT set_config('app.current_tenant_id', $1, TRUE)", tenantID)
-	if err != nil {
-		return fmt.Errorf("failed to set tenant context: %w", err)
-	}
-
 	result, err := s.db.Exec(ctx, "DELETE FROM groups WHERE id = $1", groupID)
 	if err != nil {
 		return fmt.Errorf("failed to delete group: %w", err)
@@ -225,12 +195,6 @@ func (s *Service) DeleteGroup(ctx context.Context, tenantID, groupID string) err
 // Member operations
 
 func (s *Service) GetGroupMembers(ctx context.Context, tenantID, groupID string) ([]Member, error) {
-	// Set tenant context
-	_, err := s.db.Exec(ctx, "SELECT set_config('app.current_tenant_id', $1, TRUE)", tenantID)
-	if err != nil {
-		return nil, fmt.Errorf("failed to set tenant context: %w", err)
-	}
-
 	rows, err := s.db.Query(ctx, `
 		SELECT gm.id, gm.group_id, gm.person_id, gm.role, gm.joined_at,
 		       p.id, p.tenant_id, p.first_name, p.last_name, p.email, p.phone,
@@ -268,12 +232,6 @@ func (s *Service) GetGroupMembers(ctx context.Context, tenantID, groupID string)
 }
 
 func (s *Service) AddMemberToGroup(ctx context.Context, tenantID, groupID, personID, role string) (*Member, error) {
-	// Set tenant context
-	_, err := s.db.Exec(ctx, "SELECT set_config('app.current_tenant_id', $1, TRUE)", tenantID)
-	if err != nil {
-		return nil, fmt.Errorf("failed to set tenant context: %w", err)
-	}
-
 	memberID := uuid.New().String()
 	var m Member
 	err = s.db.QueryRow(ctx, `
@@ -290,12 +248,6 @@ func (s *Service) AddMemberToGroup(ctx context.Context, tenantID, groupID, perso
 }
 
 func (s *Service) UpdateMemberRole(ctx context.Context, tenantID, memberID, role string) error {
-	// Set tenant context
-	_, err := s.db.Exec(ctx, "SELECT set_config('app.current_tenant_id', $1, TRUE)", tenantID)
-	if err != nil {
-		return fmt.Errorf("failed to set tenant context: %w", err)
-	}
-
 	result, err := s.db.Exec(ctx, `
 		UPDATE group_members 
 		SET role = $1 
@@ -313,12 +265,6 @@ func (s *Service) UpdateMemberRole(ctx context.Context, tenantID, memberID, role
 }
 
 func (s *Service) RemoveMemberFromGroup(ctx context.Context, tenantID, memberID string) error {
-	// Set tenant context
-	_, err := s.db.Exec(ctx, "SELECT set_config('app.current_tenant_id', $1, TRUE)", tenantID)
-	if err != nil {
-		return fmt.Errorf("failed to set tenant context: %w", err)
-	}
-
 	result, err := s.db.Exec(ctx, "DELETE FROM group_members WHERE id = $1", memberID)
 	if err != nil {
 		return fmt.Errorf("failed to remove member from group: %w", err)
@@ -332,12 +278,6 @@ func (s *Service) RemoveMemberFromGroup(ctx context.Context, tenantID, memberID 
 }
 
 func (s *Service) GetPersonGroups(ctx context.Context, tenantID, personID string) ([]Group, error) {
-	// Set tenant context
-	_, err := s.db.Exec(ctx, "SELECT set_config('app.current_tenant_id', $1, TRUE)", tenantID)
-	if err != nil {
-		return nil, fmt.Errorf("failed to set tenant context: %w", err)
-	}
-
 	rows, err := s.db.Query(ctx, `
 		SELECT g.id, g.tenant_id, g.name, g.description, g.group_type, 
 		       g.meeting_day, g.meeting_time, g.meeting_location, 

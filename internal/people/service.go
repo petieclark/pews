@@ -28,12 +28,6 @@ func (s *Service) ListPeople(ctx context.Context, tenantID string, query string,
 	}
 	offset := (page - 1) * limit
 
-	// Set tenant context
-	_, err := s.db.Exec(ctx, "SELECT set_config('app.current_tenant_id', $1, TRUE)", tenantID)
-	if err != nil {
-		return nil, 0, fmt.Errorf("failed to set tenant context: %w", err)
-	}
-
 	// Build query
 	sqlQuery := `
 		SELECT id, tenant_id, first_name, last_name, email, phone, 
@@ -91,12 +85,6 @@ func (s *Service) ListPeople(ctx context.Context, tenantID string, query string,
 }
 
 func (s *Service) GetPersonByID(ctx context.Context, tenantID, personID string) (*Person, error) {
-	// Set tenant context
-	_, err := s.db.Exec(ctx, "SELECT set_config('app.current_tenant_id', $1, TRUE)", tenantID)
-	if err != nil {
-		return nil, fmt.Errorf("failed to set tenant context: %w", err)
-	}
-
 	var p Person
 	err = s.db.QueryRow(ctx, `
 		SELECT id, tenant_id, first_name, last_name, email, phone, 
@@ -132,12 +120,6 @@ func (s *Service) GetPersonByID(ctx context.Context, tenantID, personID string) 
 }
 
 func (s *Service) CreatePerson(ctx context.Context, tenantID string, p *Person) (*Person, error) {
-	// Set tenant context
-	_, err := s.db.Exec(ctx, "SELECT set_config('app.current_tenant_id', $1, TRUE)", tenantID)
-	if err != nil {
-		return nil, fmt.Errorf("failed to set tenant context: %w", err)
-	}
-
 	p.ID = uuid.New().String()
 	p.TenantID = tenantID
 
@@ -161,12 +143,6 @@ func (s *Service) CreatePerson(ctx context.Context, tenantID string, p *Person) 
 }
 
 func (s *Service) UpdatePerson(ctx context.Context, tenantID, personID string, p *Person) (*Person, error) {
-	// Set tenant context
-	_, err := s.db.Exec(ctx, "SELECT set_config('app.current_tenant_id', $1, TRUE)", tenantID)
-	if err != nil {
-		return nil, fmt.Errorf("failed to set tenant context: %w", err)
-	}
-
 	err = s.db.QueryRow(ctx, `
 		UPDATE people SET 
 			first_name = $1, last_name = $2, email = $3, phone = $4,
@@ -195,12 +171,6 @@ func (s *Service) UpdatePerson(ctx context.Context, tenantID, personID string, p
 }
 
 func (s *Service) DeletePerson(ctx context.Context, tenantID, personID string) error {
-	// Set tenant context
-	_, err := s.db.Exec(ctx, "SELECT set_config('app.current_tenant_id', $1, TRUE)", tenantID)
-	if err != nil {
-		return fmt.Errorf("failed to set tenant context: %w", err)
-	}
-
 	result, err := s.db.Exec(ctx, "DELETE FROM people WHERE id = $1", personID)
 	if err != nil {
 		return fmt.Errorf("failed to delete person: %w", err)
@@ -216,12 +186,6 @@ func (s *Service) DeletePerson(ctx context.Context, tenantID, personID string) e
 // Tag operations
 
 func (s *Service) GetPersonTags(ctx context.Context, tenantID, personID string) ([]Tag, error) {
-	// Set tenant context
-	_, err := s.db.Exec(ctx, "SELECT set_config('app.current_tenant_id', $1, TRUE)", tenantID)
-	if err != nil {
-		return nil, fmt.Errorf("failed to set tenant context: %w", err)
-	}
-
 	rows, err := s.db.Query(ctx, `
 		SELECT t.id, t.tenant_id, t.name, t.color, t.created_at
 		FROM tags t
@@ -246,12 +210,6 @@ func (s *Service) GetPersonTags(ctx context.Context, tenantID, personID string) 
 }
 
 func (s *Service) AddTagToPerson(ctx context.Context, tenantID, personID, tagID string) error {
-	// Set tenant context
-	_, err := s.db.Exec(ctx, "SELECT set_config('app.current_tenant_id', $1, TRUE)", tenantID)
-	if err != nil {
-		return fmt.Errorf("failed to set tenant context: %w", err)
-	}
-
 	_, err = s.db.Exec(ctx, `
 		INSERT INTO person_tags (person_id, tag_id) 
 		VALUES ($1, $2) 
@@ -264,12 +222,6 @@ func (s *Service) AddTagToPerson(ctx context.Context, tenantID, personID, tagID 
 }
 
 func (s *Service) RemoveTagFromPerson(ctx context.Context, tenantID, personID, tagID string) error {
-	// Set tenant context
-	_, err := s.db.Exec(ctx, "SELECT set_config('app.current_tenant_id', $1, TRUE)", tenantID)
-	if err != nil {
-		return fmt.Errorf("failed to set tenant context: %w", err)
-	}
-
 	_, err = s.db.Exec(ctx, "DELETE FROM person_tags WHERE person_id = $1 AND tag_id = $2", personID, tagID)
 	if err != nil {
 		return fmt.Errorf("failed to remove tag from person: %w", err)
@@ -279,12 +231,6 @@ func (s *Service) RemoveTagFromPerson(ctx context.Context, tenantID, personID, t
 }
 
 func (s *Service) ListTags(ctx context.Context, tenantID string) ([]Tag, error) {
-	// Set tenant context
-	_, err := s.db.Exec(ctx, "SELECT set_config('app.current_tenant_id', $1, TRUE)", tenantID)
-	if err != nil {
-		return nil, fmt.Errorf("failed to set tenant context: %w", err)
-	}
-
 	rows, err := s.db.Query(ctx, `
 		SELECT id, tenant_id, name, color, created_at
 		FROM tags
@@ -307,12 +253,6 @@ func (s *Service) ListTags(ctx context.Context, tenantID string) ([]Tag, error) 
 }
 
 func (s *Service) CreateTag(ctx context.Context, tenantID string, tag *Tag) (*Tag, error) {
-	// Set tenant context
-	_, err := s.db.Exec(ctx, "SELECT set_config('app.current_tenant_id', $1, TRUE)", tenantID)
-	if err != nil {
-		return nil, fmt.Errorf("failed to set tenant context: %w", err)
-	}
-
 	tag.ID = uuid.New().String()
 	tag.TenantID = tenantID
 
@@ -333,12 +273,6 @@ func (s *Service) CreateTag(ctx context.Context, tenantID string, tag *Tag) (*Ta
 // Household operations
 
 func (s *Service) GetPersonHousehold(ctx context.Context, tenantID, personID string) (*Household, error) {
-	// Set tenant context
-	_, err := s.db.Exec(ctx, "SELECT set_config('app.current_tenant_id', $1, TRUE)", tenantID)
-	if err != nil {
-		return nil, fmt.Errorf("failed to set tenant context: %w", err)
-	}
-
 	var h Household
 	err = s.db.QueryRow(ctx, `
 		SELECT h.id, h.tenant_id, h.name, h.primary_contact_id, 
@@ -363,12 +297,6 @@ func (s *Service) GetPersonHousehold(ctx context.Context, tenantID, personID str
 }
 
 func (s *Service) ListHouseholds(ctx context.Context, tenantID string) ([]Household, error) {
-	// Set tenant context
-	_, err := s.db.Exec(ctx, "SELECT set_config('app.current_tenant_id', $1, TRUE)", tenantID)
-	if err != nil {
-		return nil, fmt.Errorf("failed to set tenant context: %w", err)
-	}
-
 	rows, err := s.db.Query(ctx, `
 		SELECT id, tenant_id, name, primary_contact_id, 
 		       address_line1, address_line2, city, state, zip,
@@ -397,12 +325,6 @@ func (s *Service) ListHouseholds(ctx context.Context, tenantID string) ([]Househ
 }
 
 func (s *Service) CreateHousehold(ctx context.Context, tenantID string, h *Household) (*Household, error) {
-	// Set tenant context
-	_, err := s.db.Exec(ctx, "SELECT set_config('app.current_tenant_id', $1, TRUE)", tenantID)
-	if err != nil {
-		return nil, fmt.Errorf("failed to set tenant context: %w", err)
-	}
-
 	h.ID = uuid.New().String()
 	h.TenantID = tenantID
 
@@ -424,12 +346,6 @@ func (s *Service) CreateHousehold(ctx context.Context, tenantID string, h *House
 }
 
 func (s *Service) UpdateHousehold(ctx context.Context, tenantID, householdID string, h *Household) (*Household, error) {
-	// Set tenant context
-	_, err := s.db.Exec(ctx, "SELECT set_config('app.current_tenant_id', $1, TRUE)", tenantID)
-	if err != nil {
-		return nil, fmt.Errorf("failed to set tenant context: %w", err)
-	}
-
 	err = s.db.QueryRow(ctx, `
 		UPDATE households SET 
 			name = $1, primary_contact_id = $2,
@@ -455,12 +371,6 @@ func (s *Service) UpdateHousehold(ctx context.Context, tenantID, householdID str
 }
 
 func (s *Service) AddMemberToHousehold(ctx context.Context, tenantID, householdID, personID, role string) error {
-	// Set tenant context
-	_, err := s.db.Exec(ctx, "SELECT set_config('app.current_tenant_id', $1, TRUE)", tenantID)
-	if err != nil {
-		return fmt.Errorf("failed to set tenant context: %w", err)
-	}
-
 	_, err = s.db.Exec(ctx, `
 		INSERT INTO household_members (household_id, person_id, role) 
 		VALUES ($1, $2, $3)
@@ -474,12 +384,6 @@ func (s *Service) AddMemberToHousehold(ctx context.Context, tenantID, householdI
 }
 
 func (s *Service) RemoveMemberFromHousehold(ctx context.Context, tenantID, householdID, personID string) error {
-	// Set tenant context
-	_, err := s.db.Exec(ctx, "SELECT set_config('app.current_tenant_id', $1, TRUE)", tenantID)
-	if err != nil {
-		return fmt.Errorf("failed to set tenant context: %w", err)
-	}
-
 	_, err = s.db.Exec(ctx, "DELETE FROM household_members WHERE household_id = $1 AND person_id = $2", householdID, personID)
 	if err != nil {
 		return fmt.Errorf("failed to remove member from household: %w", err)

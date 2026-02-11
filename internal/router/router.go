@@ -71,6 +71,7 @@ func New(
 	// Protected routes
 	r.Group(func(r chi.Router) {
 		r.Use(authService.Middleware)
+		r.Use(middleware.TenantRLS) // Automatically set tenant context from JWT claims
 
 		// Auth
 		r.Post("/api/auth/logout", authHandler.Logout)
