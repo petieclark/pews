@@ -17,6 +17,10 @@ func NewService(db *pgxpool.Pool) *Service {
 	return &Service{db: db}
 }
 
+func (s *Service) GetDB() *pgxpool.Pool {
+	return s.db
+}
+
 // People operations
 
 func (s *Service) ListPeople(ctx context.Context, tenantID string, query string, page, limit int) ([]Person, int, error) {

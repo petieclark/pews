@@ -2,19 +2,28 @@ package people
 
 import (
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"strconv"
 
 	"github.com/go-chi/chi/v5"
+	"github.com/petieclark/pews/internal/activity"
 	"github.com/petieclark/pews/internal/middleware"
+	"github.com/petieclark/pews/internal/notification"
 )
 
 type Handler struct {
-	service *Service
+	service             *Service
+	activityService     *activity.Service
+	notificationService *notification.Service
 }
 
-func NewHandler(service *Service) *Handler {
-	return &Handler{service: service}
+func NewHandler(service *Service, activityService *activity.Service) *Handler {
+	return &Handler{
+		service:             service,
+		activityService:     activityService,
+		notificationService: notification.NewService(service.GetDB()),
+	}
 }
 
 // People handlers
@@ -123,6 +132,20 @@ func (h *Handler) CreatePerson(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Create notification for all admins
+	notifTitle := "New Member Registered"
+	notifMessage := fmt.Sprintf("%s %s has been added to the directory", createdPerson.FirstName, createdPerson.LastName)
+	link := fmt.Sprintf("/people/%s", createdPerson.ID)
+	_ = h.notificationService.CreateForAllAdmins(r.Context(), claims.TenantID, notifTitle, notifMessage, notification.TypeInfo, &link)
+
+	// Log activity
+	ipAddress := r.RemoteAddr
+	details := map[string]interface{}{
+		"name":  createdPerson.FirstName + " " + createdPerson.LastName,
+		"email": createdPerson.Email,
+	}
+	_ = h.activityService.LogActivity(r.Context(), claims.TenantID, "person.created", "people", &claims.UserID, &createdPerson.ID, &ipAddress, details)
+
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusCreated)
 	json.NewEncoder(w).Encode(createdPerson)
@@ -166,6 +189,14 @@ func (h *Handler) UpdatePerson(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Log activity
+	ipAddress := r.RemoteAddr
+	details := map[string]interface{}{
+		"name":  updatedPerson.FirstName + " " + updatedPerson.LastName,
+		"email": updatedPerson.Email,
+	}
+	_ = h.activityService.LogActivity(r.Context(), claims.TenantID, "person.updated", "people", &claims.UserID, &updatedPerson.ID, &ipAddress, details)
+
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(updatedPerson)
 }
@@ -179,9 +210,21 @@ func (h *Handler) DeletePerson(w http.ResponseWriter, r *http.Request) {
 
 	personID := chi.URLParam(r, "id")
 
+	// Get person details before deletion for logging
+	person, _ := h.service.GetPersonByID(r.Context(), claims.TenantID, personID)
+
 	if err := h.service.DeletePerson(r.Context(), claims.TenantID, personID); err != nil {
 		http.Error(w, "Failed to delete person: "+err.Error(), http.StatusInternalServerError)
 		return
+	}
+
+	// Log activity
+	if person != nil {
+		ipAddress := r.RemoteAddr
+		details := map[string]interface{}{
+			"name": person.FirstName + " " + person.LastName,
+		}
+		_ = h.activityService.LogActivity(r.Context(), claims.TenantID, "person.deleted", "people", &claims.UserID, &personID, &ipAddress, details)
 	}
 
 	w.WriteHeader(http.StatusNoContent)
