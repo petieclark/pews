@@ -1,6 +1,9 @@
 package services
 
-import "time"
+import (
+	"encoding/json"
+	"time"
+)
 
 type ServiceType struct {
 	ID          string    `json:"id"`
@@ -120,6 +123,16 @@ type VolunteerAvailability struct {
 	// Person details
 	PersonFirstName string `json:"person_first_name,omitempty"`
 	PersonLastName  string `json:"person_last_name,omitempty"`
+}
+
+type ServiceTemplate struct {
+	ID           string          `json:"id"`
+	TenantID     string          `json:"tenant_id"`
+	Name         string          `json:"name"`
+	Description  string          `json:"description,omitempty"`
+	TemplateData json.RawMessage `json:"template_data"`
+	CreatedAt    time.Time       `json:"created_at"`
+	UpdatedAt    time.Time       `json:"updated_at"`
 }
 
 type SchedulingConflict struct {

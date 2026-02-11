@@ -2,6 +2,7 @@ package services
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"time"
 
@@ -134,9 +135,9 @@ func (s *Service) ListServices(ctx context.Context, tenantID, fromDate, toDate, 
 
 	// Get services
 	query := fmt.Sprintf(`
-		SELECT s.id, s.tenant_id, s.service_type_id, s.name, s.service_date, 
-		       s.service_time, s.notes, s.status, s.created_at, s.updated_at,
-		       st.name, st.color
+		SELECT s.id, s.tenant_id, s.service_type_id, COALESCE(s.name, ''), s.service_date, 
+		       COALESCE(s.service_time, ''), COALESCE(s.notes, ''), COALESCE(s.status, 'draft'), s.created_at, s.updated_at,
+		       COALESCE(st.name, ''), COALESCE(st.color, '#4A8B8C')
 		FROM services s
 		JOIN service_types st ON st.id = s.service_type_id
 		%s
@@ -182,9 +183,9 @@ func (s *Service) GetUpcomingServices(ctx context.Context, tenantID string, limi
 	today := time.Now().Format("2006-01-02")
 
 	rows, err := s.db.Query(ctx, `
-		SELECT s.id, s.tenant_id, s.service_type_id, s.name, s.service_date, 
-		       s.service_time, s.notes, s.status, s.created_at, s.updated_at,
-		       st.name, st.color
+		SELECT s.id, s.tenant_id, s.service_type_id, COALESCE(s.name, ''), s.service_date, 
+		       COALESCE(s.service_time, ''), COALESCE(s.notes, ''), COALESCE(s.status, 'draft'), s.created_at, s.updated_at,
+		       COALESCE(st.name, ''), COALESCE(st.color, '#4A8B8C')
 		FROM services s
 		JOIN service_types st ON st.id = s.service_type_id
 		WHERE s.service_date >= $1
@@ -216,7 +217,7 @@ func (s *Service) GetUpcomingServices(ctx context.Context, tenantID string, limi
 func (s *Service) GetServiceByID(ctx context.Context, tenantID, serviceID string) (*ChurchService, error) {
 	var svc ChurchService
 	err := s.db.QueryRow(ctx, `
-		SELECT id, tenant_id, service_type_id, name, service_date, service_time, notes, status, created_at, updated_at
+		SELECT id, tenant_id, service_type_id, COALESCE(name, ''), service_date, COALESCE(service_time, ''), COALESCE(notes, ''), COALESCE(status, 'draft'), created_at, updated_at
 		FROM services WHERE id = $1`, serviceID).Scan(
 		&svc.ID, &svc.TenantID, &svc.ServiceTypeID, &svc.Name, &svc.ServiceDate,
 		&svc.ServiceTime, &svc.Notes, &svc.Status, &svc.CreatedAt, &svc.UpdatedAt,
@@ -231,7 +232,7 @@ func (s *Service) GetServiceByID(ctx context.Context, tenantID, serviceID string
 	// Load service type
 	var st ServiceType
 	err2 := s.db.QueryRow(ctx, `
-		SELECT id, tenant_id, name, default_time, default_day, color, is_active, created_at, updated_at
+		SELECT id, tenant_id, name, COALESCE(default_time, ''), COALESCE(default_day, ''), COALESCE(color, '#4A8B8C'), is_active, created_at, updated_at
 		FROM service_types WHERE id = $1`, svc.ServiceTypeID).Scan(
 		&st.ID, &st.TenantID, &st.Name, &st.DefaultTime, &st.DefaultDay,
 		&st.Color, &st.IsActive, &st.CreatedAt, &st.UpdatedAt,
@@ -312,7 +313,7 @@ func (s *Service) DeleteService(ctx context.Context, tenantID, serviceID string)
 
 func (s *Service) GetServiceItems(ctx context.Context, tenantID, serviceID string) ([]ServiceItem, error) {
 	rows, err := s.db.Query(ctx, `
-		SELECT id, service_id, item_type, title, song_id, song_key, position, duration_minutes, notes, assigned_to
+		SELECT id, service_id, item_type, title, song_id, COALESCE(song_key, ''), position, duration_minutes, COALESCE(notes, ''), COALESCE(assigned_to, '')
 		FROM service_items
 		WHERE service_id = $1
 		ORDER BY position`, serviceID)
@@ -405,7 +406,7 @@ func (s *Service) DeleteServiceItem(ctx context.Context, tenantID, itemID string
 
 func (s *Service) GetServiceTeam(ctx context.Context, tenantID, serviceID string) ([]ServiceTeam, error) {
 	rows, err := s.db.Query(ctx, `
-		SELECT st.id, st.service_id, st.person_id, st.role, st.status, st.notes,
+		SELECT st.id, st.service_id, st.person_id, st.role, st.status, COALESCE(st.notes, ''),
 		       p.first_name, p.last_name
 		FROM service_teams st
 		JOIN people p ON p.id = st.person_id
@@ -510,7 +511,7 @@ func (s *Service) ListSongs(ctx context.Context, tenantID, query string, page, l
 
 	// Get songs
 	sqlQuery := fmt.Sprintf(`
-		SELECT id, tenant_id, title, artist, default_key, tempo, ccli_number, lyrics, notes, tags, last_used, times_used, created_at, updated_at
+		SELECT id, tenant_id, title, COALESCE(artist, ''), COALESCE(default_key, ''), COALESCE(tempo, 0), COALESCE(ccli_number, ''), COALESCE(lyrics, ''), COALESCE(notes, ''), COALESCE(tags, ''), last_used, times_used, created_at, updated_at
 		FROM songs
 		%s
 		ORDER BY title
@@ -542,7 +543,7 @@ func (s *Service) ListSongs(ctx context.Context, tenantID, query string, page, l
 func (s *Service) GetSongByID(ctx context.Context, tenantID, songID string) (*Song, error) {
 	var song Song
 	err := s.db.QueryRow(ctx, `
-		SELECT id, tenant_id, title, artist, default_key, tempo, ccli_number, lyrics, notes, tags, last_used, times_used, created_at, updated_at
+		SELECT id, tenant_id, title, COALESCE(artist, ''), COALESCE(default_key, ''), COALESCE(tempo, 0), COALESCE(ccli_number, ''), COALESCE(lyrics, ''), COALESCE(notes, ''), COALESCE(tags, ''), last_used, times_used, created_at, updated_at
 		FROM songs WHERE id = $1`, songID).Scan(
 		&song.ID, &song.TenantID, &song.Title, &song.Artist, &song.DefaultKey,
 		&song.Tempo, &song.CCLINumber, &song.Lyrics, &song.Notes, &song.Tags,
@@ -717,5 +718,224 @@ func (s *Service) DeleteSongAttachment(ctx context.Context, tenantID, attachment
 		return fmt.Errorf("attachment not found")
 	}
 
+	return nil
+}
+
+// Service Template operations
+
+func (s *Service) ListTemplates(ctx context.Context, tenantID string) ([]ServiceTemplate, error) {
+	rows, err := s.db.Query(ctx, `
+		SELECT id, tenant_id, name, COALESCE(description, ''), template_data, created_at, updated_at
+		FROM service_templates
+		WHERE tenant_id = $1
+		ORDER BY name`, tenantID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to list templates: %w", err)
+	}
+	defer rows.Close()
+
+	templates := []ServiceTemplate{}
+	for rows.Next() {
+		var t ServiceTemplate
+		err := rows.Scan(&t.ID, &t.TenantID, &t.Name, &t.Description, &t.TemplateData, &t.CreatedAt, &t.UpdatedAt)
+		if err != nil {
+			return nil, fmt.Errorf("failed to scan template: %w", err)
+		}
+		templates = append(templates, t)
+	}
+	return templates, nil
+}
+
+func (s *Service) GetTemplate(ctx context.Context, tenantID, templateID string) (*ServiceTemplate, error) {
+	var t ServiceTemplate
+	err := s.db.QueryRow(ctx, `
+		SELECT id, tenant_id, name, COALESCE(description, ''), template_data, created_at, updated_at
+		FROM service_templates
+		WHERE id = $1 AND tenant_id = $2`, templateID, tenantID).Scan(
+		&t.ID, &t.TenantID, &t.Name, &t.Description, &t.TemplateData, &t.CreatedAt, &t.UpdatedAt)
+	if err != nil {
+		if err == pgx.ErrNoRows {
+			return nil, fmt.Errorf("template not found")
+		}
+		return nil, fmt.Errorf("failed to get template: %w", err)
+	}
+	return &t, nil
+}
+
+func (s *Service) CreateTemplate(ctx context.Context, tenantID string, t *ServiceTemplate) (*ServiceTemplate, error) {
+	t.ID = uuid.New().String()
+	t.TenantID = tenantID
+
+	if t.TemplateData == nil {
+		t.TemplateData = json.RawMessage(`{}`)
+	}
+
+	err := s.db.QueryRow(ctx, `
+		INSERT INTO service_templates (id, tenant_id, name, description, template_data)
+		VALUES ($1, $2, $3, $4, $5)
+		RETURNING created_at, updated_at`,
+		t.ID, t.TenantID, t.Name, t.Description, t.TemplateData,
+	).Scan(&t.CreatedAt, &t.UpdatedAt)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create template: %w", err)
+	}
+	return t, nil
+}
+
+func (s *Service) UpdateTemplate(ctx context.Context, tenantID, templateID string, t *ServiceTemplate) (*ServiceTemplate, error) {
+	err := s.db.QueryRow(ctx, `
+		UPDATE service_templates SET name = $1, description = $2, template_data = $3, updated_at = NOW()
+		WHERE id = $4 AND tenant_id = $5
+		RETURNING created_at, updated_at`,
+		t.Name, t.Description, t.TemplateData, templateID, tenantID,
+	).Scan(&t.CreatedAt, &t.UpdatedAt)
+	if err != nil {
+		if err == pgx.ErrNoRows {
+			return nil, fmt.Errorf("template not found")
+		}
+		return nil, fmt.Errorf("failed to update template: %w", err)
+	}
+	t.ID = templateID
+	t.TenantID = tenantID
+	return t, nil
+}
+
+func (s *Service) DeleteTemplate(ctx context.Context, tenantID, templateID string) error {
+	result, err := s.db.Exec(ctx, "DELETE FROM service_templates WHERE id = $1 AND tenant_id = $2", templateID, tenantID)
+	if err != nil {
+		return fmt.Errorf("failed to delete template: %w", err)
+	}
+	if result.RowsAffected() == 0 {
+		return fmt.Errorf("template not found")
+	}
+	return nil
+}
+
+// SaveAsTemplate creates a template from an existing service
+func (s *Service) SaveAsTemplate(ctx context.Context, tenantID, serviceID, name, description string) (*ServiceTemplate, error) {
+	svc, err := s.GetServiceByID(ctx, tenantID, serviceID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get service: %w", err)
+	}
+
+	type TemplateItem struct {
+		ItemType        string  `json:"item_type"`
+		Title           string  `json:"title"`
+		SongID          *string `json:"song_id,omitempty"`
+		SongKey         string  `json:"song_key,omitempty"`
+		Position        int     `json:"position"`
+		DurationMinutes *int    `json:"duration_minutes,omitempty"`
+		Notes           string  `json:"notes,omitempty"`
+		AssignedTo      string  `json:"assigned_to,omitempty"`
+	}
+
+	type TemplateTeamRole struct {
+		Role string `json:"role"`
+	}
+
+	type TemplateData struct {
+		Items []TemplateItem     `json:"items"`
+		Roles []TemplateTeamRole `json:"roles"`
+	}
+
+	td := TemplateData{}
+	for _, item := range svc.Items {
+		td.Items = append(td.Items, TemplateItem{
+			ItemType:        item.ItemType,
+			Title:           item.Title,
+			SongID:          item.SongID,
+			SongKey:         item.SongKey,
+			Position:        item.Position,
+			DurationMinutes: item.DurationMinutes,
+			Notes:           item.Notes,
+			AssignedTo:      item.AssignedTo,
+		})
+	}
+
+	// Extract unique roles from team
+	rolesSeen := map[string]bool{}
+	for _, member := range svc.Team {
+		if !rolesSeen[member.Role] {
+			td.Roles = append(td.Roles, TemplateTeamRole{Role: member.Role})
+			rolesSeen[member.Role] = true
+		}
+	}
+
+	templateDataJSON, err := json.Marshal(td)
+	if err != nil {
+		return nil, fmt.Errorf("failed to marshal template data: %w", err)
+	}
+
+	t := &ServiceTemplate{
+		Name:         name,
+		Description:  description,
+		TemplateData: templateDataJSON,
+	}
+
+	return s.CreateTemplate(ctx, tenantID, t)
+}
+
+// CopyService duplicates a service with its items (no team)
+func (s *Service) CopyService(ctx context.Context, tenantID, serviceID string, newDate time.Time) (*ChurchService, error) {
+	original, err := s.GetServiceByID(ctx, tenantID, serviceID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get original service: %w", err)
+	}
+
+	newSvc := &ChurchService{
+		ServiceTypeID: original.ServiceTypeID,
+		Name:          original.Name,
+		ServiceDate:   newDate,
+		ServiceTime:   original.ServiceTime,
+		Notes:         original.Notes,
+		Status:        "draft",
+	}
+
+	created, err := s.CreateService(ctx, tenantID, newSvc)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create copy: %w", err)
+	}
+
+	// Copy items
+	for _, item := range original.Items {
+		newItem := &ServiceItem{
+			ServiceID:       created.ID,
+			ItemType:        item.ItemType,
+			Title:           item.Title,
+			SongID:          item.SongID,
+			SongKey:         item.SongKey,
+			Position:        item.Position,
+			DurationMinutes: item.DurationMinutes,
+			Notes:           item.Notes,
+			AssignedTo:      item.AssignedTo,
+		}
+		if _, err := s.AddServiceItem(ctx, tenantID, newItem); err != nil {
+			return nil, fmt.Errorf("failed to copy item: %w", err)
+		}
+	}
+
+	return s.GetServiceByID(ctx, tenantID, created.ID)
+}
+
+// ReorderItems batch-updates item positions
+func (s *Service) ReorderItems(ctx context.Context, tenantID, serviceID string, itemIDs []string) error {
+	for i, id := range itemIDs {
+		_, err := s.db.Exec(ctx, `UPDATE service_items SET position = $1 WHERE id = $2 AND service_id = $3`, i+1, id, serviceID)
+		if err != nil {
+			return fmt.Errorf("failed to reorder item %s: %w", id, err)
+		}
+	}
+	return nil
+}
+
+// DeleteServiceType soft-deletes a service type
+func (s *Service) DeleteServiceType(ctx context.Context, tenantID, typeID string) error {
+	result, err := s.db.Exec(ctx, "UPDATE service_types SET is_active = false WHERE id = $1 AND tenant_id = $2", typeID, tenantID)
+	if err != nil {
+		return fmt.Errorf("failed to delete service type: %w", err)
+	}
+	if result.RowsAffected() == 0 {
+		return fmt.Errorf("service type not found")
+	}
 	return nil
 }

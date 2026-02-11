@@ -678,6 +678,236 @@ func (h *Handler) DeleteSong(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusNoContent)
 }
 
+// Template handlers
+
+type CreateTemplateRequest struct {
+	Name         string          `json:"name"`
+	Description  string          `json:"description,omitempty"`
+	TemplateData json.RawMessage `json:"template_data,omitempty"`
+}
+
+func (h *Handler) ListTemplates(w http.ResponseWriter, r *http.Request) {
+	claims, ok := middleware.GetClaims(r.Context())
+	if !ok {
+		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		return
+	}
+
+	templates, err := h.service.ListTemplates(r.Context(), claims.TenantID)
+	if err != nil {
+		http.Error(w, "Failed to list templates: "+err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(templates)
+}
+
+func (h *Handler) GetTemplate(w http.ResponseWriter, r *http.Request) {
+	claims, ok := middleware.GetClaims(r.Context())
+	if !ok {
+		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		return
+	}
+
+	templateID := chi.URLParam(r, "id")
+	t, err := h.service.GetTemplate(r.Context(), claims.TenantID, templateID)
+	if err != nil {
+		http.Error(w, "Template not found: "+err.Error(), http.StatusNotFound)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(t)
+}
+
+func (h *Handler) CreateTemplate(w http.ResponseWriter, r *http.Request) {
+	claims, ok := middleware.GetClaims(r.Context())
+	if !ok {
+		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		return
+	}
+
+	var req CreateTemplateRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, "Invalid request body", http.StatusBadRequest)
+		return
+	}
+
+	t := &ServiceTemplate{
+		Name:         req.Name,
+		Description:  req.Description,
+		TemplateData: req.TemplateData,
+	}
+
+	created, err := h.service.CreateTemplate(r.Context(), claims.TenantID, t)
+	if err != nil {
+		http.Error(w, "Failed to create template: "+err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusCreated)
+	json.NewEncoder(w).Encode(created)
+}
+
+func (h *Handler) UpdateTemplate(w http.ResponseWriter, r *http.Request) {
+	claims, ok := middleware.GetClaims(r.Context())
+	if !ok {
+		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		return
+	}
+
+	templateID := chi.URLParam(r, "id")
+
+	var req CreateTemplateRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, "Invalid request body", http.StatusBadRequest)
+		return
+	}
+
+	t := &ServiceTemplate{
+		Name:         req.Name,
+		Description:  req.Description,
+		TemplateData: req.TemplateData,
+	}
+
+	updated, err := h.service.UpdateTemplate(r.Context(), claims.TenantID, templateID, t)
+	if err != nil {
+		http.Error(w, "Failed to update template: "+err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(updated)
+}
+
+func (h *Handler) DeleteTemplate(w http.ResponseWriter, r *http.Request) {
+	claims, ok := middleware.GetClaims(r.Context())
+	if !ok {
+		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		return
+	}
+
+	templateID := chi.URLParam(r, "id")
+	if err := h.service.DeleteTemplate(r.Context(), claims.TenantID, templateID); err != nil {
+		http.Error(w, "Failed to delete template: "+err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	w.WriteHeader(http.StatusNoContent)
+}
+
+type SaveAsTemplateRequest struct {
+	Name        string `json:"name"`
+	Description string `json:"description,omitempty"`
+}
+
+func (h *Handler) SaveAsTemplate(w http.ResponseWriter, r *http.Request) {
+	claims, ok := middleware.GetClaims(r.Context())
+	if !ok {
+		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		return
+	}
+
+	serviceID := chi.URLParam(r, "id")
+
+	var req SaveAsTemplateRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, "Invalid request body", http.StatusBadRequest)
+		return
+	}
+
+	t, err := h.service.SaveAsTemplate(r.Context(), claims.TenantID, serviceID, req.Name, req.Description)
+	if err != nil {
+		http.Error(w, "Failed to save as template: "+err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusCreated)
+	json.NewEncoder(w).Encode(t)
+}
+
+type CopyServiceRequest struct {
+	ServiceDate string `json:"service_date"`
+}
+
+func (h *Handler) CopyService(w http.ResponseWriter, r *http.Request) {
+	claims, ok := middleware.GetClaims(r.Context())
+	if !ok {
+		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		return
+	}
+
+	serviceID := chi.URLParam(r, "id")
+
+	var req CopyServiceRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, "Invalid request body", http.StatusBadRequest)
+		return
+	}
+
+	newDate, err := time.Parse("2006-01-02", req.ServiceDate)
+	if err != nil {
+		http.Error(w, "Invalid service_date format (expected YYYY-MM-DD)", http.StatusBadRequest)
+		return
+	}
+
+	copied, err := h.service.CopyService(r.Context(), claims.TenantID, serviceID, newDate)
+	if err != nil {
+		http.Error(w, "Failed to copy service: "+err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusCreated)
+	json.NewEncoder(w).Encode(copied)
+}
+
+type ReorderItemsRequest struct {
+	ItemIDs []string `json:"item_ids"`
+}
+
+func (h *Handler) ReorderItems(w http.ResponseWriter, r *http.Request) {
+	claims, ok := middleware.GetClaims(r.Context())
+	if !ok {
+		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		return
+	}
+
+	serviceID := chi.URLParam(r, "id")
+
+	var req ReorderItemsRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, "Invalid request body", http.StatusBadRequest)
+		return
+	}
+
+	if err := h.service.ReorderItems(r.Context(), claims.TenantID, serviceID, req.ItemIDs); err != nil {
+		http.Error(w, "Failed to reorder items: "+err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	w.WriteHeader(http.StatusNoContent)
+}
+
+func (h *Handler) DeleteServiceType(w http.ResponseWriter, r *http.Request) {
+	claims, ok := middleware.GetClaims(r.Context())
+	if !ok {
+		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		return
+	}
+
+	typeID := chi.URLParam(r, "id")
+	if err := h.service.DeleteServiceType(r.Context(), claims.TenantID, typeID); err != nil {
+		http.Error(w, "Failed to delete service type: "+err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	w.WriteHeader(http.StatusNoContent)
+}
+
 func (h *Handler) GetSongUsage(w http.ResponseWriter, r *http.Request) {
 	claims, ok := middleware.GetClaims(r.Context())
 	if !ok {

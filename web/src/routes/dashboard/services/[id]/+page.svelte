@@ -12,9 +12,21 @@
 	let people = [];
 	let songs = [];
 	let loading = true;
+	let saving = false;
 	let showAddItemModal = false;
 	let showAddTeamModal = false;
-	let showSongSearchModal = false;
+	let showSongSearch = false;
+	let showEditModal = false;
+	let showDeleteConfirm = false;
+	let showSaveTemplateModal = false;
+	let editingItemId = null;
+	let editingItemNotes = '';
+	let draggedIndex = null;
+	let dragOverIndex = null;
+
+	let templateName = '';
+	let templateDesc = '';
+
 	let newItem = {
 		item_type: 'song',
 		title: '',
@@ -25,13 +37,42 @@
 		notes: '',
 		assigned_to: ''
 	};
+
 	let newTeamMember = {
 		person_id: '',
 		role: '',
 		status: 'pending'
 	};
-	let searchQuery = '';
-	let searchResults = [];
+
+	let editForm = {
+		service_type_id: '',
+		service_date: '',
+		service_time: '',
+		notes: '',
+		status: ''
+	};
+
+	let songSearch = '';
+
+	const statusFlow = [
+		{ value: 'draft', label: 'Draft', icon: '📝', next: 'planning' },
+		{ value: 'planning', label: 'Planning', icon: '📋', next: 'rehearsal' },
+		{ value: 'rehearsal', label: 'Rehearsal', icon: '🎵', next: 'ready' },
+		{ value: 'ready', label: 'Ready', icon: '✅', next: 'completed' },
+		{ value: 'completed', label: 'Completed', icon: '🏁', next: null }
+	];
+
+	const itemTypeConfig = {
+		song: { icon: '🎵', label: 'Song', color: '#4A8B8C' },
+		prayer: { icon: '🙏', label: 'Prayer', color: '#8FBCB0' },
+		reading: { icon: '📖', label: 'Scripture', color: '#D4A574' },
+		sermon: { icon: '📢', label: 'Sermon', color: '#1B3A4B' },
+		announcement: { icon: '📣', label: 'Announcement', color: '#6B7280' },
+		transition: { icon: '↔️', label: 'Transition', color: '#9CA3AF' },
+		other: { icon: '•', label: 'Other', color: '#6B7280' }
+	};
+
+	const roles = ['Worship Leader', 'Vocalist', 'Guitarist', 'Bassist', 'Drummer', 'Keys', 'Sound Tech', 'Media/Slides', 'Camera', 'Usher', 'Greeter'];
 
 	onMount(() => {
 		loadService();
@@ -47,7 +88,6 @@
 			team = service.team || [];
 		} catch (error) {
 			console.error('Failed to load service:', error);
-			alert('Failed to load service');
 			goto('/dashboard/services');
 		} finally {
 			loading = false;
@@ -72,6 +112,61 @@
 		}
 	}
 
+	async function updateStatus(newStatus) {
+		saving = true;
+		try {
+			await api(`/api/services/${serviceId}`, {
+				method: 'PUT',
+				body: JSON.stringify({
+					service_type_id: service.service_type_id,
+					service_date: service.service_date.split('T')[0],
+					service_time: service.service_time,
+					notes: service.notes,
+					status: newStatus
+				})
+			});
+			service.status = newStatus;
+		} catch (error) {
+			alert('Failed to update status');
+		} finally {
+			saving = false;
+		}
+	}
+
+	function openEditModal() {
+		editForm = {
+			service_type_id: service.service_type_id,
+			service_date: service.service_date.split('T')[0],
+			service_time: service.service_time || '',
+			notes: service.notes || '',
+			status: service.status
+		};
+		showEditModal = true;
+	}
+
+	async function saveEdit() {
+		try {
+			await api(`/api/services/${serviceId}`, {
+				method: 'PUT',
+				body: JSON.stringify(editForm)
+			});
+			showEditModal = false;
+			loadService();
+		} catch (error) {
+			alert('Failed to update service');
+		}
+	}
+
+	async function deleteService() {
+		try {
+			await api(`/api/services/${serviceId}`, { method: 'DELETE' });
+			goto('/dashboard/services');
+		} catch (error) {
+			alert('Failed to delete service');
+		}
+	}
+
+	// Items
 	async function addItem() {
 		try {
 			newItem.position = items.length + 1;
@@ -80,60 +175,89 @@
 				body: JSON.stringify(newItem)
 			});
 			showAddItemModal = false;
-			newItem = {
-				item_type: 'song',
-				title: '',
-				song_id: null,
-				song_key: '',
-				position: 0,
-				duration_minutes: null,
-				notes: '',
-				assigned_to: ''
-			};
+			resetNewItem();
 			loadService();
 		} catch (error) {
 			alert('Failed to add item: ' + error.message);
 		}
 	}
 
+	function resetNewItem() {
+		newItem = {
+			item_type: 'song',
+			title: '',
+			song_id: null,
+			song_key: '',
+			position: 0,
+			duration_minutes: null,
+			notes: '',
+			assigned_to: ''
+		};
+	}
+
 	async function deleteItem(itemId) {
-		if (!confirm('Delete this item?')) return;
+		if (!confirm('Remove this item?')) return;
+		try {
+			await api(`/api/services/${serviceId}/items/${itemId}`, { method: 'DELETE' });
+			loadService();
+		} catch (error) {
+			alert('Failed to delete item');
+		}
+	}
+
+	async function saveItemNotes(itemId) {
+		const item = items.find(i => i.id === itemId);
+		if (!item) return;
 		try {
 			await api(`/api/services/${serviceId}/items/${itemId}`, {
-				method: 'DELETE'
+				method: 'PUT',
+				body: JSON.stringify({ ...item, notes: editingItemNotes })
 			});
+			editingItemId = null;
 			loadService();
 		} catch (error) {
-			alert('Failed to delete item: ' + error.message);
+			alert('Failed to save notes');
 		}
 	}
 
-	async function moveItem(itemId, direction) {
-		const index = items.findIndex((i) => i.id === itemId);
-		if (index === -1) return;
-
-		const newIndex = direction === 'up' ? index - 1 : index + 1;
-		if (newIndex < 0 || newIndex >= items.length) return;
-
-		const item = items[index];
-		const otherItem = items[newIndex];
-
-		// Update positions
-		try {
-			await api(`/api/services/${serviceId}/items/${item.id}`, {
-				method: 'PUT',
-				body: JSON.stringify({ ...item, position: newIndex + 1 })
-			});
-			await api(`/api/services/${serviceId}/items/${otherItem.id}`, {
-				method: 'PUT',
-				body: JSON.stringify({ ...otherItem, position: index + 1 })
-			});
-			loadService();
-		} catch (error) {
-			alert('Failed to reorder items: ' + error.message);
-		}
+	// Drag and drop reorder
+	function handleDragStart(index) {
+		draggedIndex = index;
 	}
 
+	function handleDragOver(e, index) {
+		e.preventDefault();
+		dragOverIndex = index;
+	}
+
+	function handleDragEnd() {
+		if (draggedIndex !== null && dragOverIndex !== null && draggedIndex !== dragOverIndex) {
+			const reordered = [...items];
+			const [moved] = reordered.splice(draggedIndex, 1);
+			reordered.splice(dragOverIndex, 0, moved);
+			items = reordered;
+
+			// Save reorder
+			const itemIds = items.map(i => i.id);
+			api(`/api/services/${serviceId}/items/reorder`, {
+				method: 'PUT',
+				body: JSON.stringify({ item_ids: itemIds })
+			}).catch(() => loadService());
+		}
+		draggedIndex = null;
+		dragOverIndex = null;
+	}
+
+	// Song selection
+	function selectSong(song) {
+		newItem.song_id = song.id;
+		newItem.title = song.title;
+		newItem.song_key = song.default_key || '';
+		showSongSearch = false;
+		songSearch = '';
+	}
+
+	// Team
 	async function addTeamMember() {
 		try {
 			await api(`/api/services/${serviceId}/team`, {
@@ -141,69 +265,49 @@
 				body: JSON.stringify(newTeamMember)
 			});
 			showAddTeamModal = false;
-			newTeamMember = {
-				person_id: '',
-				role: '',
-				status: 'pending'
-			};
+			newTeamMember = { person_id: '', role: '', status: 'pending' };
 			loadService();
 		} catch (error) {
-			alert('Failed to add team member: ' + error.message);
+			alert('Failed to add team member');
 		}
 	}
 
 	async function updateTeamStatus(teamId, status) {
 		try {
-			const member = team.find((t) => t.id === teamId);
+			const member = team.find(t => t.id === teamId);
 			await api(`/api/services/${serviceId}/team/${teamId}`, {
 				method: 'PUT',
 				body: JSON.stringify({ ...member, status })
 			});
 			loadService();
 		} catch (error) {
-			alert('Failed to update team member: ' + error.message);
+			alert('Failed to update status');
 		}
 	}
 
 	async function removeTeamMember(teamId) {
 		if (!confirm('Remove this team member?')) return;
 		try {
-			await api(`/api/services/${serviceId}/team/${teamId}`, {
-				method: 'DELETE'
-			});
+			await api(`/api/services/${serviceId}/team/${teamId}`, { method: 'DELETE' });
 			loadService();
 		} catch (error) {
-			alert('Failed to remove team member: ' + error.message);
+			alert('Failed to remove team member');
 		}
 	}
 
-	function selectSong(song) {
-		newItem.song_id = song.id;
-		newItem.title = song.title;
-		newItem.song_key = song.default_key || '';
-		showSongSearchModal = false;
-		searchQuery = '';
-	}
-
-	function getItemTypeIcon(type) {
-		const icons = {
-			song: '♫',
-			prayer: '🙏',
-			reading: '📖',
-			sermon: '📢',
-			announcement: '📣',
-			other: '•'
-		};
-		return icons[type] || '•';
-	}
-
-	function getStatusColor(status) {
-		const colors = {
-			pending: 'bg-yellow-100 text-yellow-800',
-			accepted: 'bg-green-100 text-green-800',
-			declined: 'bg-red-100 text-red-800'
-		};
-		return colors[status] || 'bg-[var(--surface-hover)] text-primary';
+	// Templates
+	async function saveAsTemplate() {
+		try {
+			await api(`/api/services/${serviceId}/save-template`, {
+				method: 'POST',
+				body: JSON.stringify({ name: templateName, description: templateDesc })
+			});
+			showSaveTemplateModal = false;
+			templateName = '';
+			templateDesc = '';
+		} catch (error) {
+			alert('Failed to save template');
+		}
 	}
 
 	function formatDate(dateStr) {
@@ -211,99 +315,200 @@
 		return date.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' });
 	}
 
-	$: filteredSongs = searchQuery
-		? songs.filter((s) =>
-				s.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-				(s.artist && s.artist.toLowerCase().includes(searchQuery.toLowerCase()))
-		  )
-		: songs;
+	function totalDuration() {
+		return items.reduce((sum, i) => sum + (i.duration_minutes || 0), 0);
+	}
+
+	function getCurrentStatusStep() {
+		return statusFlow.findIndex(s => s.value === service?.status);
+	}
+
+	$: filteredSongs = songSearch
+		? songs.filter(s =>
+			s.title.toLowerCase().includes(songSearch.toLowerCase()) ||
+			(s.artist && s.artist.toLowerCase().includes(songSearch.toLowerCase())) ||
+			(s.ccli_number && s.ccli_number.includes(songSearch))
+		).slice(0, 50)
+		: songs.slice(0, 50);
+
+	$: currentStep = getCurrentStatusStep();
 </script>
 
 {#if loading}
-	<div class="p-8 text-center text-secondary">Loading...</div>
+	<div class="flex items-center justify-center h-64">
+		<div class="inline-block w-8 h-8 border-2 border-[var(--teal)] border-t-transparent rounded-full animate-spin"></div>
+	</div>
 {:else if service}
-	<div class="space-y-6">
-		<!-- Header -->
-		<div class="flex justify-between items-start">
-			<div>
-				<button
-					on:click={() => goto('/dashboard/services')}
-					class="text-teal hover:underline mb-2"
-				>
-					← Back to Services
+	<div class="space-y-6 max-w-6xl mx-auto">
+		<!-- Breadcrumb & Actions -->
+		<div class="flex items-center justify-between">
+			<button on:click={() => goto('/dashboard/services')} class="inline-flex items-center gap-1 text-sm text-[var(--teal)] hover:underline">
+				<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
+				Services
+			</button>
+			<div class="flex items-center gap-2">
+				<button on:click={() => (showSaveTemplateModal = true)} class="btn-ghost" title="Save as Template">
+					<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 5a1 1 0 011-1h14a1 1 0 011 1v2a1 1 0 01-1 1H5a1 1 0 01-1-1V5zM4 13a1 1 0 011-1h6a1 1 0 011 1v6a1 1 0 01-1 1H5a1 1 0 01-1-1v-6zM16 13a1 1 0 011-1h2a1 1 0 011 1v6a1 1 0 01-1 1h-2a1 1 0 01-1-1v-6z"/></svg>
+					Save as Template
 				</button>
-				<h1 class="text-3xl font-bold text-navy">
-					{service.service_type?.name || 'Service'}
-				</h1>
-				<p class="text-secondary">{formatDate(service.service_date)} {service.service_time || ''}</p>
+				<button on:click={openEditModal} class="btn-ghost">
+					<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
+					Edit
+				</button>
+				<button on:click={() => (showDeleteConfirm = true)} class="btn-ghost text-red-400 hover:text-red-300">
+					<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+					Delete
+				</button>
 			</div>
-			<div class="flex gap-2">
-				<select
-					bind:value={service.status}
-					class="px-4 py-2 border input-border bg-[var(--input-bg)] text-primary rounded-md"
-				>
-					<option value="planning">Planning</option>
-					<option value="confirmed">Confirmed</option>
-					<option value="completed">Completed</option>
-				</select>
+		</div>
+
+		<!-- Header Card -->
+		<div class="card p-6">
+			<div class="flex items-start justify-between">
+				<div class="flex items-start gap-4">
+					<div class="w-1.5 h-16 rounded-full flex-shrink-0" style="background-color: {service.service_type?.color || '#4A8B8C'}"></div>
+					<div>
+						<h1 class="text-2xl font-bold text-[var(--text-primary)]">
+							{service.service_type?.name || 'Service'}
+						</h1>
+						<p class="text-[var(--text-secondary)] mt-1">
+							{formatDate(service.service_date)}{service.service_time ? ` · ${service.service_time}` : ''}
+						</p>
+						{#if service.notes}
+							<p class="text-[var(--text-secondary)] text-sm mt-2">{service.notes}</p>
+						{/if}
+					</div>
+				</div>
+			</div>
+
+			<!-- Status Workflow -->
+			<div class="mt-6 flex items-center gap-2">
+				{#each statusFlow as step, i}
+					<button
+						on:click={() => updateStatus(step.value)}
+						class="status-step {service.status === step.value ? 'active' : ''} {i <= currentStep ? 'passed' : ''}"
+						disabled={saving}
+					>
+						<span class="text-sm">{step.icon}</span>
+						<span class="text-xs font-medium">{step.label}</span>
+					</button>
+					{#if i < statusFlow.length - 1}
+						<div class="flex-1 h-0.5 {i < currentStep ? 'bg-[var(--teal)]' : 'bg-[var(--border)]'} rounded"></div>
+					{/if}
+				{/each}
 			</div>
 		</div>
 
 		<div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-			<!-- Order of Service -->
-			<div class="lg:col-span-2 bg-surface rounded-lg shadow p-6">
-				<div class="flex justify-between items-center mb-4">
-					<h2 class="text-xl font-semibold text-navy">Order of Service</h2>
-					<button
-						on:click={() => (showAddItemModal = true)}
-						class="px-4 py-2 bg-teal text-white rounded-md hover:bg-opacity-90 text-sm"
-					>
-						+ Add Item
+			<!-- Service Order -->
+			<div class="lg:col-span-2 card">
+				<div class="flex items-center justify-between p-5 border-b border-[var(--border)]">
+					<div>
+						<h2 class="text-lg font-semibold text-[var(--text-primary)]">Order of Service</h2>
+						<p class="text-sm text-[var(--text-secondary)]">
+							{items.length} item{items.length !== 1 ? 's' : ''}{totalDuration() > 0 ? ` · ~${totalDuration()} min` : ''}
+						</p>
+					</div>
+					<button on:click={() => (showAddItemModal = true)} class="btn-primary text-sm">
+						<svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+						Add Item
 					</button>
 				</div>
 
 				{#if items.length === 0}
-					<p class="text-secondary text-center py-8">No items yet. Add your first item to get started.</p>
+					<div class="p-12 text-center">
+						<p class="text-[var(--text-secondary)]">No items yet. Build your service order.</p>
+					</div>
 				{:else}
-					<div class="space-y-2">
+					<div class="divide-y divide-[var(--border)]">
 						{#each items as item, index}
-							<div class="border rounded-lg p-4 hover:bg-[var(--surface-hover)]">
-								<div class="flex items-start gap-3">
-									<span class="text-2xl">{getItemTypeIcon(item.item_type)}</span>
-									<div class="flex-1">
-										<div class="font-medium text-navy">{item.title}</div>
-										{#if item.song && item.song_key}
-											<div class="text-sm text-secondary">Key: {item.song_key}</div>
-										{/if}
+							<div
+								class="item-row {dragOverIndex === index ? 'drag-over' : ''}"
+								draggable="true"
+								on:dragstart={() => handleDragStart(index)}
+								on:dragover={(e) => handleDragOver(e, index)}
+								on:dragend={handleDragEnd}
+								on:drop={handleDragEnd}
+							>
+								<div class="flex items-start gap-3 px-5 py-3">
+									<!-- Drag Handle -->
+									<div class="flex-shrink-0 pt-1 cursor-grab text-[var(--text-secondary)] opacity-40 hover:opacity-100">
+										<svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><circle cx="9" cy="6" r="1.5"/><circle cx="15" cy="6" r="1.5"/><circle cx="9" cy="12" r="1.5"/><circle cx="15" cy="12" r="1.5"/><circle cx="9" cy="18" r="1.5"/><circle cx="15" cy="18" r="1.5"/></svg>
+									</div>
+
+									<!-- Position Number -->
+									<span class="flex-shrink-0 w-6 h-6 rounded-full bg-[var(--surface-hover)] text-[var(--text-secondary)] text-xs flex items-center justify-center font-medium">
+										{index + 1}
+									</span>
+
+									<!-- Type Icon -->
+									<span class="text-lg flex-shrink-0" title={itemTypeConfig[item.item_type]?.label || item.item_type}>
+										{itemTypeConfig[item.item_type]?.icon || '•'}
+									</span>
+
+									<!-- Content -->
+									<div class="flex-1 min-w-0">
+										<div class="flex items-center gap-2">
+											<span class="font-medium text-[var(--text-primary)]">{item.title}</span>
+											{#if item.item_type === 'song' && item.song}
+												{#if item.song_key}
+													<span class="text-xs px-1.5 py-0.5 rounded bg-[var(--surface-hover)] text-[var(--text-secondary)]">
+														{item.song_key}
+													</span>
+												{/if}
+												{#if item.song.tempo}
+													<span class="text-xs text-[var(--text-secondary)]">{item.song.tempo} BPM</span>
+												{/if}
+												{#if item.song.ccli_number}
+													<span class="text-xs text-[var(--text-secondary)]">CCLI {item.song.ccli_number}</span>
+												{/if}
+											{/if}
+										</div>
 										{#if item.assigned_to}
-											<div class="text-sm text-secondary">Assigned: {item.assigned_to}</div>
+											<p class="text-xs text-[var(--text-secondary)] mt-0.5">👤 {item.assigned_to}</p>
 										{/if}
 										{#if item.duration_minutes}
-											<div class="text-sm text-secondary">{item.duration_minutes} min</div>
+											<p class="text-xs text-[var(--text-secondary)] mt-0.5">⏱ {item.duration_minutes} min</p>
+										{/if}
+
+										<!-- Notes -->
+										{#if editingItemId === item.id}
+											<div class="mt-2 flex gap-2">
+												<input
+													type="text"
+													bind:value={editingItemNotes}
+													on:keydown={(e) => e.key === 'Enter' && saveItemNotes(item.id)}
+													class="input-field text-sm flex-1"
+													placeholder="Add a note..."
+												/>
+												<button on:click={() => saveItemNotes(item.id)} class="btn-primary text-xs px-3">Save</button>
+												<button on:click={() => (editingItemId = null)} class="btn-ghost text-xs">Cancel</button>
+											</div>
+										{:else if item.notes}
+											<button
+												on:click={() => { editingItemId = item.id; editingItemNotes = item.notes; }}
+												class="text-xs text-[var(--text-secondary)] mt-1 hover:text-[var(--text-primary)] italic"
+											>
+												📝 {item.notes}
+											</button>
+										{:else}
+											<button
+												on:click={() => { editingItemId = item.id; editingItemNotes = ''; }}
+												class="text-xs text-[var(--text-secondary)] mt-1 hover:text-[var(--teal)] opacity-0 group-hover:opacity-100"
+											>
+												+ Add note
+											</button>
 										{/if}
 									</div>
-									<div class="flex flex-col gap-1">
-										<button
-											on:click={() => moveItem(item.id, 'up')}
-											disabled={index === 0}
-											class="px-2 py-1 text-xs border rounded disabled:opacity-30"
-										>
-											↑
-										</button>
-										<button
-											on:click={() => moveItem(item.id, 'down')}
-											disabled={index === items.length - 1}
-											class="px-2 py-1 text-xs border rounded disabled:opacity-30"
-										>
-											↓
-										</button>
-										<button
-											on:click={() => deleteItem(item.id)}
-											class="px-2 py-1 text-xs border border-red-300 text-red-600 rounded hover:bg-red-50"
-										>
-											✕
-										</button>
-									</div>
+
+									<!-- Actions -->
+									<button
+										on:click={() => deleteItem(item.id)}
+										class="flex-shrink-0 p-1 rounded text-[var(--text-secondary)] hover:text-red-400 hover:bg-red-400/10"
+										title="Remove item"
+									>
+										<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+									</button>
 								</div>
 							</div>
 						{/each}
@@ -311,58 +516,82 @@
 				{/if}
 			</div>
 
-			<!-- Team -->
-			<div class="bg-surface rounded-lg shadow p-6">
-				<div class="flex justify-between items-center mb-4">
-					<h2 class="text-xl font-semibold text-navy">Team</h2>
-					<button
-						on:click={() => (showAddTeamModal = true)}
-						class="px-3 py-1 bg-teal text-white rounded-md hover:bg-opacity-90 text-sm"
-					>
-						+ Add
-					</button>
+			<!-- Sidebar: Team -->
+			<div class="space-y-6">
+				<div class="card">
+					<div class="flex items-center justify-between p-4 border-b border-[var(--border)]">
+						<h2 class="font-semibold text-[var(--text-primary)]">Team</h2>
+						<button on:click={() => (showAddTeamModal = true)} class="btn-primary text-xs px-3 py-1.5">
+							+ Add
+						</button>
+					</div>
+
+					{#if team.length === 0}
+						<div class="p-6 text-center text-sm text-[var(--text-secondary)]">
+							No team members assigned
+						</div>
+					{:else}
+						<div class="divide-y divide-[var(--border)]">
+							{#each team as member}
+								<div class="p-3">
+									<div class="flex items-center justify-between">
+										<div>
+											<div class="font-medium text-sm text-[var(--text-primary)]">
+												{member.person_first_name} {member.person_last_name}
+											</div>
+											<div class="text-xs text-[var(--text-secondary)]">{member.role}</div>
+										</div>
+										<div class="flex items-center gap-1">
+											<button
+												on:click={() => updateTeamStatus(member.id, 'accepted')}
+												class="status-btn {member.status === 'accepted' ? 'status-accepted' : ''}"
+												title="Accepted"
+											>✓</button>
+											<button
+												on:click={() => updateTeamStatus(member.id, 'pending')}
+												class="status-btn {member.status === 'pending' ? 'status-pending' : ''}"
+												title="Pending"
+											>?</button>
+											<button
+												on:click={() => updateTeamStatus(member.id, 'declined')}
+												class="status-btn {member.status === 'declined' ? 'status-declined' : ''}"
+												title="Declined"
+											>✕</button>
+											<button
+												on:click={() => removeTeamMember(member.id)}
+												class="ml-1 p-1 rounded text-[var(--text-secondary)] hover:text-red-400"
+												title="Remove"
+											>
+												<svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+											</button>
+										</div>
+									</div>
+								</div>
+							{/each}
+						</div>
+					{/if}
 				</div>
 
-				{#if team.length === 0}
-					<p class="text-secondary text-sm">No team members assigned yet.</p>
-				{:else}
-					<div class="space-y-3">
-						{#each team as member}
-							<div class="border rounded p-3">
-								<div class="font-medium text-navy text-sm">
-									{member.person_first_name} {member.person_last_name}
-								</div>
-								<div class="text-xs text-secondary">{member.role}</div>
-								<div class="mt-2 flex gap-1">
-									<button
-										on:click={() => updateTeamStatus(member.id, 'accepted')}
-										class="px-2 py-1 text-xs border rounded {member.status === 'accepted' ? 'bg-green-100 border-green-300' : ''}"
-									>
-										✓
-									</button>
-									<button
-										on:click={() => updateTeamStatus(member.id, 'pending')}
-										class="px-2 py-1 text-xs border rounded {member.status === 'pending' ? 'bg-yellow-100 border-yellow-300' : ''}"
-									>
-										?
-									</button>
-									<button
-										on:click={() => updateTeamStatus(member.id, 'declined')}
-										class="px-2 py-1 text-xs border rounded {member.status === 'declined' ? 'bg-red-100 border-red-300' : ''}"
-									>
-										✕
-									</button>
-									<button
-										on:click={() => removeTeamMember(member.id)}
-										class="ml-auto px-2 py-1 text-xs text-red-600 border border-red-300 rounded hover:bg-red-50"
-									>
-										Remove
-									</button>
-								</div>
-							</div>
-						{/each}
+				<!-- Quick Stats -->
+				<div class="card p-4 space-y-3">
+					<h3 class="font-semibold text-sm text-[var(--text-primary)]">Summary</h3>
+					<div class="flex justify-between text-sm">
+						<span class="text-[var(--text-secondary)]">Songs</span>
+						<span class="text-[var(--text-primary)]">{items.filter(i => i.item_type === 'song').length}</span>
 					</div>
-				{/if}
+					<div class="flex justify-between text-sm">
+						<span class="text-[var(--text-secondary)]">Total Items</span>
+						<span class="text-[var(--text-primary)]">{items.length}</span>
+					</div>
+					<div class="flex justify-between text-sm">
+						<span class="text-[var(--text-secondary)]">Est. Duration</span>
+						<span class="text-[var(--text-primary)]">{totalDuration() > 0 ? `${totalDuration()} min` : '—'}</span>
+					</div>
+					<div class="flex justify-between text-sm">
+						<span class="text-[var(--text-secondary)]">Team Size</span>
+						<span class="text-[var(--text-primary)]">{team.length}</span>
+					</div>
+				</div>
 			</div>
 		</div>
 	</div>
@@ -370,111 +599,69 @@
 
 <!-- Add Item Modal -->
 {#if showAddItemModal}
-	<div class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-		<div class="bg-surface rounded-lg max-w-md w-full p-6 max-h-[90vh] overflow-y-auto">
-			<h2 class="text-2xl font-bold text-navy mb-4">Add Item</h2>
-			<form on:submit|preventDefault={addItem} class="space-y-4">
-				<div>
-					<label class="block text-sm font-medium text-primary">Type *</label>
-					<select
-						bind:value={newItem.item_type}
-						required
-						class="mt-1 block w-full px-3 py-2 border input-border bg-[var(--input-bg)] text-primary rounded-md focus:outline-none focus:ring-2 focus:ring-teal"
-					>
-						<option value="song">Song</option>
-						<option value="prayer">Prayer</option>
-						<option value="reading">Scripture Reading</option>
-						<option value="sermon">Sermon</option>
-						<option value="announcement">Announcement</option>
-						<option value="other">Other</option>
-					</select>
-				</div>
+	<div class="modal-overlay" on:click|self={() => (showAddItemModal = false)}>
+		<div class="modal-content max-w-lg">
+			<div class="flex items-center justify-between mb-5">
+				<h2 class="text-lg font-bold text-[var(--text-primary)]">Add Item</h2>
+				<button on:click={() => (showAddItemModal = false)} class="close-btn">
+					<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+				</button>
+			</div>
 
+			<!-- Quick Type Selector -->
+			<div class="grid grid-cols-4 gap-2 mb-5">
+				{#each Object.entries(itemTypeConfig) as [key, config]}
+					<button
+						on:click={() => { newItem.item_type = key; if (key !== 'song') { newItem.song_id = null; newItem.song_key = ''; } }}
+						class="type-select-btn {newItem.item_type === key ? 'active' : ''}"
+					>
+						<span class="text-lg">{config.icon}</span>
+						<span class="text-xs">{config.label}</span>
+					</button>
+				{/each}
+			</div>
+
+			<form on:submit|preventDefault={addItem} class="space-y-4">
 				{#if newItem.item_type === 'song'}
 					<div>
-						<label class="block text-sm font-medium text-primary">Song *</label>
+						<label class="label">Song *</label>
 						<div class="flex gap-2 mt-1">
-							<input
-								type="text"
-								bind:value={newItem.title}
-								placeholder="Select a song"
-								readonly
-								class="flex-1 px-3 py-2 border input-border bg-[var(--input-bg)] text-primary rounded-md bg-[var(--surface-hover)]"
-							/>
-							<button
-								type="button"
-								on:click={() => (showSongSearchModal = true)}
-								class="px-4 py-2 bg-navy text-white rounded-md hover:bg-opacity-90"
-							>
-								Browse
-							</button>
+							<input type="text" value={newItem.title} readonly placeholder="Select a song..." class="input-field flex-1 cursor-pointer" on:click={() => (showSongSearch = true)} />
+							<button type="button" on:click={() => (showSongSearch = true)} class="btn-secondary">Browse</button>
 						</div>
 					</div>
 					{#if newItem.song_id}
 						<div>
-							<label class="block text-sm font-medium text-primary">Key</label>
-							<input
-								type="text"
-								bind:value={newItem.song_key}
-								placeholder="G, C, Bb, etc."
-								class="mt-1 block w-full px-3 py-2 border input-border bg-[var(--input-bg)] text-primary rounded-md focus:outline-none focus:ring-2 focus:ring-teal"
-							/>
+							<label class="label">Key</label>
+							<input type="text" bind:value={newItem.song_key} placeholder="G, C, Bb..." class="input-field" />
 						</div>
 					{/if}
 				{:else}
 					<div>
-						<label class="block text-sm font-medium text-primary">Title *</label>
-						<input
-							type="text"
-							bind:value={newItem.title}
-							required
-							class="mt-1 block w-full px-3 py-2 border input-border bg-[var(--input-bg)] text-primary rounded-md focus:outline-none focus:ring-2 focus:ring-teal"
-						/>
+						<label class="label">Title *</label>
+						<input type="text" bind:value={newItem.title} required class="input-field" placeholder="e.g. Opening Prayer, John 3:16..." />
 					</div>
 				{/if}
 
-				<div>
-					<label class="block text-sm font-medium text-primary">Assigned To</label>
-					<input
-						type="text"
-						bind:value={newItem.assigned_to}
-						placeholder="Person or role"
-						class="mt-1 block w-full px-3 py-2 border input-border bg-[var(--input-bg)] text-primary rounded-md focus:outline-none focus:ring-2 focus:ring-teal"
-					/>
+				<div class="grid grid-cols-2 gap-4">
+					<div>
+						<label class="label">Assigned To</label>
+						<input type="text" bind:value={newItem.assigned_to} placeholder="Person or role" class="input-field" />
+					</div>
+					<div>
+						<label class="label">Duration (min)</label>
+						<input type="number" bind:value={newItem.duration_minutes} min="1" class="input-field" />
+					</div>
 				</div>
 
 				<div>
-					<label class="block text-sm font-medium text-primary">Duration (minutes)</label>
-					<input
-						type="number"
-						bind:value={newItem.duration_minutes}
-						class="mt-1 block w-full px-3 py-2 border input-border bg-[var(--input-bg)] text-primary rounded-md focus:outline-none focus:ring-2 focus:ring-teal"
-					/>
+					<label class="label">Notes</label>
+					<textarea bind:value={newItem.notes} rows="2" class="input-field" placeholder="Key of G, capo 2..."></textarea>
 				</div>
 
-				<div>
-					<label class="block text-sm font-medium text-primary">Notes</label>
-					<textarea
-						bind:value={newItem.notes}
-						rows="2"
-						class="mt-1 block w-full px-3 py-2 border input-border bg-[var(--input-bg)] text-primary rounded-md focus:outline-none focus:ring-2 focus:ring-teal"
-					></textarea>
-				</div>
-
-				<div class="flex gap-2 pt-4">
-					<button
-						type="button"
-						on:click={() => (showAddItemModal = false)}
-						class="flex-1 px-4 py-2 border input-border bg-[var(--input-bg)] text-primary rounded-md hover:bg-[var(--surface-hover)]"
-					>
-						Cancel
-					</button>
-					<button
-						type="submit"
-						class="flex-1 px-4 py-2 bg-teal text-white rounded-md hover:bg-opacity-90"
-					>
-						Add
-					</button>
+				<div class="flex gap-3 pt-2">
+					<button type="button" on:click={() => (showAddItemModal = false)} class="btn-secondary flex-1">Cancel</button>
+					<button type="submit" class="btn-primary flex-1" disabled={newItem.item_type === 'song' && !newItem.song_id}>Add Item</button>
 				</div>
 			</form>
 		</div>
@@ -482,55 +669,74 @@
 {/if}
 
 <!-- Song Search Modal -->
-{#if showSongSearchModal}
-	<div class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-		<div class="bg-surface rounded-lg max-w-2xl w-full p-6 max-h-[90vh] overflow-y-auto">
-			<h2 class="text-2xl font-bold text-navy mb-4">Select a Song</h2>
-			<input
-				type="text"
-				bind:value={searchQuery}
-				placeholder="Search songs..."
-				class="w-full px-4 py-2 border input-border bg-[var(--input-bg)] text-primary rounded-md mb-4"
-			/>
-			<div class="space-y-2 max-h-96 overflow-y-auto">
-				{#each filteredSongs as song}
-					<div
-						on:click={() => selectSong(song)}
-						class="p-3 border rounded hover:bg-[var(--surface-hover)] cursor-pointer"
-					>
-						<div class="font-medium">{song.title}</div>
-						{#if song.artist}
-							<div class="text-sm text-secondary">{song.artist}</div>
-						{/if}
-						{#if song.default_key}
-							<div class="text-xs text-secondary">Key: {song.default_key}</div>
-						{/if}
-					</div>
-				{/each}
+{#if showSongSearch}
+	<div class="modal-overlay" on:click|self={() => { showSongSearch = false; songSearch = ''; }}>
+		<div class="modal-content max-w-2xl">
+			<div class="flex items-center justify-between mb-4">
+				<h2 class="text-lg font-bold text-[var(--text-primary)]">Select a Song</h2>
+				<button on:click={() => { showSongSearch = false; songSearch = ''; }} class="close-btn">
+					<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+				</button>
 			</div>
-			<button
-				on:click={() => { showSongSearchModal = false; searchQuery = ''; }}
-				class="mt-4 w-full px-4 py-2 border input-border bg-[var(--input-bg)] text-primary rounded-md hover:bg-[var(--surface-hover)]"
-			>
-				Close
-			</button>
+			<div class="relative mb-4">
+				<svg class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--text-secondary)]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+				<input
+					type="text"
+					bind:value={songSearch}
+					placeholder="Search by title, artist, or CCLI..."
+					class="input-field pl-10"
+					autofocus
+				/>
+			</div>
+			<div class="space-y-1 max-h-96 overflow-y-auto">
+				{#each filteredSongs as song}
+					<button
+						on:click={() => selectSong(song)}
+						class="w-full text-left p-3 rounded-lg hover:bg-[var(--surface-hover)] transition-colors"
+					>
+						<div class="flex items-center justify-between">
+							<div>
+								<div class="font-medium text-[var(--text-primary)]">{song.title}</div>
+								{#if song.artist}
+									<div class="text-sm text-[var(--text-secondary)]">{song.artist}</div>
+								{/if}
+							</div>
+							<div class="flex items-center gap-3 text-xs text-[var(--text-secondary)]">
+								{#if song.default_key}
+									<span class="px-1.5 py-0.5 rounded bg-[var(--surface-hover)]">{song.default_key}</span>
+								{/if}
+								{#if song.tempo}
+									<span>{song.tempo} BPM</span>
+								{/if}
+								{#if song.ccli_number}
+									<span>CCLI {song.ccli_number}</span>
+								{/if}
+							</div>
+						</div>
+					</button>
+				{/each}
+				{#if filteredSongs.length === 0}
+					<p class="text-center text-[var(--text-secondary)] py-8">No songs found</p>
+				{/if}
+			</div>
 		</div>
 	</div>
 {/if}
 
 <!-- Add Team Member Modal -->
 {#if showAddTeamModal}
-	<div class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-		<div class="bg-surface rounded-lg max-w-md w-full p-6">
-			<h2 class="text-2xl font-bold text-navy mb-4">Add Team Member</h2>
+	<div class="modal-overlay" on:click|self={() => (showAddTeamModal = false)}>
+		<div class="modal-content max-w-md">
+			<div class="flex items-center justify-between mb-5">
+				<h2 class="text-lg font-bold text-[var(--text-primary)]">Add Team Member</h2>
+				<button on:click={() => (showAddTeamModal = false)} class="close-btn">
+					<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+				</button>
+			</div>
 			<form on:submit|preventDefault={addTeamMember} class="space-y-4">
 				<div>
-					<label class="block text-sm font-medium text-primary">Person *</label>
-					<select
-						bind:value={newTeamMember.person_id}
-						required
-						class="mt-1 block w-full px-3 py-2 border input-border bg-[var(--input-bg)] text-primary rounded-md focus:outline-none focus:ring-2 focus:ring-teal"
-					>
+					<label class="label">Person *</label>
+					<select bind:value={newTeamMember.person_id} required class="input-field">
 						<option value="">Select a person</option>
 						{#each people as person}
 							<option value={person.id}>{person.first_name} {person.last_name}</option>
@@ -538,29 +744,93 @@
 					</select>
 				</div>
 				<div>
-					<label class="block text-sm font-medium text-primary">Role *</label>
-					<input
-						type="text"
-						bind:value={newTeamMember.role}
-						required
-						placeholder="Worship Leader, Keys, Sound, etc."
-						class="mt-1 block w-full px-3 py-2 border input-border bg-[var(--input-bg)] text-primary rounded-md focus:outline-none focus:ring-2 focus:ring-teal"
-					/>
+					<label class="label">Role *</label>
+					<select bind:value={newTeamMember.role} required class="input-field">
+						<option value="">Select a role</option>
+						{#each roles as role}
+							<option value={role}>{role}</option>
+						{/each}
+						<option value="__custom">Custom...</option>
+					</select>
+					{#if newTeamMember.role === '__custom'}
+						<input
+							type="text"
+							bind:value={newTeamMember.role}
+							placeholder="Enter custom role"
+							class="input-field mt-2"
+						/>
+					{/if}
 				</div>
-				<div class="flex gap-2 pt-4">
-					<button
-						type="button"
-						on:click={() => (showAddTeamModal = false)}
-						class="flex-1 px-4 py-2 border input-border bg-[var(--input-bg)] text-primary rounded-md hover:bg-[var(--surface-hover)]"
-					>
-						Cancel
-					</button>
-					<button
-						type="submit"
-						class="flex-1 px-4 py-2 bg-teal text-white rounded-md hover:bg-opacity-90"
-					>
-						Add
-					</button>
+				<div class="flex gap-3 pt-2">
+					<button type="button" on:click={() => (showAddTeamModal = false)} class="btn-secondary flex-1">Cancel</button>
+					<button type="submit" class="btn-primary flex-1">Add Member</button>
+				</div>
+			</form>
+		</div>
+	</div>
+{/if}
+
+<!-- Edit Service Modal -->
+{#if showEditModal}
+	<div class="modal-overlay" on:click|self={() => (showEditModal = false)}>
+		<div class="modal-content max-w-md">
+			<h2 class="text-lg font-bold text-[var(--text-primary)] mb-5">Edit Service</h2>
+			<form on:submit|preventDefault={saveEdit} class="space-y-4">
+				<div class="grid grid-cols-2 gap-4">
+					<div>
+						<label class="label">Date</label>
+						<input type="date" bind:value={editForm.service_date} required class="input-field" />
+					</div>
+					<div>
+						<label class="label">Time</label>
+						<input type="text" bind:value={editForm.service_time} placeholder="10:30 AM" class="input-field" />
+					</div>
+				</div>
+				<div>
+					<label class="label">Notes</label>
+					<textarea bind:value={editForm.notes} rows="3" class="input-field"></textarea>
+				</div>
+				<div class="flex gap-3 pt-2">
+					<button type="button" on:click={() => (showEditModal = false)} class="btn-secondary flex-1">Cancel</button>
+					<button type="submit" class="btn-primary flex-1">Save Changes</button>
+				</div>
+			</form>
+		</div>
+	</div>
+{/if}
+
+<!-- Delete Confirmation -->
+{#if showDeleteConfirm}
+	<div class="modal-overlay" on:click|self={() => (showDeleteConfirm = false)}>
+		<div class="modal-content max-w-sm text-center">
+			<div class="text-4xl mb-3">⚠️</div>
+			<h2 class="text-lg font-bold text-[var(--text-primary)] mb-2">Delete Service?</h2>
+			<p class="text-sm text-[var(--text-secondary)] mb-5">This will permanently delete this service and all its items. This cannot be undone.</p>
+			<div class="flex gap-3">
+				<button on:click={() => (showDeleteConfirm = false)} class="btn-secondary flex-1">Cancel</button>
+				<button on:click={deleteService} class="flex-1 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 text-sm font-medium">Delete</button>
+			</div>
+		</div>
+	</div>
+{/if}
+
+<!-- Save as Template Modal -->
+{#if showSaveTemplateModal}
+	<div class="modal-overlay" on:click|self={() => (showSaveTemplateModal = false)}>
+		<div class="modal-content max-w-md">
+			<h2 class="text-lg font-bold text-[var(--text-primary)] mb-5">Save as Template</h2>
+			<form on:submit|preventDefault={saveAsTemplate} class="space-y-4">
+				<div>
+					<label class="label">Template Name *</label>
+					<input type="text" bind:value={templateName} required class="input-field" placeholder="e.g. Standard Sunday Morning" />
+				</div>
+				<div>
+					<label class="label">Description</label>
+					<textarea bind:value={templateDesc} rows="2" class="input-field" placeholder="Optional description..."></textarea>
+				</div>
+				<div class="flex gap-3 pt-2">
+					<button type="button" on:click={() => (showSaveTemplateModal = false)} class="btn-secondary flex-1">Cancel</button>
+					<button type="submit" class="btn-primary flex-1">Save Template</button>
 				</div>
 			</form>
 		</div>
@@ -568,19 +838,165 @@
 {/if}
 
 <style>
-	:global(.bg-navy) {
-		background-color: #1b3a4b;
+	.card {
+		background: var(--surface);
+		border-radius: 0.75rem;
+		border: 1px solid var(--border);
 	}
-	:global(.text-navy) {
-		color: #1b3a4b;
+
+	.btn-primary {
+		display: inline-flex;
+		align-items: center;
+		justify-content: center;
+		padding: 0.5rem 1rem;
+		background: var(--teal);
+		color: white;
+		border-radius: 0.5rem;
+		font-size: 0.875rem;
+		font-weight: 500;
+		transition: opacity 0.15s;
 	}
-	:global(.bg-teal) {
-		background-color: #4a8b8c;
+	.btn-primary:hover { opacity: 0.9; }
+	.btn-primary:disabled { opacity: 0.5; cursor: not-allowed; }
+
+	.btn-secondary {
+		display: inline-flex;
+		align-items: center;
+		justify-content: center;
+		padding: 0.5rem 1rem;
+		background: var(--surface);
+		color: var(--text-primary);
+		border: 1px solid var(--border);
+		border-radius: 0.5rem;
+		font-size: 0.875rem;
+		font-weight: 500;
 	}
-	:global(.text-teal) {
-		color: #4a8b8c;
+	.btn-secondary:hover { background: var(--surface-hover); }
+
+	.btn-ghost {
+		display: inline-flex;
+		align-items: center;
+		gap: 0.375rem;
+		padding: 0.375rem 0.75rem;
+		color: var(--text-secondary);
+		border-radius: 0.375rem;
+		font-size: 0.8125rem;
+		font-weight: 500;
+		transition: all 0.15s;
 	}
-	:global(.ring-teal) {
-		--tw-ring-color: #4a8b8c;
+	.btn-ghost:hover { background: var(--surface-hover); color: var(--text-primary); }
+
+	.close-btn {
+		padding: 0.25rem;
+		border-radius: 0.375rem;
+		color: var(--text-secondary);
+	}
+	.close-btn:hover { background: var(--surface-hover); }
+
+	.input-field {
+		display: block;
+		width: 100%;
+		padding: 0.5rem 0.75rem;
+		background: var(--input-bg);
+		color: var(--text-primary);
+		border: 1px solid var(--input-border);
+		border-radius: 0.5rem;
+		font-size: 0.875rem;
+		margin-top: 0.25rem;
+	}
+	.input-field:focus {
+		outline: none;
+		border-color: var(--teal);
+		box-shadow: 0 0 0 2px rgba(74, 139, 140, 0.2);
+	}
+
+	.label {
+		display: block;
+		font-size: 0.875rem;
+		font-weight: 500;
+		color: var(--text-primary);
+	}
+
+	.status-step {
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		gap: 0.25rem;
+		padding: 0.5rem 0.75rem;
+		border-radius: 0.5rem;
+		color: var(--text-secondary);
+		transition: all 0.15s;
+	}
+	.status-step:hover { background: var(--surface-hover); }
+	.status-step.active {
+		background: rgba(74, 139, 140, 0.15);
+		color: var(--teal);
+	}
+	.status-step.passed { color: var(--text-primary); }
+
+	.item-row {
+		transition: background 0.1s;
+	}
+	.item-row:hover {
+		background: var(--surface-hover);
+	}
+	.item-row.drag-over {
+		border-top: 2px solid var(--teal);
+	}
+
+	.type-select-btn {
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		gap: 0.25rem;
+		padding: 0.5rem;
+		border: 1px solid var(--border);
+		border-radius: 0.5rem;
+		color: var(--text-secondary);
+		transition: all 0.15s;
+	}
+	.type-select-btn:hover { border-color: var(--teal); color: var(--text-primary); }
+	.type-select-btn.active {
+		border-color: var(--teal);
+		background: rgba(74, 139, 140, 0.1);
+		color: var(--teal);
+	}
+
+	.status-btn {
+		width: 1.5rem;
+		height: 1.5rem;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		border-radius: 0.25rem;
+		font-size: 0.625rem;
+		border: 1px solid var(--border);
+		color: var(--text-secondary);
+		transition: all 0.15s;
+	}
+	.status-btn:hover { border-color: var(--teal); }
+	.status-accepted { background: rgba(34, 197, 94, 0.15); border-color: #22c55e; color: #4ADE80; }
+	.status-pending { background: rgba(234, 179, 8, 0.15); border-color: #eab308; color: #FACC15; }
+	.status-declined { background: rgba(239, 68, 68, 0.15); border-color: #ef4444; color: #F87171; }
+
+	.modal-overlay {
+		position: fixed;
+		inset: 0;
+		background: rgba(0, 0, 0, 0.6);
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		padding: 1rem;
+		z-index: 50;
+		backdrop-filter: blur(4px);
+	}
+	.modal-content {
+		background: var(--surface);
+		border: 1px solid var(--border);
+		border-radius: 0.75rem;
+		padding: 1.5rem;
+		width: 100%;
+		max-height: 90vh;
+		overflow-y: auto;
 	}
 </style>

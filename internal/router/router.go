@@ -8,6 +8,7 @@ import (
 	"github.com/petieclark/pews/internal/auth"
 	"github.com/petieclark/pews/internal/billing"
 	"github.com/petieclark/pews/internal/calendar"
+	"github.com/petieclark/pews/internal/care"
 	"github.com/petieclark/pews/internal/checkins"
 	"github.com/petieclark/pews/internal/communication"
 	"github.com/petieclark/pews/internal/drip"
@@ -64,6 +65,7 @@ func New(
 	i18nHandler *i18n.Handler,
 	importHandler *importpkg.Handler,
 	teamsHandler *teams.Handler,
+	careHandler *care.Handler,
 	webhookSecret string,
 	givingWebhookSecret string,
 	frontendURL string,
@@ -91,6 +93,9 @@ func New(
 	r.Post("/api/streaming/{id}/chat", streamingHandler.SendChatMessage)
 	r.Post("/api/streaming/{id}/join", streamingHandler.JoinStream)
 	r.Post("/api/streaming/{id}/leave", streamingHandler.LeaveStream)
+
+	// Public groups (group finder)
+	r.Get("/api/groups/public", groupsHandler.ListPublicGroups)
 
 	// Public communication route - connection card submission (no auth required)
 	r.Post("/api/communication/cards", communicationHandler.SubmitConnectionCard)
@@ -414,9 +419,21 @@ func New(
 		r.Get("/api/events/{id}", calendarHandler.GetEvent)
 		r.Put("/api/events/{id}", calendarHandler.UpdateEvent)
 		r.Delete("/api/events/{id}", calendarHandler.DeleteEvent)
+		r.Get("/api/events/available-rooms", calendarHandler.ListAvailableRooms)
+
+		// Care / Follow-Ups
+		r.Get("/api/follow-ups", careHandler.ListFollowUps)
+		r.Post("/api/follow-ups", careHandler.CreateFollowUp)
+		r.Get("/api/follow-ups/stats", careHandler.GetStats)
+		r.Get("/api/follow-ups/{id}", careHandler.GetFollowUp)
+		r.Put("/api/follow-ups/{id}", careHandler.UpdateFollowUp)
+		r.Delete("/api/follow-ups/{id}", careHandler.DeleteFollowUp)
+		r.Get("/api/follow-ups/{id}/notes", careHandler.ListNotes)
+		r.Post("/api/follow-ups/{id}/notes", careHandler.AddNote)
 
 		// Prayer - Authenticated routes
 		r.Get("/api/prayer-requests", prayerHandler.ListPrayerRequests)
+		r.Post("/api/prayer-requests/create", prayerHandler.CreatePrayerRequestAuth)
 		r.Get("/api/prayer-requests/{id}", prayerHandler.GetPrayerRequest)
 		r.Put("/api/prayer-requests/{id}", prayerHandler.UpdatePrayerRequest)
 		r.Post("/api/prayer-requests/{id}/follow", prayerHandler.FollowPrayerRequest)
