@@ -414,6 +414,12 @@ func New(
 		r.Get("/api/attendance/by-person/{id}", checkinsHandler.GetPersonAttendance)
 		r.Get("/api/attendance/by-service/{id}", checkinsHandler.GetServiceAttendance)
 		r.Get("/api/attendance/first-timers", checkinsHandler.GetFirstTimersThisWeek)
+
+		// Notifications
+		r.Get("/api/notifications", notificationHandler.ListNotifications)
+		r.Get("/api/notifications/unread-count", notificationHandler.GetUnreadCount)
+		r.Put("/api/notifications/{id}/read", notificationHandler.MarkAsRead)
+		r.Put("/api/notifications/read-all", notificationHandler.MarkAllAsRead)
 	})
 
 	return &Router{r}
