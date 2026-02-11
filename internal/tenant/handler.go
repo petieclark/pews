@@ -60,7 +60,7 @@ func (h *Handler) UpdateTenant(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	tenant, err := h.service.UpdateTenant(r.Context(), claims.TenantID, req.Name, req.Domain, req.DefaultLocale)
+	tenant, err := h.service.UpdateTenant(r.Context(), claims.TenantID, req.Name, req.Domain)
 	if err != nil {
 		http.Error(w, "Failed to update tenant: "+err.Error(), http.StatusInternalServerError)
 		return

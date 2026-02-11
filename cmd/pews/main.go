@@ -12,7 +12,6 @@ import (
 
 	"github.com/petieclark/pews/internal/activity"
 	"github.com/petieclark/pews/internal/auth"
-	"github.com/petieclark/pews/internal/backup"
 	"github.com/petieclark/pews/internal/billing"
 	"github.com/petieclark/pews/internal/calendar"
 	"github.com/petieclark/pews/internal/checkins"
@@ -95,7 +94,6 @@ func run() error {
 	qrService := qr.NewService(cfg.FrontendURL)
 	smsService := sms.NewService(db.Pool, cfg.SMSEncryptionKey)
 	i18nService := i18n.NewService()
-	backupService := backup.NewService(db.Pool, cfg.DatabaseURL)
 
 	// Initialize handlers
 	authHandler := auth.NewHandler(authService, tenantService, billingService)
@@ -128,9 +126,6 @@ func run() error {
 	
 	// i18n (Phase 8)
 	i18nHandler := i18n.NewHandler(i18nService)
-	
-	// Backup (Phase 8)
-	backupHandler := backup.NewHandler(backupService)
 
 	// Setup router
 	r := router.New(
@@ -148,7 +143,6 @@ func run() error {
 		communicationHandler,
 		dripHandler,
 		checkinsHandler,
-<<<<<<< HEAD
 		reportsHandler,
 		calendarHandler,
 		prayerHandler,
@@ -159,7 +153,6 @@ func run() error {
 		engagementHandler,
 		smsHandler,
 		i18nHandler,
-		backupHandler,
 		cfg.StripeWebhookSecret,
 		cfg.StripeWebhookSecret, // Use same webhook secret for giving
 		cfg.FrontendURL,
