@@ -181,7 +181,7 @@
 		class="fixed inset-0 z-40"
 		on:click={() => showDropdown = false}
 		aria-label="Close notifications"
-	/>
+	></button>
 {/if}
 
 <style>
