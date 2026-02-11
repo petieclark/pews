@@ -4,62 +4,24 @@
 		<meta charset="utf-8" />
 		<link rel="icon" href="%sveltekit.assets%/favicon.png" />
 		<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-		
-		<!-- PWA Manifest -->
-		<link rel="manifest" href="/manifest.json" />
-		
-		<!-- Theme Color -->
 		<meta name="theme-color" content="#1B3A4B" />
-		
-		<!-- Apple Touch Icon -->
-		<link rel="apple-touch-icon" href="/icons/icon-192x192.png" />
-		
-		<!-- Apple Web App Meta Tags -->
-		<meta name="apple-mobile-web-app-capable" content="yes" />
-		<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-		<meta name="apple-mobile-web-app-title" content="Pews" />
-		
-		<!-- Description -->
 		<meta name="description" content="Church management made simple" />
-		
 		%sveltekit.head%
 	</head>
 	<body data-sveltekit-preload-data="hover">
 		<div style="display: contents">%sveltekit.body%</div>
 		
-		<!-- Service Worker Registration -->
+		<!-- Unregister any existing service workers -->
 		<script>
 			if ('serviceWorker' in navigator) {
-				window.addEventListener('load', () => {
-					navigator.serviceWorker.register('/sw.js')
-						.then((registration) => {
-							console.log('SW registered:', registration);
-							
-							// Check for updates
-							registration.addEventListener('updatefound', () => {
-								const newWorker = registration.installing;
-								newWorker.addEventListener('statechange', () => {
-									if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
-										// New service worker available, prompt user
-										if (confirm('New version available! Reload to update?')) {
-											newWorker.postMessage({ type: 'SKIP_WAITING' });
-											window.location.reload();
-										}
-									}
-								});
-							});
-						})
-						.catch((err) => console.log('SW registration failed:', err));
+				navigator.serviceWorker.getRegistrations().then(function(registrations) {
+					for (var r of registrations) { r.unregister(); }
 				});
-				
-				// Handle controller change (after skip waiting)
-				let refreshing = false;
-				navigator.serviceWorker.addEventListener('controllerchange', () => {
-					if (!refreshing) {
-						refreshing = true;
-						window.location.reload();
-					}
-				});
+				if (window.caches) {
+					caches.keys().then(function(names) {
+						for (var n of names) { caches.delete(n); }
+					});
+				}
 			}
 		</script>
 	</body>
