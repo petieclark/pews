@@ -18,6 +18,10 @@ func NewService(db *pgxpool.Pool) *Service {
 	return &Service{db: db}
 }
 
+func (s *Service) GetDB() *pgxpool.Pool {
+	return s.db
+}
+
 // Helper to set tenant context
 func (s *Service) setTenantContext(ctx context.Context, tenantID string) error {
 	if err != nil {

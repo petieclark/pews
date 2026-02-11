@@ -10,6 +10,7 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/petieclark/pews/internal/activity"
 	"github.com/petieclark/pews/internal/auth"
 	"github.com/petieclark/pews/internal/billing"
 	"github.com/petieclark/pews/internal/calendar"
@@ -20,10 +21,12 @@ import (
 	"github.com/petieclark/pews/internal/giving"
 	"github.com/petieclark/pews/internal/groups"
 	"github.com/petieclark/pews/internal/module"
+	"github.com/petieclark/pews/internal/notification"
 	"github.com/petieclark/pews/internal/people"
 	"github.com/petieclark/pews/internal/prayer"
 	"github.com/petieclark/pews/internal/reports"
 	"github.com/petieclark/pews/internal/router"
+	"github.com/petieclark/pews/internal/search"
 	"github.com/petieclark/pews/internal/services"
 	"github.com/petieclark/pews/internal/sermons"
 	"github.com/petieclark/pews/internal/streaming"
@@ -61,6 +64,7 @@ func run() error {
 	log.Println("Migrations completed")
 
 	// Initialize services
+	activityService := activity.NewService(db.Pool)
 	authService := auth.NewService(db.Pool, cfg.JWTSecret)
 	tenantService := tenant.NewService(db.Pool)
 	moduleService := module.NewService(db.Pool)
@@ -77,23 +81,27 @@ func run() error {
 	reportsService := reports.NewService(db.Pool)
 	calendarService := calendar.NewService(db.Pool)
 	prayerService := prayer.NewService(db.Pool)
+	searchService := search.NewService(db.Pool)
+	notificationService := notification.NewService(db.Pool)
 
 	// Initialize handlers
 	authHandler := auth.NewHandler(authService, tenantService, billingService)
 	tenantHandler := tenant.NewHandler(tenantService)
 	moduleHandler := module.NewHandler(moduleService)
 	billingHandler := billing.NewHandler(billingService)
-	peopleHandler := people.NewHandler(peopleService)
+	peopleHandler := people.NewHandler(peopleService, activityService)
 	groupsHandler := groups.NewHandler(groupsService)
 	servicesHandler := services.NewHandler(servicesService)
 	sermonsHandler := sermons.NewHandler(sermonsService)
-	givingHandler := giving.NewHandler(givingService, givingStripeService)
+	givingHandler := giving.NewHandler(givingService, givingStripeService, activityService)
 	streamingHandler := streaming.NewHandler(streamingService)
 	communicationHandler := communication.NewHandler(communicationService)
 	checkinsHandler := checkins.NewHandler(checkinsService)
 	reportsHandler := reports.NewHandler(reportsService)
 	calendarHandler := calendar.NewHandler(calendarService)
 	prayerHandler := prayer.NewHandler(prayerService)
+	searchHandler := search.NewHandler(searchService)
+	notificationHandler := notification.NewHandler(notificationService)
 
 	// Setup router
 	r := router.New(
@@ -113,6 +121,8 @@ func run() error {
 		reportsHandler,
 		calendarHandler,
 		prayerHandler,
+		searchHandler,
+		notificationHandler,
 		cfg.StripeWebhookSecret,
 		cfg.StripeWebhookSecret, // Use same webhook secret for giving
 		cfg.FrontendURL,

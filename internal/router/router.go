@@ -13,9 +13,11 @@ import (
 	"github.com/petieclark/pews/internal/groups"
 	"github.com/petieclark/pews/internal/middleware"
 	"github.com/petieclark/pews/internal/module"
+	"github.com/petieclark/pews/internal/notification"
 	"github.com/petieclark/pews/internal/people"
 	"github.com/petieclark/pews/internal/prayer"
 	"github.com/petieclark/pews/internal/reports"
+	"github.com/petieclark/pews/internal/search"
 	"github.com/petieclark/pews/internal/services"
 	"github.com/petieclark/pews/internal/sermons"
 	"github.com/petieclark/pews/internal/streaming"
@@ -43,6 +45,8 @@ func New(
 	reportsHandler *reports.Handler,
 	calendarHandler *calendar.Handler,
 	prayerHandler *prayer.Handler,
+	searchHandler *search.Handler,
+	notificationHandler *notification.Handler,
 	webhookSecret string,
 	givingWebhookSecret string,
 	frontendURL string,
@@ -91,6 +95,9 @@ func New(
 
 		// Auth
 		r.Post("/api/auth/logout", authHandler.Logout)
+
+		// Search
+		r.Get("/api/search", searchHandler.Search)
 
 		// Tenant
 		r.Get("/api/tenant", tenantHandler.GetTenant)

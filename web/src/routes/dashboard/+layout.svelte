@@ -3,6 +3,8 @@
 	import { onMount } from 'svelte';
 	import { getToken, clearToken, api } from '$lib/api';
 	import ThemeToggle from '$lib/ThemeToggle.svelte';
+	import GlobalSearch from '$lib/GlobalSearch.svelte';
+	import NotificationBell from '$lib/NotificationBell.svelte';
 
 	let email = '';
 	let churchName = 'Pews';
@@ -56,6 +58,8 @@
 					<a href="/dashboard/settings" class="text-secondary hover:text-primary">Settings</a>
 				</div>
 				<div class="flex items-center space-x-4">
+					<GlobalSearch />
+					<NotificationBell />
 					<ThemeToggle />
 					<span class="text-sm text-secondary">{email}</span>
 					<button

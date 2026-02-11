@@ -9,20 +9,27 @@ import (
 	"time"
 
 	"github.com/go-chi/chi/v5"
+	"github.com/petieclark/pews/internal/activity"
 	"github.com/petieclark/pews/internal/middleware"
+	"github.com/petieclark/pews/internal/notification"
 	"github.com/stripe/stripe-go/v76"
 	"github.com/stripe/stripe-go/v76/webhook"
 )
 
 type Handler struct {
-	service       *Service
-	stripeService *StripeService
+	service             *Service
+	stripeService       *StripeService
+	activityService     *activity.Service
+	notificationService *notification.Service
 }
 
-func NewHandler(service *Service, stripeService *StripeService) *Handler {
+func NewHandler(service *Service, stripeService *StripeService, activityService *activity.Service) *Handler {
+	// Create notification service with same db pool
 	return &Handler{
-		service:       service,
-		stripeService: stripeService,
+		service:             service,
+		stripeService:       stripeService,
+		activityService:     activityService,
+		notificationService: notification.NewService(service.GetDB()),
 	}
 }
 
@@ -240,6 +247,21 @@ func (h *Handler) CreateDonation(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Failed to create donation: "+err.Error(), http.StatusInternalServerError)
 		return
 	}
+
+	// Create notification for all admins
+	notifTitle := "New Donation Received"
+	notifMessage := fmt.Sprintf("A donation of $%.2f was received for %s", float64(donation.AmountCents)/100.0, donation.FundName)
+	link := fmt.Sprintf("/giving/donations/%s", donation.ID)
+	_ = h.notificationService.CreateForAllAdmins(r.Context(), claims.TenantID, notifTitle, notifMessage, notification.TypeSuccess, &link)
+
+	// Log activity
+	ipAddress := r.RemoteAddr
+	details := map[string]interface{}{
+		"amount":         float64(donation.AmountCents) / 100.0,
+		"fund":           donation.FundName,
+		"payment_method": req.PaymentMethod,
+	}
+	h.activityService.LogActivity(r.Context(), claims.TenantID, "donation.recorded", "giving", &claims.UserID, &donation.ID, &ipAddress, details)
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusCreated)

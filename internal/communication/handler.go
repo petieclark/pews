@@ -8,11 +8,13 @@ import (
 
 	"github.com/go-chi/chi/v5"
 	"github.com/petieclark/pews/internal/middleware"
+	"github.com/petieclark/pews/internal/notification"
 )
 
 type Handler struct {
-	service       *Service
-	emailRenderer *EmailRenderer
+	service             *Service
+	emailRenderer       *EmailRenderer
+	notificationService *notification.Service
 }
 
 func NewHandler(service *Service) *Handler {
@@ -24,8 +26,9 @@ func NewHandler(service *Service) *Handler {
 	}
 
 	return &Handler{
-		service:       service,
-		emailRenderer: renderer,
+		service:             service,
+		emailRenderer:       renderer,
+		notificationService: notification.NewService(service.GetDB()),
 	}
 }
 
@@ -620,6 +623,12 @@ func (h *Handler) SubmitConnectionCard(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
+
+	// Create notification for all admins
+	notifTitle := "New Connection Card"
+	notifMessage := fmt.Sprintf("%s %s submitted a connection card", created.FirstName, created.LastName)
+	link := fmt.Sprintf("/communication/cards/%s", created.ID)
+	_ = h.notificationService.CreateForAllAdmins(r.Context(), tenantID, notifTitle, notifMessage, notification.TypeInfo, &link)
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusCreated)
