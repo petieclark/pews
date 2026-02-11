@@ -49,7 +49,7 @@
 					default_locale: tenant.default_locale || 'en'
 				})
 			});
-			success = translate ? translate('common.success') : 'Settings updated successfully';
+			success = 'Settings updated successfully';
 		} catch (err) {
 			error = err.message;
 		} finally {
@@ -89,7 +89,7 @@
 </script>
 
 <div class="max-w-4xl">
-	<h1 class="text-3xl font-bold text-primary mb-6">{translate ? translate('settings.title') : 'Settings'}</h1>
+	<h1 class="text-3xl font-bold text-primary mb-6">Settings</h1>
 
 	{#if loading}
 		<div class="text-center py-12">
@@ -142,7 +142,7 @@
 
 				<div>
 					<label for="locale" class="block text-sm font-medium text-primary mb-1">
-						{translate ? translate('settings.language') : 'Language'}
+						Language
 					</label>
 					<select
 						id="locale"
@@ -173,7 +173,7 @@
 					disabled={saving}
 					class="bg-[var(--teal)] text-white py-2 px-6 rounded-lg font-medium hover:opacity-90 disabled:opacity-50"
 				>
-					{saving ? (translate ? translate('common.loading') : 'Saving...') : (translate ? translate('common.save') : 'Save Changes')}
+					{saving ? 'Saving...' : 'Save Changes'}
 				</button>
 			</form>
 		</div>

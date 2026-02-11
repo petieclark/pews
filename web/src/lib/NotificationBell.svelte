@@ -6,18 +6,25 @@
 	let notifications = [];
 	let showDropdown = false;
 	let pollInterval;
+	let notificationsAvailable = false;
 
-	onMount(() => {
-		fetchUnreadCount();
-		fetchNotifications();
+	onMount(async () => {
+		// Check if notifications endpoint exists
+		const available = await checkNotificationsAvailable();
+		notificationsAvailable = available;
 		
-		// Poll for new notifications every 30 seconds
-		pollInterval = setInterval(() => {
+		if (notificationsAvailable) {
 			fetchUnreadCount();
-			if (showDropdown) {
-				fetchNotifications();
-			}
-		}, 30000);
+			fetchNotifications();
+			
+			// Poll for new notifications every 30 seconds
+			pollInterval = setInterval(() => {
+				fetchUnreadCount();
+				if (showDropdown) {
+					fetchNotifications();
+				}
+			}, 30000);
+		}
 	});
 
 	onDestroy(() => {
@@ -26,21 +33,45 @@
 		}
 	});
 
+	async function checkNotificationsAvailable() {
+		try {
+			await api('/api/notifications/unread-count');
+			return true;
+		} catch (err) {
+			// Silently fail if endpoint doesn't exist (404)
+			if (err.message && err.message.includes('404')) {
+				return false;
+			}
+			console.error('Failed to check notifications availability:', err);
+			return false;
+		}
+	}
+
 	async function fetchUnreadCount() {
+		if (!notificationsAvailable) return;
+		
 		try {
 			const data = await api('/api/notifications/unread-count');
 			unreadCount = data.count;
 		} catch (err) {
-			console.error('Failed to fetch unread count:', err);
+			// Silently fail on 404
+			if (!err.message || !err.message.includes('404')) {
+				console.error('Failed to fetch unread count:', err);
+			}
 		}
 	}
 
 	async function fetchNotifications() {
+		if (!notificationsAvailable) return;
+		
 		try {
 			const data = await api('/api/notifications?limit=10');
 			notifications = data.notifications || [];
 		} catch (err) {
-			console.error('Failed to fetch notifications:', err);
+			// Silently fail on 404
+			if (!err.message || !err.message.includes('404')) {
+				console.error('Failed to fetch notifications:', err);
+			}
 		}
 	}
 
@@ -65,6 +96,7 @@
 	}
 
 	function toggleDropdown() {
+		if (!notificationsAvailable) return;
 		showDropdown = !showDropdown;
 		if (showDropdown) {
 			fetchNotifications();
@@ -101,7 +133,7 @@
 			case 'success': return 'text-green-600';
 			case 'warning': return 'text-yellow-600';
 			case 'info': return 'text-blue-600';
-			default: return 'text-gray-600';
+			default: return 'text-secondary';
 		}
 	}
 </script>
@@ -109,8 +141,9 @@
 <div class="relative">
 	<button
 		on:click={toggleDropdown}
-		class="relative p-2 text-secondary hover:text-primary transition-colors"
+		class="relative p-2 text-secondary hover:text-primary transition-colors {notificationsAvailable ? '' : 'opacity-50 cursor-not-allowed'}"
 		aria-label="Notifications"
+		disabled={!notificationsAvailable}
 	>
 		<!-- Bell Icon -->
 		<svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -118,7 +151,7 @@
 		</svg>
 		
 		<!-- Badge -->
-		{#if unreadCount > 0}
+		{#if unreadCount > 0 && notificationsAvailable}
 			<span class="absolute top-0 right-0 inline-flex items-center justify-center px-2 py-1 text-xs font-bold leading-none text-white bg-red-600 rounded-full">
 				{unreadCount > 9 ? '9+' : unreadCount}
 			</span>
@@ -126,7 +159,7 @@
 	</button>
 
 	<!-- Dropdown -->
-	{#if showDropdown}
+	{#if showDropdown && notificationsAvailable}
 		<div class="absolute right-0 mt-2 w-96 bg-surface rounded-lg shadow-lg border border-custom z-50">
 			<div class="p-4 border-b border-custom flex justify-between items-center">
 				<h3 class="font-semibold text-[var(--text-primary)]">Notifications</h3>
