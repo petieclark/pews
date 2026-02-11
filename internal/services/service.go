@@ -22,7 +22,8 @@ func NewService(db *pgxpool.Pool) *Service {
 
 func (s *Service) ListServiceTypes(ctx context.Context, tenantID string) ([]ServiceType, error) {
 	rows, err := s.db.Query(ctx, `
-		SELECT id, tenant_id, name, default_time, default_day, color, is_active, created_at, updated_at
+		SELECT id, tenant_id, name, COALESCE(default_time, ''), COALESCE(default_day, ''), 
+		       COALESCE(color, '#4A8B8C'), is_active, created_at, updated_at
 		FROM service_types
 		ORDER BY name`)
 	if err != nil {
