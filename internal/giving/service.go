@@ -18,6 +18,11 @@ func NewService(db *pgxpool.Pool) *Service {
 	return &Service{db: db}
 }
 
+// GetDB returns the database pool for direct queries
+func (s *Service) GetDB() *pgxpool.Pool {
+	return s.db
+}
+
 // Funds
 
 func (s *Service) ListFunds(ctx context.Context, tenantID string) ([]Fund, error) {

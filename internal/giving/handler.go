@@ -2,6 +2,7 @@ package giving
 
 import (
 	"encoding/json"
+	"fmt"
 	"io"
 	"net/http"
 	"strconv"
@@ -334,6 +335,136 @@ func (h *Handler) GenerateStatement(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusCreated)
 	json.NewEncoder(w).Encode(statement)
+}
+
+// GenerateStatementPDF generates a PDF tax statement for a specific person and year
+func (h *Handler) GenerateStatementPDF(w http.ResponseWriter, r *http.Request) {
+	claims, ok := middleware.GetClaims(r.Context())
+	if !ok {
+		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		return
+	}
+
+	if claims.Role != "admin" {
+		http.Error(w, "Forbidden: admin role required", http.StatusForbidden)
+		return
+	}
+
+	yearStr := chi.URLParam(r, "year")
+	year, err := strconv.Atoi(yearStr)
+	if err != nil {
+		http.Error(w, "Invalid year", http.StatusBadRequest)
+		return
+	}
+
+	personID := chi.URLParam(r, "personId")
+	if personID == "" {
+		http.Error(w, "Person ID is required", http.StatusBadRequest)
+		return
+	}
+
+	// Get tenant info
+	tenantInfo, err := h.service.GetTenantInfoForStatement(r.Context(), claims.TenantID)
+	if err != nil {
+		http.Error(w, "Failed to get tenant info: "+err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	// Get person info
+	personInfo, err := h.service.GetPersonInfoForStatement(r.Context(), claims.TenantID, personID)
+	if err != nil {
+		http.Error(w, "Failed to get person info: "+err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	// Get donations for the year
+	donations, err := h.service.GetDonationsForStatement(r.Context(), claims.TenantID, personID, year)
+	if err != nil {
+		http.Error(w, "Failed to get donations: "+err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	if len(donations) == 0 {
+		http.Error(w, "No donations found for this person in the specified year", http.StatusNotFound)
+		return
+	}
+
+	// Generate PDF
+	pdfBytes, err := GenerateTaxStatementPDF(tenantInfo, personInfo, year, donations)
+	if err != nil {
+		http.Error(w, "Failed to generate PDF: "+err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	// Return PDF
+	w.Header().Set("Content-Type", "application/pdf")
+	w.Header().Set("Content-Disposition", fmt.Sprintf("attachment; filename=\"tax-statement-%d-%s.pdf\"", year, personID[:8]))
+	w.Write(pdfBytes)
+}
+
+// GenerateBatchStatementsPDF generates PDF tax statements for all donors in a year
+func (h *Handler) GenerateBatchStatementsPDF(w http.ResponseWriter, r *http.Request) {
+	claims, ok := middleware.GetClaims(r.Context())
+	if !ok {
+		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		return
+	}
+
+	if claims.Role != "admin" {
+		http.Error(w, "Forbidden: admin role required", http.StatusForbidden)
+		return
+	}
+
+	yearStr := chi.URLParam(r, "year")
+	year, err := strconv.Atoi(yearStr)
+	if err != nil {
+		http.Error(w, "Invalid year", http.StatusBadRequest)
+		return
+	}
+
+	// Get all donors who gave in this year
+	yearStart := time.Date(year, 1, 1, 0, 0, 0, 0, time.UTC)
+	yearEnd := time.Date(year+1, 1, 1, 0, 0, 0, 0, time.UTC)
+
+	rows, err := h.service.GetDB().Query(r.Context(),
+		`SELECT DISTINCT person_id FROM donations 
+		 WHERE tenant_id = $1 AND status = 'completed' 
+		   AND donated_at >= $2 AND donated_at < $3
+		   AND person_id IS NOT NULL
+		 ORDER BY person_id`,
+		claims.TenantID, yearStart, yearEnd,
+	)
+	if err != nil {
+		http.Error(w, "Failed to get donors: "+err.Error(), http.StatusInternalServerError)
+		return
+	}
+	defer rows.Close()
+
+	var donorIDs []string
+	for rows.Next() {
+		var personID string
+		if err := rows.Scan(&personID); err != nil {
+			http.Error(w, "Failed to scan donor: "+err.Error(), http.StatusInternalServerError)
+			return
+		}
+		donorIDs = append(donorIDs, personID)
+	}
+
+	if len(donorIDs) == 0 {
+		http.Error(w, "No donations found for the specified year", http.StatusNotFound)
+		return
+	}
+
+	// Return list of donors who can have statements generated
+	// Frontend can then generate them one by one or batch download
+	resp := map[string]interface{}{
+		"year":       year,
+		"donor_count": len(donorIDs),
+		"message":    fmt.Sprintf("Found %d donors with contributions in %d. Use individual statement endpoint to generate PDFs.", len(donorIDs), year),
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(resp)
 }
 
 // Recurring donations

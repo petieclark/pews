@@ -169,6 +169,8 @@ func New(
 
 		// Giving - Statements
 		r.Post("/api/giving/statements/{year}", givingHandler.GenerateStatement)
+		r.Get("/api/giving/statements/{year}/{personId}", givingHandler.GenerateStatementPDF)
+		r.Get("/api/giving/statements/{year}", givingHandler.GenerateBatchStatementsPDF)
 
 		// Giving - Stripe Connect
 		r.Post("/api/giving/connect/onboard", givingHandler.CreateConnectOnboard)

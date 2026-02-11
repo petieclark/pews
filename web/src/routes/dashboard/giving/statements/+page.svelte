@@ -40,20 +40,31 @@
 		loading = true;
 
 		try {
-			const response = await fetch(`/api/giving/statements/${selectedYear}`, {
-				method: 'POST',
+			// Call the PDF generation endpoint
+			const response = await fetch(`/api/giving/statements/${selectedYear}/${selectedPerson}`, {
+				method: 'GET',
 				headers: {
-					'Authorization': `Bearer ${localStorage.getItem('token')}`,
-					'Content-Type': 'application/json'
-				},
-				body: JSON.stringify({
-					person_id: selectedPerson
-				})
+					'Authorization': `Bearer ${localStorage.getItem('token')}`
+				}
 			});
 
 			if (response.ok) {
-				const statement = await response.json();
-				alert(`Statement generated! Total: $${(statement.total_cents / 100).toFixed(2)}`);
+				// Get the PDF blob
+				const blob = await response.blob();
+				
+				// Create a download link
+				const url = window.URL.createObjectURL(blob);
+				const a = document.createElement('a');
+				a.href = url;
+				a.download = `tax-statement-${selectedYear}-${selectedPerson.substring(0, 8)}.pdf`;
+				document.body.appendChild(a);
+				a.click();
+				window.URL.revokeObjectURL(url);
+				document.body.removeChild(a);
+				
+				alert('Statement downloaded successfully!');
+			} else if (response.status === 404) {
+				alert('No donations found for this person in the selected year.');
 			} else {
 				alert('Failed to generate statement');
 			}
@@ -63,6 +74,33 @@
 		} finally {
 			loading = false;
 			generatingFor = null;
+		}
+	}
+	
+	async function generateBatchStatements() {
+		loading = true;
+		
+		try {
+			const response = await fetch(`/api/giving/statements/${selectedYear}`, {
+				method: 'GET',
+				headers: {
+					'Authorization': `Bearer ${localStorage.getItem('token')}`
+				}
+			});
+
+			if (response.ok) {
+				const data = await response.json();
+				alert(`Found ${data.donor_count} donors with contributions in ${selectedYear}. Use the individual statement generator to create PDFs for each donor.`);
+			} else if (response.status === 404) {
+				alert('No donations found for the selected year.');
+			} else {
+				alert('Failed to get donor list');
+			}
+		} catch (error) {
+			console.error('Failed to generate batch statements:', error);
+			alert('An error occurred');
+		} finally {
+			loading = false;
 		}
 	}
 
@@ -114,13 +152,23 @@
 			</div>
 		</div>
 
-		<button
-			on:click={generateStatement}
-			disabled={loading || !selectedPerson}
-			class="w-full px-4 py-2 bg-[#4A8B8C] text-white rounded-lg hover:bg-[#3d7576] transition disabled:opacity-50 disabled:cursor-not-allowed"
-		>
-			{loading ? 'Generating...' : 'Generate Statement'}
-		</button>
+		<div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+			<button
+				on:click={generateStatement}
+				disabled={loading || !selectedPerson}
+				class="px-4 py-2 bg-[#4A8B8C] text-white rounded-lg hover:bg-[#3d7576] transition disabled:opacity-50 disabled:cursor-not-allowed"
+			>
+				{loading ? 'Generating...' : 'Download PDF Statement'}
+			</button>
+			
+			<button
+				on:click={generateBatchStatements}
+				disabled={loading}
+				class="px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition disabled:opacity-50 disabled:cursor-not-allowed"
+			>
+				Check All Donors for {selectedYear}
+			</button>
+		</div>
 	</div>
 
 	<div class="bg-blue-50 border border-blue-200 rounded-lg p-6">
@@ -130,7 +178,8 @@
 			<li>• Only completed donations are included (pending/failed excluded)</li>
 			<li>• Statements are required for tax-deductible contributions</li>
 			<li>• Generate statements by January 31st for the previous tax year</li>
-			<li>• Future update: PDF generation and email delivery</li>
+			<li>• PDFs include donor info, donation details, total, and tax disclaimer</li>
+			<li>• Use "Check All Donors" to see how many people gave in a year</li>
 		</ul>
 	</div>
 </div>
