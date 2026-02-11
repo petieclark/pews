@@ -129,7 +129,7 @@
 		<h1 class="text-3xl font-bold text-[var(--text-primary)]">Groups</h1>
 		<button
 			on:click={() => (showCreateModal = true)}
-			class="px-4 py-2 bg-[#4A8B8C] text-white rounded-md hover:bg-opacity-90"
+			class="px-4 py-2 bg-[var(--teal)] text-white rounded-md hover:bg-opacity-90"
 		>
 			Create Group
 		</button>
@@ -197,14 +197,14 @@
 								class={`px-2 py-1 text-xs rounded ${
 									group.is_active
 										? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-100'
-										: 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300'
+										: 'bg-[var(--surface-hover)] text-primary dark:bg-gray-700 dark:text-gray-300'
 								}`}
 							>
 								{group.is_active ? 'Active' : 'Inactive'}
 							</span>
 						</div>
 
-						<p class="text-sm text-[#4A8B8C] mb-2">{getGroupTypeLabel(group.group_type)}</p>
+						<p class="text-sm text-[var(--teal)] mb-2">{getGroupTypeLabel(group.group_type)}</p>
 
 						{#if group.description}
 							<p class="text-sm text-secondary mb-3 line-clamp-2">{group.description}</p>
@@ -359,13 +359,13 @@
 								showCreateModal = false;
 								resetNewGroup();
 							}}
-							class="px-4 py-2 border border-custom rounded-md text-secondary hover:bg-gray-50 dark:hover:bg-gray-800"
+							class="px-4 py-2 border border-custom rounded-md text-secondary hover:bg-[var(--surface-hover)] dark:hover:bg-gray-800"
 						>
 							Cancel
 						</button>
 						<button
 							type="submit"
-							class="px-4 py-2 bg-[#4A8B8C] text-white rounded-md hover:bg-opacity-90"
+							class="px-4 py-2 bg-[var(--teal)] text-white rounded-md hover:bg-opacity-90"
 						>
 							Create Group
 						</button>

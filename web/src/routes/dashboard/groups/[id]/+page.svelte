@@ -191,7 +191,7 @@
 	function getRoleBadgeClass(role) {
 		if (role === 'leader') return 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-100';
 		if (role === 'co_leader') return 'bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-100';
-		return 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300';
+		return 'bg-[var(--surface-hover)] text-primary dark:bg-gray-700 dark:text-gray-300';
 	}
 
 	$: filteredPeople = people.filter(
@@ -212,18 +212,18 @@
 			<div>
 				<button
 					on:click={() => goto('/dashboard/groups')}
-					class="text-sm text-[#4A8B8C] hover:underline mb-2"
+					class="text-sm text-[var(--teal)] hover:underline mb-2"
 				>
 					← Back to Groups
 				</button>
 				<h1 class="text-3xl font-bold text-primary">{group.name}</h1>
 				<div class="flex gap-2 mt-2">
-					<span class="text-sm text-[#4A8B8C]">{getGroupTypeLabel(group.group_type)}</span>
+					<span class="text-sm text-[var(--teal)]">{getGroupTypeLabel(group.group_type)}</span>
 					<span
 						class={`px-2 py-1 text-xs rounded ${
 							group.is_active
 								? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-100'
-								: 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300'
+								: 'bg-[var(--surface-hover)] text-primary dark:bg-gray-700 dark:text-gray-300'
 						}`}
 					>
 						{group.is_active ? 'Active' : 'Inactive'}
@@ -238,7 +238,7 @@
 			<div class="flex gap-2">
 				<button
 					on:click={() => (showEditModal = true)}
-					class="px-4 py-2 bg-[#4A8B8C] text-white rounded-md hover:bg-opacity-90"
+					class="px-4 py-2 bg-[var(--teal)] text-white rounded-md hover:bg-opacity-90"
 				>
 					Edit Group
 				</button>
@@ -300,7 +300,7 @@
 				<h2 class="text-xl font-bold text-primary">Members ({members.length})</h2>
 				<button
 					on:click={() => (showAddMemberModal = true)}
-					class="px-4 py-2 bg-[#4A8B8C] text-white rounded-md hover:bg-opacity-90"
+					class="px-4 py-2 bg-[var(--teal)] text-white rounded-md hover:bg-opacity-90"
 				>
 					Add Member
 				</button>
@@ -483,13 +483,13 @@
 						<button
 							type="button"
 							on:click={() => (showEditModal = false)}
-							class="px-4 py-2 border border-custom rounded-md text-secondary hover:bg-gray-50 dark:hover:bg-gray-800"
+							class="px-4 py-2 border border-custom rounded-md text-secondary hover:bg-[var(--surface-hover)] dark:hover:bg-gray-800"
 						>
 							Cancel
 						</button>
 						<button
 							type="submit"
-							class="px-4 py-2 bg-[#4A8B8C] text-white rounded-md hover:bg-opacity-90"
+							class="px-4 py-2 bg-[var(--teal)] text-white rounded-md hover:bg-opacity-90"
 						>
 							Save Changes
 						</button>
@@ -555,13 +555,13 @@
 								newMember = { person_id: '', role: 'member' };
 								searchPeople = '';
 							}}
-							class="px-4 py-2 border border-custom rounded-md text-secondary hover:bg-gray-50 dark:hover:bg-gray-800"
+							class="px-4 py-2 border border-custom rounded-md text-secondary hover:bg-[var(--surface-hover)] dark:hover:bg-gray-800"
 						>
 							Cancel
 						</button>
 						<button
 							type="submit"
-							class="px-4 py-2 bg-[#4A8B8C] text-white rounded-md hover:bg-opacity-90"
+							class="px-4 py-2 bg-[var(--teal)] text-white rounded-md hover:bg-opacity-90"
 						>
 							Add Member
 						</button>

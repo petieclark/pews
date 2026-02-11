@@ -107,11 +107,11 @@
 
 	function getStatusColor(status: string): string {
 		switch (status) {
-			case 'completed': return 'bg-green-100 text-green-800';
-			case 'pending': return 'bg-yellow-100 text-yellow-800';
-			case 'failed': return 'bg-red-100 text-red-800';
-			case 'refunded': return 'bg-gray-100 text-gray-800';
-			default: return 'bg-gray-100 text-gray-800';
+			case 'completed': return 'status-completed';
+			case 'pending': return 'status-pending';
+			case 'failed': return 'status-failed';
+			case 'refunded': return 'status-refunded';
+			default: return 'status-refunded';
 		}
 	}
 </script>
@@ -119,26 +119,26 @@
 <div class="p-6">
 	<div class="mb-6 flex justify-between items-center">
 		<div>
-			<h1 class="text-3xl font-bold text-[#1B3A4B]">Donations</h1>
-			<p class="text-gray-600 mt-1">View and manage all donations</p>
+			<h1 class="text-3xl font-bold text-primary">Donations</h1>
+			<p class="text-secondary mt-1">View and manage all donations</p>
 		</div>
 		<a
 			href="/dashboard/giving/donations/new"
-			class="px-4 py-2 bg-[#4A8B8C] text-white rounded-lg hover:bg-[#3d7576] transition"
+			class="px-4 py-2 bg-[var(--teal)] text-white rounded-lg hover:opacity-90 transition"
 		>
 			Record Donation
 		</a>
 	</div>
 
 	<!-- Filters -->
-	<div class="bg-white rounded-lg shadow p-6 mb-6">
-		<h2 class="text-lg font-semibold text-[#1B3A4B] mb-4">Filters</h2>
+	<div class="bg-surface rounded-lg shadow p-6 mb-6 border border-custom">
+		<h2 class="text-lg font-semibold text-primary mb-4">Filters</h2>
 		<div class="grid grid-cols-1 md:grid-cols-4 gap-4">
 			<div>
-				<label class="block text-sm font-medium text-gray-700 mb-1">Fund</label>
+				<label class="block text-sm font-medium text-primary mb-1">Fund</label>
 				<select
 					bind:value={fundFilter}
-					class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#4A8B8C] focus:border-transparent"
+					class="w-full px-3 py-2 border input-border bg-[var(--input-bg)] text-primary rounded-lg focus:ring-2 focus:ring-[var(--teal)] focus:border-transparent bg-[var(--input-bg)] text-primary"
 				>
 					<option value="">All Funds</option>
 					{#each funds as fund}
@@ -148,33 +148,33 @@
 			</div>
 
 			<div>
-				<label class="block text-sm font-medium text-gray-700 mb-1">From Date</label>
+				<label class="block text-sm font-medium text-primary mb-1">From Date</label>
 				<input
 					type="date"
 					bind:value={fromDate}
-					class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#4A8B8C] focus:border-transparent"
+					class="w-full px-3 py-2 border input-border bg-[var(--input-bg)] text-primary rounded-lg focus:ring-2 focus:ring-[var(--teal)] focus:border-transparent bg-[var(--input-bg)] text-primary"
 				/>
 			</div>
 
 			<div>
-				<label class="block text-sm font-medium text-gray-700 mb-1">To Date</label>
+				<label class="block text-sm font-medium text-primary mb-1">To Date</label>
 				<input
 					type="date"
 					bind:value={toDate}
-					class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#4A8B8C] focus:border-transparent"
+					class="w-full px-3 py-2 border input-border bg-[var(--input-bg)] text-primary rounded-lg focus:ring-2 focus:ring-[var(--teal)] focus:border-transparent bg-[var(--input-bg)] text-primary"
 				/>
 			</div>
 
 			<div class="flex items-end gap-2">
 				<button
 					on:click={applyFilters}
-					class="flex-1 px-4 py-2 bg-[#4A8B8C] text-white rounded-lg hover:bg-[#3d7576] transition"
+					class="flex-1 px-4 py-2 bg-[var(--teal)] text-white rounded-lg hover:opacity-90 transition"
 				>
 					Apply
 				</button>
 				<button
 					on:click={clearFilters}
-					class="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition"
+					class="flex-1 px-4 py-2 border border-custom text-primary rounded-lg hover:bg-[var(--surface-hover)] transition"
 				>
 					Clear
 				</button>
@@ -183,55 +183,55 @@
 	</div>
 
 	<!-- Donations Table -->
-	<div class="bg-white rounded-lg shadow overflow-hidden">
+	<div class="bg-surface rounded-lg shadow overflow-hidden border border-custom">
 		{#if loading}
 			<div class="flex justify-center items-center py-12">
-				<div class="animate-spin rounded-full h-12 w-12 border-b-2 border-[#4A8B8C]"></div>
+				<div class="animate-spin rounded-full h-12 w-12 border-b-2 border-[var(--teal)]"></div>
 			</div>
 		{:else if donations.length === 0}
 			<div class="text-center py-12">
-				<p class="text-gray-500">No donations found</p>
+				<p class="text-secondary">No donations found</p>
 			</div>
 		{:else}
-			<table class="min-w-full divide-y divide-gray-200">
-				<thead class="bg-gray-50">
+			<table class="min-w-full divide-y divide-[var(--border)]">
+				<thead class="bg-[var(--surface-hover)]">
 					<tr>
-						<th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+						<th class="px-6 py-3 text-left text-xs font-medium text-secondary uppercase tracking-wider">
 							Date
 						</th>
-						<th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+						<th class="px-6 py-3 text-left text-xs font-medium text-secondary uppercase tracking-wider">
 							Donor
 						</th>
-						<th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+						<th class="px-6 py-3 text-left text-xs font-medium text-secondary uppercase tracking-wider">
 							Fund
 						</th>
-						<th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+						<th class="px-6 py-3 text-left text-xs font-medium text-secondary uppercase tracking-wider">
 							Amount
 						</th>
-						<th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+						<th class="px-6 py-3 text-left text-xs font-medium text-secondary uppercase tracking-wider">
 							Method
 						</th>
-						<th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+						<th class="px-6 py-3 text-left text-xs font-medium text-secondary uppercase tracking-wider">
 							Status
 						</th>
 					</tr>
 				</thead>
-				<tbody class="bg-white divide-y divide-gray-200">
+				<tbody class="bg-surface divide-y divide-[var(--border)]">
 					{#each donations as donation}
-						<tr class="hover:bg-gray-50">
-							<td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+						<tr class="hover:bg-[var(--surface-hover)]">
+							<td class="px-6 py-4 whitespace-nowrap text-sm text-primary">
 								{formatDate(donation.donated_at)}
 							</td>
-							<td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+							<td class="px-6 py-4 whitespace-nowrap text-sm text-primary">
 								{donation.person_name || 'Anonymous'}
 							</td>
-							<td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+							<td class="px-6 py-4 whitespace-nowrap text-sm text-primary">
 								{donation.fund_name}
 							</td>
-							<td class="px-6 py-4 whitespace-nowrap text-sm font-semibold text-[#4A8B8C]">
+							<td class="px-6 py-4 whitespace-nowrap text-sm font-semibold text-[var(--teal)]">
 								{formatCurrency(donation.amount_cents)}
 							</td>
-							<td class="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
+							<td class="px-6 py-4 whitespace-nowrap text-sm text-secondary">
 								{donation.payment_method || 'N/A'}
 							</td>
 							<td class="px-6 py-4 whitespace-nowrap">
@@ -245,22 +245,22 @@
 			</table>
 
 			<!-- Pagination -->
-			<div class="px-6 py-4 border-t border-gray-200 flex justify-between items-center">
-				<p class="text-sm text-gray-700">
+			<div class="px-6 py-4 border-t border-custom flex justify-between items-center">
+				<p class="text-sm text-secondary">
 					Showing {((page - 1) * perPage) + 1} to {Math.min(page * perPage, total)} of {total} donations
 				</p>
 				<div class="flex gap-2">
 					<button
 						on:click={prevPage}
 						disabled={page === 1}
-						class="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+						class="px-4 py-2 border border-custom rounded-lg hover:bg-[var(--surface-hover)] disabled:opacity-50 disabled:cursor-not-allowed text-primary"
 					>
 						Previous
 					</button>
 					<button
 						on:click={nextPage}
 						disabled={page * perPage >= total}
-						class="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+						class="px-4 py-2 border border-custom rounded-lg hover:bg-[var(--surface-hover)] disabled:opacity-50 disabled:cursor-not-allowed text-primary"
 					>
 						Next
 					</button>
@@ -269,3 +269,41 @@
 		{/if}
 	</div>
 </div>
+
+<style>
+	.status-completed {
+		background-color: #D1FAE5;
+		color: #065F46;
+	}
+	:global(.dark) .status-completed {
+		background-color: #064E3B;
+		color: #6EE7B7;
+	}
+	
+	.status-pending {
+		background-color: #FEF3C7;
+		color: #92400E;
+	}
+	:global(.dark) .status-pending {
+		background-color: #78350F;
+		color: #FCD34D;
+	}
+	
+	.status-failed {
+		background-color: #FEE2E2;
+		color: #991B1B;
+	}
+	:global(.dark) .status-failed {
+		background-color: #7F1D1D;
+		color: #FCA5A5;
+	}
+	
+	.status-refunded {
+		background-color: #F3F4F6;
+		color: #374151;
+	}
+	:global(.dark) .status-refunded {
+		background-color: #1F2937;
+		color: #9CA3AF;
+	}
+</style>

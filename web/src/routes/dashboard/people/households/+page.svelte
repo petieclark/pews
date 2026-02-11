@@ -66,11 +66,11 @@
 	</div>
 
 	<!-- Households list -->
-	<div class="bg-white rounded-lg shadow overflow-hidden">
+	<div class="bg-surface rounded-lg shadow overflow-hidden">
 		{#if loading}
-			<div class="p-8 text-center text-gray-500">Loading...</div>
+			<div class="p-8 text-center text-secondary">Loading...</div>
 		{:else if households.length === 0}
-			<div class="p-8 text-center text-gray-500">
+			<div class="p-8 text-center text-secondary">
 				No households found. Create your first household to get started.
 			</div>
 		{:else}
@@ -79,7 +79,7 @@
 					<div class="border rounded-lg p-4 hover:shadow-md transition-shadow">
 						<h3 class="text-lg font-semibold text-navy mb-2">{household.name}</h3>
 						{#if household.address_line1}
-							<div class="text-sm text-gray-600">
+							<div class="text-sm text-secondary">
 								<p>{household.address_line1}</p>
 								{#if household.address_line2}<p>{household.address_line2}</p>{/if}
 								{#if household.city || household.state || household.zip}
@@ -100,51 +100,51 @@
 <!-- Create household modal -->
 {#if showCreateModal}
 	<div class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-		<div class="bg-white rounded-lg max-w-md w-full p-6">
+		<div class="bg-surface rounded-lg max-w-md w-full p-6">
 			<h2 class="text-2xl font-bold text-navy mb-4">Add Household</h2>
 			<form on:submit|preventDefault={createHousehold} class="space-y-4">
 				<div>
-					<label class="block text-sm font-medium text-gray-700">Household Name *</label>
+					<label class="block text-sm font-medium text-primary">Household Name *</label>
 					<input
 						type="text"
 						bind:value={newHousehold.name}
 						required
 						placeholder="e.g., Smith Family"
-						class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-teal"
+						class="mt-1 block w-full px-3 py-2 border input-border rounded-md focus:outline-none focus:ring-2 focus:ring-teal"
 					/>
 				</div>
 				<div>
-					<label class="block text-sm font-medium text-gray-700">Address</label>
+					<label class="block text-sm font-medium text-primary">Address</label>
 					<input
 						type="text"
 						bind:value={newHousehold.address_line1}
 						placeholder="Street address"
-						class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-teal"
+						class="mt-1 block w-full px-3 py-2 border input-border rounded-md focus:outline-none focus:ring-2 focus:ring-teal"
 					/>
 					<input
 						type="text"
 						bind:value={newHousehold.address_line2}
 						placeholder="Apt, suite, etc."
-						class="mt-2 block w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-teal"
+						class="mt-2 block w-full px-3 py-2 border input-border rounded-md focus:outline-none focus:ring-2 focus:ring-teal"
 					/>
 					<div class="grid grid-cols-3 gap-2 mt-2">
 						<input
 							type="text"
 							bind:value={newHousehold.city}
 							placeholder="City"
-							class="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-teal"
+							class="px-3 py-2 border input-border rounded-md focus:outline-none focus:ring-2 focus:ring-teal"
 						/>
 						<input
 							type="text"
 							bind:value={newHousehold.state}
 							placeholder="State"
-							class="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-teal"
+							class="px-3 py-2 border input-border rounded-md focus:outline-none focus:ring-2 focus:ring-teal"
 						/>
 						<input
 							type="text"
 							bind:value={newHousehold.zip}
 							placeholder="ZIP"
-							class="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-teal"
+							class="px-3 py-2 border input-border rounded-md focus:outline-none focus:ring-2 focus:ring-teal"
 						/>
 					</div>
 				</div>
@@ -152,7 +152,7 @@
 					<button
 						type="button"
 						on:click={() => (showCreateModal = false)}
-						class="flex-1 px-4 py-2 border border-gray-300 rounded-md hover:bg-gray-50"
+						class="flex-1 px-4 py-2 border input-border rounded-md hover:bg-[var(--surface-hover)]"
 					>
 						Cancel
 					</button>
