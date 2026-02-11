@@ -3,6 +3,7 @@
 	import { page } from '$app/stores';
 
 	const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8190';
+	const SITE_URL = import.meta.env.VITE_SITE_URL || 'http://localhost:5273';
 
 	$: streamId = $page.params.id;
 
@@ -182,6 +183,31 @@
 	}
 </script>
 
+<svelte:head>
+	{#if stream}
+		<title>{stream.title} | Live Stream</title>
+		<meta name="description" content={stream.description || 'Watch our live service stream'} />
+		
+		<!-- Open Graph / Facebook -->
+		<meta property="og:type" content="video.other" />
+		<meta property="og:url" content="{SITE_URL}/watch/{streamId}" />
+		<meta property="og:title" content={stream.title} />
+		<meta property="og:description" content={stream.description || 'Join us for our live service'} />
+		<meta property="og:image" content="{SITE_URL}/og-image.jpg" />
+		
+		<!-- Twitter -->
+		<meta property="twitter:card" content="player" />
+		<meta property="twitter:url" content="{SITE_URL}/watch/{streamId}" />
+		<meta property="twitter:title" content={stream.title} />
+		<meta property="twitter:description" content={stream.description || 'Join us for our live service'} />
+		<meta property="twitter:image" content="{SITE_URL}/og-image.jpg" />
+		
+		<!-- Mobile optimization -->
+		<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0" />
+		<meta name="theme-color" content="#14b8a6" />
+	{/if}
+</svelte:head>
+
 {#if stream}
 	<div class="max-w-7xl mx-auto">
 		<!-- Video Section -->
@@ -231,7 +257,7 @@
 				<!-- Give Now Button -->
 				{#if stream.giving_enabled}
 					<a
-						href="/giving"
+						href="/give"
 						class="block w-full px-6 py-3 bg-teal-600 hover:bg-teal-700 text-white text-center font-bold rounded-md"
 					>
 						💚 Give Now
