@@ -62,15 +62,77 @@ type ServiceItem struct {
 }
 
 type ServiceTeam struct {
-	ID        string `json:"id"`
-	ServiceID string `json:"service_id"`
-	PersonID  string `json:"person_id"`
-	Role      string `json:"role"`
-	Status    string `json:"status"`
-	Notes     string `json:"notes,omitempty"`
+	ID               string     `json:"id"`
+	ServiceID        string     `json:"service_id"`
+	PersonID         string     `json:"person_id"`
+	TeamID           *string    `json:"team_id,omitempty"`
+	Role             string     `json:"role"`
+	Status           string     `json:"status"`
+	Notes            string     `json:"notes,omitempty"`
+	NotifiedAt       *time.Time `json:"notified_at,omitempty"`
+	RespondedAt      *time.Time `json:"responded_at,omitempty"`
+	NotificationSent bool       `json:"notification_sent"`
 	// Optionally include person details
 	PersonFirstName string `json:"person_first_name,omitempty"`
 	PersonLastName  string `json:"person_last_name,omitempty"`
+	PersonEmail     string `json:"person_email,omitempty"`
+	TeamName        string `json:"team_name,omitempty"`
+}
+
+type VolunteerTeam struct {
+	ID          string    `json:"id"`
+	TenantID    string    `json:"tenant_id"`
+	Name        string    `json:"name"`
+	Description string    `json:"description,omitempty"`
+	Color       string    `json:"color"`
+	IsActive    bool      `json:"is_active"`
+	CreatedAt   time.Time `json:"created_at"`
+	UpdatedAt   time.Time `json:"updated_at"`
+	// Optionally include member count
+	MemberCount int `json:"member_count,omitempty"`
+}
+
+type TeamMember struct {
+	ID          string    `json:"id"`
+	TeamID      string    `json:"team_id"`
+	PersonID    string    `json:"person_id"`
+	Role        string    `json:"role,omitempty"`
+	IsActive    bool      `json:"is_active"`
+	AddedAt     time.Time `json:"added_at"`
+	// Person details
+	PersonFirstName string `json:"person_first_name,omitempty"`
+	PersonLastName  string `json:"person_last_name,omitempty"`
+	PersonEmail     string `json:"person_email,omitempty"`
+	// Team details
+	TeamName  string `json:"team_name,omitempty"`
+	TeamColor string `json:"team_color,omitempty"`
+}
+
+type VolunteerAvailability struct {
+	ID        string     `json:"id"`
+	PersonID  string     `json:"person_id"`
+	TeamID    *string    `json:"team_id,omitempty"`
+	StartDate time.Time  `json:"start_date"`
+	EndDate   time.Time  `json:"end_date"`
+	Reason    string     `json:"reason,omitempty"`
+	CreatedAt time.Time  `json:"created_at"`
+	UpdatedAt time.Time  `json:"updated_at"`
+	// Person details
+	PersonFirstName string `json:"person_first_name,omitempty"`
+	PersonLastName  string `json:"person_last_name,omitempty"`
+}
+
+type SchedulingConflict struct {
+	PersonID     string `json:"person_id"`
+	FirstName    string `json:"first_name"`
+	LastName     string `json:"last_name"`
+	ServiceCount int    `json:"service_count"`
+}
+
+type AutoScheduleRequest struct {
+	ServiceID string `json:"service_id"`
+	TeamID    string `json:"team_id"`
+	Role      string `json:"role"`
 }
 
 type SongUsage struct {
