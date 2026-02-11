@@ -31,6 +31,12 @@ var AvailableModules = []Module{
 		Description: "Children's ministry check-in and security",
 		Available:   true,
 	},
+	{
+		Name:        "calendar",
+		DisplayName: "Calendar",
+		Description: "Event calendar and scheduling",
+		Available:   true,
+	},
 }
 
 func GetModuleByName(name string) *Module {
