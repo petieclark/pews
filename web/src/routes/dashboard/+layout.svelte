@@ -56,6 +56,7 @@
 					<a href="/dashboard/streaming" class="text-secondary hover:text-primary">Streaming</a>
 					<a href="/dashboard/giving" class="text-secondary hover:text-primary">Giving</a>
 					<a href="/dashboard/communication" class="text-secondary hover:text-primary">Communication</a>
+					<a href="/dashboard/media" class="text-secondary hover:text-primary">Media</a>
 					<a href="/dashboard/settings" class="text-secondary hover:text-primary">Settings</a>
 				</div>
 				<div class="flex items-center space-x-4">
