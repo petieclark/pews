@@ -357,3 +357,86 @@ func (s *StripeService) CreatePaymentIntent(ctx context.Context, tenantID, perso
 
 	return pi.ClientSecret, nil
 }
+
+// Public checkout (kiosk)
+
+func (s *StripeService) CreatePublicCheckoutSession(ctx context.Context, tenantID, fundID string, amountCents int, name, email *string) (string, error) {
+	// Get tenant's Stripe account ID
+	var stripeAccountID *string
+	err := s.db.QueryRow(ctx,
+		`SELECT stripe_account_id FROM tenants WHERE id = $1`,
+		tenantID,
+	).Scan(&stripeAccountID)
+	if err != nil {
+		return "", err
+	}
+
+	if stripeAccountID == nil || *stripeAccountID == "" {
+		return "", fmt.Errorf("church has not completed Stripe Connect onboarding")
+	}
+
+	// Get fund name
+	var fundName string
+	err = s.db.QueryRow(ctx, `SELECT name FROM funds WHERE id = $1 AND tenant_id = $2`, fundID, tenantID).Scan(&fundName)
+	if err != nil {
+		return "", fmt.Errorf("fund not found")
+	}
+
+	// Calculate application fee (1%)
+	appFeeCents := amountCents / 100
+	if appFeeCents < 30 {
+		appFeeCents = 30 // Minimum 30 cents
+	}
+
+	// Build metadata
+	metadata := map[string]string{
+		"tenant_id": tenantID,
+		"fund_id":   fundID,
+		"kiosk":     "true",
+	}
+	if name != nil && *name != "" {
+		metadata["donor_name"] = *name
+	}
+	if email != nil && *email != "" {
+		metadata["donor_email"] = *email
+	}
+
+	// Create checkout session
+	params := &stripe.CheckoutSessionParams{
+		Mode: stripe.String(string(stripe.CheckoutSessionModePayment)),
+		LineItems: []*stripe.CheckoutSessionLineItemParams{
+			{
+				PriceData: &stripe.CheckoutSessionLineItemPriceDataParams{
+					Currency: stripe.String("usd"),
+					ProductData: &stripe.CheckoutSessionLineItemPriceDataProductDataParams{
+						Name:        stripe.String("Donation to " + fundName),
+						Description: stripe.String("Kiosk donation"),
+					},
+					UnitAmount: stripe.Int64(int64(amountCents)),
+				},
+				Quantity: stripe.Int64(1),
+			},
+		},
+		PaymentIntentData: &stripe.CheckoutSessionPaymentIntentDataParams{
+			ApplicationFeeAmount: stripe.Int64(int64(appFeeCents)),
+			Metadata:             metadata,
+		},
+		SuccessURL: stripe.String(s.frontendURL + "/giving-kiosk/thank-you"),
+		CancelURL:  stripe.String(s.frontendURL + "/giving-kiosk"),
+		Metadata:   metadata,
+	}
+
+	// Add email if provided
+	if email != nil && *email != "" {
+		params.CustomerEmail = stripe.String(*email)
+	}
+
+	params.SetStripeAccount(*stripeAccountID)
+
+	sess, err := session.New(params)
+	if err != nil {
+		return "", fmt.Errorf("failed to create checkout session: %w", err)
+	}
+
+	return sess.URL, nil
+}

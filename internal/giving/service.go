@@ -477,6 +477,31 @@ func (s *Service) ListRecurringDonations(ctx context.Context, tenantID string) (
 	return donations, rows.Err()
 }
 
+// Kiosk Config
+
+func (s *Service) GetKioskConfig(ctx context.Context, tenantID string) (*KioskConfig, error) {
+	var config KioskConfig
+	err := s.db.QueryRow(ctx,
+		`SELECT kiosk_config FROM tenants WHERE id = $1`,
+		tenantID,
+	).Scan(&config)
+	
+	if err != nil {
+		return nil, err
+	}
+	
+	return &config, nil
+}
+
+func (s *Service) UpdateKioskConfig(ctx context.Context, tenantID string, config *KioskConfig) error {
+	_, err := s.db.Exec(ctx,
+		`UPDATE tenants SET kiosk_config = $1, updated_at = NOW() WHERE id = $2`,
+		config,
+		tenantID,
+	)
+	return err
+}
+
 // Helper functions
 
 func formatCents(cents int) string {

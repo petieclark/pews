@@ -4,6 +4,7 @@ import (
 	"net/http"
 
 	"github.com/go-chi/chi/v5"
+	// "github.com/petieclark/pews/internal/audit"
 	"github.com/petieclark/pews/internal/auth"
 	"github.com/petieclark/pews/internal/billing"
 	"github.com/petieclark/pews/internal/calendar"
@@ -22,6 +23,7 @@ import (
 	"github.com/petieclark/pews/internal/sermons"
 	"github.com/petieclark/pews/internal/streaming"
 	"github.com/petieclark/pews/internal/tenant"
+	"github.com/petieclark/pews/internal/website"
 )
 
 type Router struct {
@@ -47,6 +49,7 @@ func New(
 	prayerHandler *prayer.Handler,
 	searchHandler *search.Handler,
 	notificationHandler *notification.Handler,
+	websiteHandler *website.Handler,
 	webhookSecret string,
 	givingWebhookSecret string,
 	frontendURL string,
@@ -63,6 +66,10 @@ func New(
 	r.Post("/api/auth/login", authHandler.Login)
 	r.Post("/api/billing/webhook", billingHandler.HandleWebhook(webhookSecret))
 	r.Post("/api/giving/webhook", givingHandler.HandleWebhook(givingWebhookSecret))
+	
+	// Public kiosk routes
+	r.Get("/api/giving/kiosk/config", givingHandler.GetPublicKioskConfig)
+	r.Post("/api/giving/public/checkout", givingHandler.CreatePublicCheckout)
 
 	// Public streaming routes (no auth required)
 	r.Get("/api/streaming/watch/{id}", streamingHandler.GetWatchStream)
@@ -81,6 +88,9 @@ func New(
 	// Public sermon routes (no auth required)
 	r.Get("/api/sermons/public", sermonsHandler.GetPublicSermons)
 	r.Get("/api/sermons/feed.xml", sermonsHandler.GetPodcastFeed)
+
+	// Public website route (no auth required)
+	r.Get("/{slug}", websiteHandler.RenderPublicWebsite)
 
 	// Health check
 	r.Get("/api/health", func(w http.ResponseWriter, r *http.Request) {
@@ -214,6 +224,10 @@ func New(
 		r.Get("/api/giving/connect/return", givingHandler.HandleConnectReturn)
 		r.Get("/api/giving/connect/refresh", givingHandler.HandleConnectRefresh)
 		r.Post("/api/giving/checkout", givingHandler.CreateCheckout)
+		
+		// Giving - Kiosk
+		r.Get("/api/giving/kiosk", givingHandler.GetKioskConfig)
+		r.Put("/api/giving/kiosk", givingHandler.UpdateKioskConfig)
 
 		// Streaming - Streams
 		r.Get("/api/streaming", streamingHandler.ListStreams)
@@ -324,6 +338,11 @@ func New(
 		r.Delete("/api/prayer-requests/{id}/follow", prayerHandler.FollowPrayerRequest)
 		r.Get("/api/prayer-requests/{id}/followers", prayerHandler.ListFollowers)
 		r.Post("/api/prayer-requests/import/{connectionCardId}", prayerHandler.ImportFromConnectionCard)
+
+		// Website Builder
+		r.Get("/api/website/config", websiteHandler.GetConfig)
+		r.Put("/api/website/config", websiteHandler.UpdateConfig)
+		r.Get("/api/website/preview", websiteHandler.GetPreview)
 	})
 
 	return &Router{r}

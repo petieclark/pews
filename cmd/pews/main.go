@@ -31,6 +31,7 @@ import (
 	"github.com/petieclark/pews/internal/sermons"
 	"github.com/petieclark/pews/internal/streaming"
 	"github.com/petieclark/pews/internal/tenant"
+	"github.com/petieclark/pews/internal/website"
 )
 
 func main() {
@@ -83,6 +84,7 @@ func run() error {
 	prayerService := prayer.NewService(db.Pool)
 	searchService := search.NewService(db.Pool)
 	notificationService := notification.NewService(db.Pool)
+	websiteService := website.NewService(db.Pool)
 
 	// Initialize handlers
 	authHandler := auth.NewHandler(authService, tenantService, billingService)
@@ -102,6 +104,7 @@ func run() error {
 	prayerHandler := prayer.NewHandler(prayerService)
 	searchHandler := search.NewHandler(searchService)
 	notificationHandler := notification.NewHandler(notificationService)
+	websiteHandler := website.NewHandler(websiteService)
 
 	// Setup router
 	r := router.New(
@@ -123,6 +126,7 @@ func run() error {
 		prayerHandler,
 		searchHandler,
 		notificationHandler,
+		websiteHandler,
 		cfg.StripeWebhookSecret,
 		cfg.StripeWebhookSecret, // Use same webhook secret for giving
 		cfg.FrontendURL,

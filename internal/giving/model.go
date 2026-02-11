@@ -80,3 +80,10 @@ type StripeConnectStatus struct {
 	ChargesEnabled       bool   `json:"charges_enabled"`
 	PayoutsEnabled       bool   `json:"payouts_enabled"`
 }
+
+type KioskConfig struct {
+	Enabled          bool     `json:"enabled"`
+	QuickAmounts     []int    `json:"quick_amounts"`      // Amount in cents
+	DefaultFundID    *string  `json:"default_fund_id"`
+	ThankYouMessage  string   `json:"thank_you_message"`
+}
