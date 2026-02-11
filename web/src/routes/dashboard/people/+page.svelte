@@ -8,7 +8,7 @@
 	let tags = [];
 	let total = 0;
 	let page = 1;
-	let limit = 50;
+	let limit = 25;
 	let searchQuery = '';
 	let loading = false;
 	let showCreateModal = false;
@@ -91,6 +91,28 @@
 		};
 		return colors[status] || 'status-inactive';
 	}
+
+	function formatPhone(phone) {
+		if (!phone) return '';
+		// Remove all non-digits
+		const cleaned = phone.replace(/\D/g, '');
+		// Format as (XXX) XXX-XXXX for US numbers
+		if (cleaned.length === 10) {
+			return `(${cleaned.slice(0, 3)}) ${cleaned.slice(3, 6)}-${cleaned.slice(6)}`;
+		}
+		// Return original if not 10 digits
+		return phone;
+	}
+
+	function handlePhoneInput(e) {
+		const input = e.target;
+		const cleaned = input.value.replace(/\D/g, '');
+		if (cleaned.length <= 10) {
+			newPerson.phone = cleaned;
+			// Auto-format as user types
+			input.value = formatPhone(cleaned);
+		}
+	}
 </script>
 
 <div class="space-y-6">
@@ -128,7 +150,7 @@
 	</div>
 
 	<!-- People table -->
-	<div class="bg-surface rounded-lg shadow overflow-hidden border border-custom">
+	<div class="bg-surface rounded-lg shadow border border-custom">
 		{#if loading}
 			<div class="p-8 text-center text-secondary" role="status" aria-live="polite">Loading...</div>
 		{:else if people.length === 0}
@@ -137,7 +159,8 @@
 					started.{/if}
 			</div>
 		{:else}
-			<table class="min-w-full divide-y divide-[var(--border)]">
+			<div class="overflow-x-auto">
+				<table class="min-w-full divide-y divide-[var(--border)]">
 				<thead class="bg-[var(--surface-hover)]">
 					<tr>
 						<th class="px-6 py-3 text-left text-xs font-medium text-secondary uppercase tracking-wider"
@@ -177,7 +200,7 @@
 								<div class="text-sm text-secondary">{person.email || '—'}</div>
 							</td>
 							<td class="px-6 py-4 whitespace-nowrap">
-								<div class="text-sm text-secondary">{person.phone || '—'}</div>
+								<div class="text-sm text-secondary">{formatPhone(person.phone) || '—'}</div>
 							</td>
 							<td class="px-6 py-4 whitespace-nowrap">
 								<span
@@ -209,6 +232,7 @@
 					{/each}
 				</tbody>
 			</table>
+			</div>
 		{/if}
 	</div>
 
@@ -280,8 +304,10 @@
 			<input
 				id="phone"
 				type="tel"
-				bind:value={newPerson.phone}
+				on:input={handlePhoneInput}
+				placeholder="(555) 555-5555"
 				autocomplete="tel"
+				maxlength="14"
 				class="mt-1 block w-full px-3 py-2 border input-border rounded-md focus:outline-none focus:ring-2 focus:ring-[var(--teal)] bg-[var(--input-bg)] text-primary"
 			/>
 		</div>
@@ -363,5 +389,18 @@
 		clip: rect(0, 0, 0, 0);
 		white-space: nowrap;
 		border-width: 0;
+	}
+	
+	/* Responsive table adjustments */
+	@media (max-width: 768px) {
+		table thead th {
+			font-size: 0.75rem;
+			padding: 0.5rem;
+		}
+		
+		table tbody td {
+			font-size: 0.875rem;
+			padding: 0.5rem;
+		}
 	}
 </style>
