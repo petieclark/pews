@@ -36,10 +36,13 @@ func (s *Service) ListPeople(ctx context.Context, tenantID string, query string,
 
 	// Build query
 	sqlQuery := `
-		SELECT id, tenant_id, first_name, last_name, email, phone, 
-		       address_line1, address_line2, city, state, zip, 
-		       birthdate, gender, membership_status, photo_url, notes, 
-		       custom_fields, created_at, updated_at
+		SELECT id, tenant_id, first_name, last_name, 
+		       COALESCE(email, ''), COALESCE(phone, ''), 
+		       COALESCE(address_line1, ''), COALESCE(address_line2, ''), 
+		       COALESCE(city, ''), COALESCE(state, ''), COALESCE(zip, ''), 
+		       birthdate, COALESCE(gender, ''), membership_status, 
+		       COALESCE(photo_url, ''), COALESCE(notes, ''), 
+		       COALESCE(custom_fields, '{}'), created_at, updated_at
 		FROM people
 		WHERE 1=1`
 
@@ -99,10 +102,13 @@ func (s *Service) GetPersonByID(ctx context.Context, tenantID, personID string) 
 
 	var p Person
 	err = s.db.QueryRow(ctx, `
-		SELECT id, tenant_id, first_name, last_name, email, phone, 
-		       address_line1, address_line2, city, state, zip, 
-		       birthdate, gender, membership_status, photo_url, notes, 
-		       custom_fields, created_at, updated_at
+		SELECT id, tenant_id, first_name, last_name, 
+		       COALESCE(email, ''), COALESCE(phone, ''), 
+		       COALESCE(address_line1, ''), COALESCE(address_line2, ''), 
+		       COALESCE(city, ''), COALESCE(state, ''), COALESCE(zip, ''), 
+		       birthdate, COALESCE(gender, ''), membership_status, 
+		       COALESCE(photo_url, ''), COALESCE(notes, ''), 
+		       COALESCE(custom_fields, '{}'), created_at, updated_at
 		FROM people WHERE id = $1`, personID).Scan(
 		&p.ID, &p.TenantID, &p.FirstName, &p.LastName, &p.Email, &p.Phone,
 		&p.AddressLine1, &p.AddressLine2, &p.City, &p.State, &p.Zip,
