@@ -1,0 +1,13 @@
+# Allow all public pages
+User-agent: *
+Allow: /
+Allow: /watch/*
+
+# Block admin and dashboard
+Disallow: /dashboard
+Disallow: /dashboard/*
+Disallow: /login
+Disallow: /register
+
+# Sitemap location
+Sitemap: https://pews.church/sitemap.xml
