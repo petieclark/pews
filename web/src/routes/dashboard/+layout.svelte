@@ -27,6 +27,7 @@
 				<div class="flex items-center space-x-8">
 					<a href="/dashboard" class="text-2xl font-bold text-navy">Pews</a>
 					<a href="/dashboard" class="text-gray-600 hover:text-navy">Dashboard</a>
+					<a href="/dashboard/people" class="text-gray-600 hover:text-navy">People</a>
 					<a href="/dashboard/settings" class="text-gray-600 hover:text-navy">Settings</a>
 				</div>
 				<div class="flex items-center space-x-4">
