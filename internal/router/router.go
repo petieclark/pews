@@ -13,6 +13,7 @@ import (
 	"github.com/petieclark/pews/internal/middleware"
 	"github.com/petieclark/pews/internal/module"
 	"github.com/petieclark/pews/internal/people"
+	"github.com/petieclark/pews/internal/prayer"
 	"github.com/petieclark/pews/internal/services"
 	"github.com/petieclark/pews/internal/streaming"
 	"github.com/petieclark/pews/internal/tenant"
@@ -35,6 +36,7 @@ func New(
 	streamingHandler *streaming.Handler,
 	communicationHandler *communication.Handler,
 	checkinsHandler *checkins.Handler,
+	prayerHandler *prayer.Handler,
 	webhookSecret string,
 	givingWebhookSecret string,
 	frontendURL string,
@@ -61,6 +63,10 @@ func New(
 
 	// Public communication route - connection card submission (no auth required)
 	r.Post("/api/communication/cards", communicationHandler.SubmitConnectionCard)
+
+	// Public prayer routes (no auth required)
+	r.Post("/api/prayer-requests", prayerHandler.CreatePrayerRequestPublic)
+	r.Get("/api/prayer-requests/public", prayerHandler.ListPublicPrayerRequests)
 
 	// Health check
 	r.Get("/api/health", func(w http.ResponseWriter, r *http.Request) {
@@ -258,6 +264,15 @@ func New(
 		// Check-ins - Stats & Search
 		r.Get("/api/checkins/stats", checkinsHandler.GetStats)
 		r.Get("/api/checkins/search", checkinsHandler.SearchPeople)
+
+		// Prayer - Authenticated routes
+		r.Get("/api/prayer-requests", prayerHandler.ListPrayerRequests)
+		r.Get("/api/prayer-requests/{id}", prayerHandler.GetPrayerRequest)
+		r.Put("/api/prayer-requests/{id}", prayerHandler.UpdatePrayerRequest)
+		r.Post("/api/prayer-requests/{id}/follow", prayerHandler.FollowPrayerRequest)
+		r.Delete("/api/prayer-requests/{id}/follow", prayerHandler.FollowPrayerRequest)
+		r.Get("/api/prayer-requests/{id}/followers", prayerHandler.ListFollowers)
+		r.Post("/api/prayer-requests/import/{connectionCardId}", prayerHandler.ImportFromConnectionCard)
 	})
 
 	return &Router{r}

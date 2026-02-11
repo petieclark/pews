@@ -20,6 +20,7 @@ import (
 	"github.com/petieclark/pews/internal/groups"
 	"github.com/petieclark/pews/internal/module"
 	"github.com/petieclark/pews/internal/people"
+	"github.com/petieclark/pews/internal/prayer"
 	"github.com/petieclark/pews/internal/router"
 	"github.com/petieclark/pews/internal/services"
 	"github.com/petieclark/pews/internal/streaming"
@@ -69,6 +70,7 @@ func run() error {
 	streamingService := streaming.NewService(db.Pool)
 	communicationService := communication.NewService(db.Pool)
 	checkinsService := checkins.NewService(db.Pool)
+	prayerService := prayer.NewService(db.Pool)
 
 	// Initialize handlers
 	authHandler := auth.NewHandler(authService, tenantService, billingService)
@@ -82,6 +84,7 @@ func run() error {
 	streamingHandler := streaming.NewHandler(streamingService)
 	communicationHandler := communication.NewHandler(communicationService)
 	checkinsHandler := checkins.NewHandler(checkinsService)
+	prayerHandler := prayer.NewHandler(prayerService)
 
 	// Setup router
 	r := router.New(
@@ -97,6 +100,7 @@ func run() error {
 		streamingHandler,
 		communicationHandler,
 		checkinsHandler,
+		prayerHandler,
 		cfg.StripeWebhookSecret,
 		cfg.StripeWebhookSecret, // Use same webhook secret for giving
 		cfg.FrontendURL,
