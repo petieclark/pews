@@ -9,6 +9,8 @@ import (
 
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/jmoiron/sqlx"
+	_ "github.com/jackc/pgx/v5/stdlib"
 )
 
 //go:embed migrations/*.sql
@@ -16,6 +18,7 @@ var migrationsFS embed.FS
 
 type DB struct {
 	Pool *pgxpool.Pool
+	DB   *sqlx.DB
 }
 
 // contextKey is used for storing tenant ID in context
@@ -53,7 +56,13 @@ func New(ctx context.Context, databaseURL string) (*DB, error) {
 		return nil, fmt.Errorf("failed to ping database: %w", err)
 	}
 
-	return &DB{Pool: pool}, nil
+	// Also create sqlx connection for packages that need it
+	sqlxDB, err := sqlx.Connect("pgx", databaseURL)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create sqlx connection: %w", err)
+	}
+
+	return &DB{Pool: pool, DB: sqlxDB}, nil
 }
 
 func (db *DB) Close() {

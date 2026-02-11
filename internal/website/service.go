@@ -17,7 +17,10 @@ func NewService(db *pgxpool.Pool) *Service {
 	return &Service{db: db}
 }
 
+<<<<<<< HEAD
 // GetConfig retrieves the website configuration for a tenant
+=======
+>>>>>>> feat/audit-security
 func (s *Service) GetConfig(ctx context.Context, tenantID string) (*Config, error) {
 	var settingsJSON []byte
 	err := s.db.QueryRow(ctx,
@@ -39,7 +42,10 @@ func (s *Service) GetConfig(ctx context.Context, tenantID string) (*Config, erro
 	return config, nil
 }
 
+<<<<<<< HEAD
 // UpdateConfig updates the website configuration for a tenant
+=======
+>>>>>>> feat/audit-security
 func (s *Service) UpdateConfig(ctx context.Context, tenantID string, config *Config) (*Config, error) {
 	configJSON, err := json.Marshal(config)
 	if err != nil {
@@ -57,7 +63,10 @@ func (s *Service) UpdateConfig(ctx context.Context, tenantID string, config *Con
 	return config, nil
 }
 
+<<<<<<< HEAD
 // GetTenantInfo retrieves basic tenant information for website display
+=======
+>>>>>>> feat/audit-security
 func (s *Service) GetTenantInfo(ctx context.Context, tenantSlug string) (string, string, error) {
 	var tenantID, tenantName string
 	err := s.db.QueryRow(ctx,
@@ -72,9 +81,13 @@ func (s *Service) GetTenantInfo(ctx context.Context, tenantSlug string) (string,
 	return tenantID, tenantName, nil
 }
 
+<<<<<<< HEAD
 // GetUpcomingEvents retrieves upcoming events for the website
 func (s *Service) GetUpcomingEvents(ctx context.Context, tenantID string, limit int) ([]Event, error) {
 	// Check if checkins module is enabled and events exist
+=======
+func (s *Service) GetUpcomingEvents(ctx context.Context, tenantID string, limit int) ([]Event, error) {
+>>>>>>> feat/audit-security
 	rows, err := s.db.Query(ctx,
 		`SELECT id, name, COALESCE(description, ''), start_time, end_time, COALESCE(location, '')
 		 FROM checkin_events
@@ -84,7 +97,11 @@ func (s *Service) GetUpcomingEvents(ctx context.Context, tenantID string, limit 
 		tenantID, limit,
 	)
 	if err != nil {
+<<<<<<< HEAD
 		return []Event{}, nil // Return empty array if table doesn't exist or other error
+=======
+		return []Event{}, nil
+>>>>>>> feat/audit-security
 	}
 	defer rows.Close()
 
@@ -103,9 +120,13 @@ func (s *Service) GetUpcomingEvents(ctx context.Context, tenantID string, limit 
 	return events, nil
 }
 
+<<<<<<< HEAD
 // GetLatestSermons retrieves recent sermons for the website
 func (s *Service) GetLatestSermons(ctx context.Context, tenantID string, limit int) ([]Sermon, error) {
 	// Get recent streams with sermon notes
+=======
+func (s *Service) GetLatestSermons(ctx context.Context, tenantID string, limit int) ([]Sermon, error) {
+>>>>>>> feat/audit-security
 	rows, err := s.db.Query(ctx,
 		`SELECT id, title, COALESCE(scheduled_at, created_at), COALESCE(notes->>'speaker', '')
 		 FROM streams
@@ -115,7 +136,11 @@ func (s *Service) GetLatestSermons(ctx context.Context, tenantID string, limit i
 		tenantID, limit,
 	)
 	if err != nil {
+<<<<<<< HEAD
 		return []Sermon{}, nil // Return empty array if table doesn't exist or other error
+=======
+		return []Sermon{}, nil
+>>>>>>> feat/audit-security
 	}
 	defer rows.Close()
 
