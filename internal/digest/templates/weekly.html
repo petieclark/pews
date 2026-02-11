@@ -1,0 +1,301 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Weekly Digest - {{.TenantName}}</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            background-color: #f5f5f5;
+            margin: 0;
+            padding: 0;
+        }
+        .container {
+            max-width: 600px;
+            margin: 20px auto;
+            background-color: #ffffff;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px 20px;
+            text-align: center;
+        }
+        .header h1 {
+            margin: 0 0 10px 0;
+            font-size: 28px;
+            font-weight: 600;
+        }
+        .header p {
+            margin: 0;
+            opacity: 0.9;
+            font-size: 14px;
+        }
+        .content {
+            padding: 30px 20px;
+        }
+        .section {
+            margin-bottom: 35px;
+        }
+        .section-header {
+            display: flex;
+            align-items: center;
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #667eea;
+        }
+        .section-header h2 {
+            margin: 0;
+            font-size: 20px;
+            color: #667eea;
+            font-weight: 600;
+        }
+        .section-icon {
+            margin-right: 10px;
+            font-size: 24px;
+        }
+        .stat-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+            margin-top: 15px;
+        }
+        .stat-card {
+            background-color: #f8f9fa;
+            padding: 20px;
+            border-radius: 8px;
+            text-align: center;
+        }
+        .stat-value {
+            font-size: 32px;
+            font-weight: 700;
+            color: #667eea;
+            margin: 10px 0;
+        }
+        .stat-label {
+            font-size: 12px;
+            color: #666;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        .stat-trend {
+            font-size: 14px;
+            margin-top: 8px;
+            font-weight: 600;
+        }
+        .stat-trend.positive {
+            color: #10b981;
+        }
+        .stat-trend.negative {
+            color: #ef4444;
+        }
+        .stat-trend.neutral {
+            color: #6b7280;
+        }
+        .list-item {
+            padding: 12px 0;
+            border-bottom: 1px solid #e5e7eb;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .list-item:last-child {
+            border-bottom: none;
+        }
+        .list-item-main {
+            flex: 1;
+        }
+        .list-item-title {
+            font-weight: 600;
+            color: #111827;
+            margin-bottom: 4px;
+        }
+        .list-item-subtitle {
+            font-size: 13px;
+            color: #6b7280;
+        }
+        .list-item-meta {
+            font-size: 13px;
+            color: #9ca3af;
+            text-align: right;
+        }
+        .cta-button {
+            display: block;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            text-align: center;
+            padding: 15px 30px;
+            border-radius: 8px;
+            text-decoration: none;
+            font-weight: 600;
+            margin: 30px 0;
+            transition: transform 0.2s;
+        }
+        .cta-button:hover {
+            transform: translateY(-2px);
+        }
+        .footer {
+            background-color: #f8f9fa;
+            padding: 20px;
+            text-align: center;
+            font-size: 12px;
+            color: #6b7280;
+        }
+        .empty-state {
+            text-align: center;
+            padding: 20px;
+            color: #9ca3af;
+            font-style: italic;
+        }
+        @media only screen and (max-width: 600px) {
+            .stat-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>📊 Weekly Digest</h1>
+            <p>{{.TenantName}} • {{.WeekStart.Format "Jan 2"}} - {{.WeekEnd.Format "Jan 2, 2006"}}</p>
+        </div>
+
+        <div class="content">
+            <!-- Attendance Section -->
+            <div class="section">
+                <div class="section-header">
+                    <span class="section-icon">👥</span>
+                    <h2>Attendance</h2>
+                </div>
+                <div class="stat-grid">
+                    <div class="stat-card">
+                        <div class="stat-label">This Week</div>
+                        <div class="stat-value">{{.Attendance.ThisWeek}}</div>
+                        {{if gt .Attendance.Change 0}}
+                        <div class="stat-trend positive">↑ {{.Attendance.Change}} ({{printf "%.1f" .Attendance.ChangePercent}}%)</div>
+                        {{else if lt .Attendance.Change 0}}
+                        <div class="stat-trend negative">↓ {{.Attendance.Change}} ({{printf "%.1f" .Attendance.ChangePercent}}%)</div>
+                        {{else}}
+                        <div class="stat-trend neutral">— No change</div>
+                        {{end}}
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-label">Last Week</div>
+                        <div class="stat-value">{{.Attendance.LastWeek}}</div>
+                        <div class="stat-trend neutral">Previous period</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Members Section -->
+            <div class="section">
+                <div class="section-header">
+                    <span class="section-icon">🆕</span>
+                    <h2>New Members</h2>
+                </div>
+                <div class="stat-grid">
+                    <div class="stat-card">
+                        <div class="stat-label">This Week</div>
+                        <div class="stat-value">{{.Members.NewThisWeek}}</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-label">Total Active</div>
+                        <div class="stat-value">{{.Members.TotalActive}}</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Giving Section -->
+            <div class="section">
+                <div class="section-header">
+                    <span class="section-icon">💰</span>
+                    <h2>Giving</h2>
+                </div>
+                <div class="stat-grid">
+                    <div class="stat-card">
+                        <div class="stat-label">This Week</div>
+                        <div class="stat-value">{{.Giving.ThisWeekDisplay}}</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-label">Year to Date</div>
+                        <div class="stat-value">{{.Giving.YearToDateDisplay}}</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Upcoming Services -->
+            <div class="section">
+                <div class="section-header">
+                    <span class="section-icon">📅</span>
+                    <h2>Upcoming Services</h2>
+                </div>
+                {{if .UpcomingServices}}
+                {{range .UpcomingServices}}
+                <div class="list-item">
+                    <div class="list-item-main">
+                        <div class="list-item-title">{{.Name}}</div>
+                        <div class="list-item-subtitle">{{.ServiceDate.Format "Monday, January 2"}}{{if .ServiceTime}} at {{.ServiceTime}}{{end}}</div>
+                    </div>
+                </div>
+                {{end}}
+                {{else}}
+                <div class="empty-state">No upcoming services scheduled</div>
+                {{end}}
+            </div>
+
+            <!-- Prayer Requests -->
+            {{if .PrayerRequests}}
+            <div class="section">
+                <div class="section-header">
+                    <span class="section-icon">🙏</span>
+                    <h2>New Prayer Requests</h2>
+                </div>
+                {{range .PrayerRequests}}
+                <div class="list-item">
+                    <div class="list-item-main">
+                        <div class="list-item-title">{{.PersonName}}</div>
+                        <div class="list-item-subtitle">{{.Request}}</div>
+                    </div>
+                    <div class="list-item-meta">{{.CreatedAt.Format "Jan 2"}}</div>
+                </div>
+                {{end}}
+            </div>
+            {{end}}
+
+            <!-- Volunteer Schedule -->
+            {{if .Volunteers}}
+            <div class="section">
+                <div class="section-header">
+                    <span class="section-icon">🤝</span>
+                    <h2>Volunteer Schedule (Next Week)</h2>
+                </div>
+                {{range .Volunteers}}
+                <div class="list-item">
+                    <div class="list-item-main">
+                        <div class="list-item-title">{{.PersonName}}</div>
+                        <div class="list-item-subtitle">{{.Role}} • {{.ServiceName}}</div>
+                    </div>
+                    <div class="list-item-meta">{{.ServiceDate.Format "Jan 2"}}</div>
+                </div>
+                {{end}}
+            </div>
+            {{end}}
+
+            <!-- CTA Button -->
+            <a href="#" class="cta-button">View Full Report →</a>
+        </div>
+
+        <div class="footer">
+            <p>This is your weekly digest from Pews Church Management</p>
+            <p>{{.TenantName}} • Sent on {{.WeekEnd.Format "Monday, January 2, 2006"}}</p>
+        </div>
+    </div>
+</body>
+</html>
