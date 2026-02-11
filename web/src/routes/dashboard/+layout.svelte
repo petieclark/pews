@@ -45,13 +45,13 @@
 		{
 			name: 'Finance',
 			items: [
-				{ href: '/dashboard/giving', label: 'Giving', icon: 'giving', module: 'giving' }
+				{ href: '/dashboard/giving', label: 'Giving', icon: 'giving', module: 'giving' },
+				{ href: '/dashboard/reports', label: 'Reports', icon: 'reports', module: null }
 			]
 		},
 		{
 			name: 'Admin',
 			items: [
-				{ href: '/dashboard/reports', label: 'Reports', icon: 'reports', module: null },
 				{ href: '/dashboard/settings', label: 'Settings', icon: 'settings', module: null },
 				{ href: '/dashboard/settings/profile', label: 'Church Profile', icon: 'profile', module: null },
 				{ href: '/dashboard/settings/modules', label: 'Modules', icon: 'modules', module: null },

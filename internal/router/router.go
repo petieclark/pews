@@ -226,6 +226,7 @@ func New(
 		r.Delete("/api/services/{id}/team/{teamId}", servicesHandler.DeleteServiceTeamMember)
 
 		// Services - Songs
+		r.Get("/api/services/songs/stats", servicesHandler.GetSongStats)
 		r.Get("/api/services/songs", servicesHandler.ListSongs)
 		r.Post("/api/services/songs", servicesHandler.CreateSong)
 		r.Get("/api/services/songs/{id}", servicesHandler.GetSong)
@@ -408,6 +409,10 @@ func New(
 		// Reports
 		r.Get("/api/reports/attendance", reportsHandler.GetAttendanceReport)
 		r.Get("/api/reports/giving", reportsHandler.GetGivingReport)
+		r.Get("/api/reports/growth", reportsHandler.GetGrowthReport)
+		r.Get("/api/reports/songs", reportsHandler.GetSongsReport)
+		r.Get("/api/reports/engagement", reportsHandler.GetEngagementReport)
+		// Legacy
 		r.Get("/api/reports/membership", reportsHandler.GetMembershipReport)
 		r.Get("/api/reports/groups", reportsHandler.GetGroupParticipationReport)
 

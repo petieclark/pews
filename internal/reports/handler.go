@@ -16,98 +16,114 @@ func NewHandler(service *Service) *Handler {
 	return &Handler{service: service}
 }
 
-// GetAttendanceReport returns weekly attendance trends
+func getTenantUUID(r *http.Request) (uuid.UUID, *middleware.Claims, error) {
+	claims, ok := middleware.GetClaims(r.Context())
+	if !ok {
+		return uuid.UUID{}, nil, http.ErrNoCookie // will be caught
+	}
+	id, err := uuid.Parse(claims.TenantID)
+	return id, claims, err
+}
+
+func writeJSON(w http.ResponseWriter, data interface{}) {
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(data)
+}
+
 func (h *Handler) GetAttendanceReport(w http.ResponseWriter, r *http.Request) {
-	claims, ok := middleware.GetClaims(r.Context())
-	if !ok {
+	tenantID, _, err := getTenantUUID(r)
+	if err != nil {
 		http.Error(w, "Unauthorized", http.StatusUnauthorized)
 		return
 	}
 
-	tenantUUID, err := uuid.Parse(claims.TenantID)
+	rangeStr := r.URL.Query().Get("range")
+	report, err := h.service.GetAttendanceReport(r.Context(), tenantID, rangeStr)
 	if err != nil {
-		http.Error(w, "Invalid tenant ID", http.StatusBadRequest)
+		http.Error(w, "Failed: "+err.Error(), http.StatusInternalServerError)
 		return
 	}
-
-	report, err := h.service.GetAttendanceReport(r.Context(), tenantUUID)
-	if err != nil {
-		http.Error(w, "Failed to generate attendance report: "+err.Error(), http.StatusInternalServerError)
-		return
-	}
-
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(report)
+	writeJSON(w, report)
 }
 
-// GetGivingReport returns monthly giving trends
 func (h *Handler) GetGivingReport(w http.ResponseWriter, r *http.Request) {
-	claims, ok := middleware.GetClaims(r.Context())
-	if !ok {
+	tenantID, _, err := getTenantUUID(r)
+	if err != nil {
 		http.Error(w, "Unauthorized", http.StatusUnauthorized)
 		return
 	}
 
-	tenantUUID, err := uuid.Parse(claims.TenantID)
+	rangeStr := r.URL.Query().Get("range")
+	report, err := h.service.GetGivingReport(r.Context(), tenantID, rangeStr)
 	if err != nil {
-		http.Error(w, "Invalid tenant ID", http.StatusBadRequest)
+		http.Error(w, "Failed: "+err.Error(), http.StatusInternalServerError)
 		return
 	}
-
-	report, err := h.service.GetGivingReport(r.Context(), tenantUUID)
-	if err != nil {
-		http.Error(w, "Failed to generate giving report: "+err.Error(), http.StatusInternalServerError)
-		return
-	}
-
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(report)
+	writeJSON(w, report)
 }
 
-// GetMembershipReport returns membership growth trends
+func (h *Handler) GetGrowthReport(w http.ResponseWriter, r *http.Request) {
+	tenantID, _, err := getTenantUUID(r)
+	if err != nil {
+		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		return
+	}
+
+	rangeStr := r.URL.Query().Get("range")
+	report, err := h.service.GetGrowthReport(r.Context(), tenantID, rangeStr)
+	if err != nil {
+		http.Error(w, "Failed: "+err.Error(), http.StatusInternalServerError)
+		return
+	}
+	writeJSON(w, report)
+}
+
+func (h *Handler) GetSongsReport(w http.ResponseWriter, r *http.Request) {
+	tenantID, _, err := getTenantUUID(r)
+	if err != nil {
+		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		return
+	}
+
+	report, err := h.service.GetSongsReport(r.Context(), tenantID)
+	if err != nil {
+		http.Error(w, "Failed: "+err.Error(), http.StatusInternalServerError)
+		return
+	}
+	writeJSON(w, report)
+}
+
+func (h *Handler) GetEngagementReport(w http.ResponseWriter, r *http.Request) {
+	tenantID, _, err := getTenantUUID(r)
+	if err != nil {
+		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		return
+	}
+
+	report, err := h.service.GetEngagementReport(r.Context(), tenantID)
+	if err != nil {
+		http.Error(w, "Failed: "+err.Error(), http.StatusInternalServerError)
+		return
+	}
+	writeJSON(w, report)
+}
+
+// Legacy endpoints kept for backward compatibility
 func (h *Handler) GetMembershipReport(w http.ResponseWriter, r *http.Request) {
-	claims, ok := middleware.GetClaims(r.Context())
-	if !ok {
-		http.Error(w, "Unauthorized", http.StatusUnauthorized)
-		return
-	}
-
-	tenantUUID, err := uuid.Parse(claims.TenantID)
-	if err != nil {
-		http.Error(w, "Invalid tenant ID", http.StatusBadRequest)
-		return
-	}
-
-	report, err := h.service.GetMembershipReport(r.Context(), tenantUUID)
-	if err != nil {
-		http.Error(w, "Failed to generate membership report: "+err.Error(), http.StatusInternalServerError)
-		return
-	}
-
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(report)
+	h.GetGrowthReport(w, r)
 }
 
-// GetGroupParticipationReport returns group participation stats
 func (h *Handler) GetGroupParticipationReport(w http.ResponseWriter, r *http.Request) {
-	claims, ok := middleware.GetClaims(r.Context())
-	if !ok {
+	tenantID, _, err := getTenantUUID(r)
+	if err != nil {
 		http.Error(w, "Unauthorized", http.StatusUnauthorized)
 		return
 	}
-
-	tenantUUID, err := uuid.Parse(claims.TenantID)
+	// Keep legacy group endpoint working
+	report, err := h.service.GetGrowthReport(r.Context(), tenantID, "12m")
 	if err != nil {
-		http.Error(w, "Invalid tenant ID", http.StatusBadRequest)
+		http.Error(w, "Failed: "+err.Error(), http.StatusInternalServerError)
 		return
 	}
-
-	report, err := h.service.GetGroupParticipationReport(r.Context(), tenantUUID)
-	if err != nil {
-		http.Error(w, "Failed to generate group participation report: "+err.Error(), http.StatusInternalServerError)
-		return
-	}
-
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(report)
+	writeJSON(w, report)
 }

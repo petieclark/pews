@@ -1,56 +1,85 @@
 package reports
 
-// AttendanceWeeklyData represents weekly attendance aggregations
-type AttendanceWeeklyData struct {
-	WeekStartDate string `json:"week_start_date"`
-	AttendanceCount int    `json:"attendance_count"`
+// ---- Chart.js-ready response structures ----
+
+// ChartDataset is a generic Chart.js dataset
+type ChartDataset struct {
+	Label           string    `json:"label"`
+	Data            []float64 `json:"data"`
+	BackgroundColor interface{} `json:"backgroundColor,omitempty"` // string or []string
+	BorderColor     interface{} `json:"borderColor,omitempty"`     // string or []string
+	BorderWidth     int       `json:"borderWidth,omitempty"`
+	Tension         float64   `json:"tension,omitempty"`
+	Fill            bool      `json:"fill,omitempty"`
+	Type            string    `json:"type,omitempty"`
 }
 
-// AttendanceReport contains attendance trends and stats
+// ChartData is a generic Chart.js data object
+type ChartData struct {
+	Labels   []string       `json:"labels"`
+	Datasets []ChartDataset `json:"datasets"`
+}
+
+// KPI is a key performance indicator card
+type KPI struct {
+	Label  string  `json:"label"`
+	Value  string  `json:"value"`
+	Change float64 `json:"change,omitempty"` // percentage change
+	Trend  string  `json:"trend,omitempty"`  // "up", "down", "flat"
+}
+
+// ---- Attendance ----
+
 type AttendanceReport struct {
-	WeeklyData       []AttendanceWeeklyData `json:"weekly_data"`
-	AverageAttendance float64                `json:"average_attendance"`
-	GrowthPercentage  float64                `json:"growth_percentage"`
+	WeeklyTrend      ChartData `json:"weekly_trend"`
+	ByServiceType    ChartData `json:"by_service_type"`
+	KPIs             []KPI     `json:"kpis"`
 }
 
-// GivingMonthlyData represents monthly giving aggregations
-type GivingMonthlyData struct {
-	Month       string  `json:"month"`
-	TotalCents  int64   `json:"total_cents"`
-	TotalAmount float64 `json:"total_amount"`
-}
+// ---- Giving ----
 
-// GivingReport contains giving trends and stats
 type GivingReport struct {
-	MonthlyData      []GivingMonthlyData `json:"monthly_data"`
-	TotalYTDCents    int64               `json:"total_ytd_cents"`
-	TotalYTDAmount   float64             `json:"total_ytd_amount"`
-	AverageGiftCents int64               `json:"average_gift_cents"`
-	AverageGiftAmount float64            `json:"average_gift_amount"`
-	DonorCount       int                 `json:"donor_count"`
+	MonthlyTotals  ChartData `json:"monthly_totals"`
+	ByFund         ChartData `json:"by_fund"`
+	DonorTrend     ChartData `json:"donor_trend"`
+	KPIs           []KPI     `json:"kpis"`
 }
 
-// MembershipMonthlyData represents monthly membership growth
-type MembershipMonthlyData struct {
-	Month      string `json:"month"`
-	TotalMembers int    `json:"total_members"`
+// ---- Growth ----
+
+type GrowthReport struct {
+	MembershipGrowth ChartData `json:"membership_growth"`
+	NewByMonth       ChartData `json:"new_by_month"`
+	Funnel           []FunnelStep `json:"funnel"`
+	KPIs             []KPI     `json:"kpis"`
 }
 
-// MembershipReport contains membership growth and stats
-type MembershipReport struct {
-	MonthlyData        []MembershipMonthlyData `json:"monthly_data"`
-	NewMembersThisMonth int                    `json:"new_members_this_month"`
-	NewMembersThisQuarter int                  `json:"new_members_this_quarter"`
-	ActiveMembers      int                    `json:"active_members"`
-	InactiveMembers    int                    `json:"inactive_members"`
+type FunnelStep struct {
+	Label string `json:"label"`
+	Count int    `json:"count"`
+	Pct   float64 `json:"pct"`
 }
 
-// GroupParticipationReport contains group participation stats
-type GroupParticipationReport struct {
-	TotalMembers          int     `json:"total_members"`
-	MembersInGroups       int     `json:"members_in_groups"`
-	MembersNotInGroups    int     `json:"members_not_in_groups"`
-	ParticipationRate     float64 `json:"participation_rate"`
-	ActiveGroups          int     `json:"active_groups"`
-	AverageMembersPerGroup float64 `json:"average_members_per_group"`
+// ---- Songs ----
+
+type SongsReport struct {
+	TopSongs     ChartData    `json:"top_songs"`
+	ByKey        ChartData    `json:"by_key"`
+	UnusedSongs  []UnusedSong `json:"unused_songs"`
+	KPIs         []KPI        `json:"kpis"`
+}
+
+type UnusedSong struct {
+	ID       string `json:"id"`
+	Title    string `json:"title"`
+	Artist   string `json:"artist"`
+	LastUsed string `json:"last_used"`
+}
+
+// ---- Engagement ----
+
+type EngagementReport struct {
+	Distribution   ChartData `json:"distribution"`
+	Trend          ChartData `json:"trend"`
+	KPIs           []KPI     `json:"kpis"`
 }
