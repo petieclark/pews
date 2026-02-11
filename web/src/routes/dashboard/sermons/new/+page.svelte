@@ -50,11 +50,11 @@
 
 <div class="p-6 max-w-4xl mx-auto">
 	<div class="mb-6">
-		<h1 class="text-3xl font-bold">New Sermon</h1>
-		<p class="mt-1 text-gray-600">Create a new sermon note</p>
+		<h1 class="text-3xl font-bold text-[var(--text-primary)]">New Sermon</h1>
+		<p class="mt-1 text-secondary">Create a new sermon note</p>
 	</div>
 
-	<form on:submit|preventDefault={handleSubmit} class="bg-white rounded-lg shadow p-6 space-y-4">
+	<form on:submit|preventDefault={handleSubmit} class="bg-surface border border-custom rounded-lg shadow p-6 space-y-4">
 		<div class="grid grid-cols-1 md:grid-cols-2 gap-4">
 			<div>
 				<label class="block text-sm font-medium mb-1 text-[var(--text-primary)]">Title *</label>

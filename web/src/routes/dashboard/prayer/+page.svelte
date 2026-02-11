@@ -48,54 +48,21 @@
 	}
 
 	function getStatusColor(s: string) {
-		const colors = { pending: 'status-pending', praying: 'status-praying', answered: 'status-answered', archived: 'status-archived' };
-		return colors[s] || 'status-archived';
+		const colors = { 
+			pending: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-100', 
+			praying: 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-100', 
+			answered: 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-100', 
+			archived: 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-200' 
+		};
+		return colors[s] || 'bg-gray-100 dark:bg-gray-700';
 	}
 </script>
 
-<style>
-	.status-pending {
-		background-color: #FEF3C7;
-		color: #92400E;
-	}
-	:global(.dark) .status-pending {
-		background-color: #78350F;
-		color: #FCD34D;
-	}
-	
-	.status-praying {
-		background-color: #DBEAFE;
-		color: #1E40AF;
-	}
-	:global(.dark) .status-praying {
-		background-color: #1E3A8A;
-		color: #93C5FD;
-	}
-	
-	.status-answered {
-		background-color: #D1FAE5;
-		color: #065F46;
-	}
-	:global(.dark) .status-answered {
-		background-color: #064E3B;
-		color: #6EE7B7;
-	}
-	
-	.status-archived {
-		background-color: #F3F4F6;
-		color: #374151;
-	}
-	:global(.dark) .status-archived {
-		background-color: #1F2937;
-		color: #9CA3AF;
-	}
-</style>
-
 <div class="p-6">
-	<h1 class="text-3xl font-bold text-primary mb-6">Prayer Requests</h1>
+	<h1 class="text-3xl font-bold text-[var(--text-primary)] mb-6">Prayer Requests</h1>
 
-	<div class="bg-surface rounded-lg shadow p-4 mb-6 border border-custom">
-		<select bind:value={statusFilter} on:change={loadPrayerRequests} class="px-3 py-2 border input-border bg-[var(--input-bg)] text-primary rounded-lg focus:ring-2 focus:ring-[var(--teal)] focus:border-transparent">
+	<div class="bg-surface border border-custom rounded-lg shadow p-4 mb-6">
+		<select bind:value={statusFilter} on:change={loadPrayerRequests} class="px-3 py-2 border border-custom rounded-lg bg-surface text-primary">
 			<option value="">All</option>
 			<option value="pending">Pending</option>
 			<option value="praying">Praying</option>
@@ -111,14 +78,17 @@
 			<p class="col-span-full text-center text-secondary">No requests</p>
 		{:else}
 			{#each prayerRequests as req}
-				<div class="bg-surface rounded-lg shadow p-6 border border-custom">
+				<div class="bg-surface border border-custom rounded-lg shadow p-6">
 					<div class="flex justify-between mb-2">
-						<h3 class="font-bold text-lg text-primary">{req.name}</h3>
+						<h3 class="font-bold text-lg text-[var(--text-primary)]">{req.name}</h3>
 						<span class="px-2 py-1 text-xs rounded-full {getStatusColor(req.status)}">{req.status}</span>
 					</div>
-					<p class="text-primary mb-4 line-clamp-3">{req.request_text}</p>
+					<p class="text-secondary mb-4 line-clamp-3">{req.request_text}</p>
 					<p class="text-sm text-secondary mb-3">{formatDate(req.submitted_at)}</p>
-					<select value={req.status} on:change={(e) => updateStatus(req.id, e.currentTarget.value)} class="w-full px-3 py-2 border input-border bg-[var(--input-bg)] text-primary rounded-lg focus:ring-2 focus:ring-[var(--teal)] focus:border-transparent">
+					{#if req.follower_count !== undefined}
+						<p class="text-xs text-secondary mb-3">👥 {req.follower_count} {req.follower_count === 1 ? 'follower' : 'followers'}</p>
+					{/if}
+					<select value={req.status} on:change={(e) => updateStatus(req.id, e.currentTarget.value)} class="w-full px-3 py-2 border border-custom rounded-lg bg-surface text-primary">
 						<option value="pending">Pending</option>
 						<option value="praying">Praying</option>
 						<option value="answered">Answered</option>
