@@ -36,9 +36,9 @@ func (s *Service) ListPeople(ctx context.Context, tenantID string, query string,
 
 	// Build query
 	sqlQuery := `
-		SELECT id, tenant_id, first_name, last_name, COALESCE(email, ''), COALESCE(phone, ''), 
-		       COALESCE(address_line1, ''), COALESCE(address_line2, ''), COALESCE(city, ''), COALESCE(state, ''), COALESCE(zip, ''), 
-		       birthdate, COALESCE(gender, ''), membership_status, COALESCE(photo_url, ''), COALESCE(notes, ''), 
+		SELECT id, tenant_id, first_name, last_name, email, phone, 
+		       address_line1, address_line2, city, state, zip, 
+		       birthdate, gender, membership_status, photo_url, notes, 
 		       custom_fields, created_at, updated_at
 		FROM people
 		WHERE 1=1`
