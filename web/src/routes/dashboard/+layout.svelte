@@ -48,6 +48,7 @@
 					<a href="/dashboard/people" class="text-secondary hover:text-primary">People</a>
 					<a href="/dashboard/groups" class="text-secondary hover:text-primary">Groups</a>
 					<a href="/dashboard/services" class="text-secondary hover:text-primary">Services</a>
+					<a href="/dashboard/calendar" class="text-secondary hover:text-primary">Calendar</a>
 					<a href="/dashboard/checkins" class="text-secondary hover:text-primary">Check-Ins</a>
 					<a href="/dashboard/streaming" class="text-secondary hover:text-primary">Streaming</a>
 					<a href="/dashboard/giving" class="text-secondary hover:text-primary">Giving</a>

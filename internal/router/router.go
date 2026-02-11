@@ -6,6 +6,7 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/petieclark/pews/internal/auth"
 	"github.com/petieclark/pews/internal/billing"
+	"github.com/petieclark/pews/internal/calendar"
 	"github.com/petieclark/pews/internal/checkins"
 	"github.com/petieclark/pews/internal/communication"
 	"github.com/petieclark/pews/internal/giving"
@@ -37,6 +38,7 @@ func New(
 	communicationHandler *communication.Handler,
 	checkinsHandler *checkins.Handler,
 	reportsHandler *reports.Handler,
+	calendarHandler *calendar.Handler,
 	webhookSecret string,
 	givingWebhookSecret string,
 	frontendURL string,
@@ -278,6 +280,15 @@ func New(
 		r.Get("/api/reports/giving", reportsHandler.GetGivingReport)
 		r.Get("/api/reports/membership", reportsHandler.GetMembershipReport)
 		r.Get("/api/reports/groups", reportsHandler.GetGroupParticipationReport)
+
+		// Calendar - Events
+		r.Get("/api/events", calendarHandler.ListEvents)
+		r.Post("/api/events", calendarHandler.CreateEvent)
+		r.Get("/api/events/upcoming", calendarHandler.GetUpcomingEvents)
+		r.Get("/api/events/ical", calendarHandler.ExportICal)
+		r.Get("/api/events/{id}", calendarHandler.GetEvent)
+		r.Put("/api/events/{id}", calendarHandler.UpdateEvent)
+		r.Delete("/api/events/{id}", calendarHandler.DeleteEvent)
 	})
 
 	return &Router{r}
