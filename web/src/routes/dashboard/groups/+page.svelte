@@ -278,7 +278,7 @@
 								rows="3"
 								class="w-full px-3 py-2 border border-custom rounded-md bg-surface text-primary"
 								placeholder="A brief description of your group..."
-							/>
+							></textarea>
 						</div>
 
 						<div>
