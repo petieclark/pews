@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net/http"
 	"strconv"
+	"time"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/petieclark/pews/internal/activity"
@@ -38,7 +39,7 @@ type CreatePersonRequest struct {
 	City             string          `json:"city,omitempty"`
 	State            string          `json:"state,omitempty"`
 	Zip              string          `json:"zip,omitempty"`
-	Birthdate        string          `json:"birthdate,omitempty"`
+	Birthdate        *string         `json:"birthdate,omitempty"`
 	Gender           string          `json:"gender,omitempty"`
 	MembershipStatus string          `json:"membership_status,omitempty"`
 	PhotoURL         string          `json:"photo_url,omitempty"`
@@ -122,6 +123,14 @@ func (h *Handler) CreatePerson(w http.ResponseWriter, r *http.Request) {
 		CustomFields:     req.CustomFields,
 	}
 
+	// Parse birthdate if provided
+	if req.Birthdate != nil && *req.Birthdate != "" {
+		t, err := time.Parse("2006-01-02", *req.Birthdate)
+		if err == nil {
+			person.Birthdate = &t
+		}
+	}
+
 	if person.MembershipStatus == "" {
 		person.MembershipStatus = "active"
 	}
@@ -181,6 +190,14 @@ func (h *Handler) UpdatePerson(w http.ResponseWriter, r *http.Request) {
 		PhotoURL:         req.PhotoURL,
 		Notes:            req.Notes,
 		CustomFields:     req.CustomFields,
+	}
+
+	// Parse birthdate if provided
+	if req.Birthdate != nil && *req.Birthdate != "" {
+		t, err := time.Parse("2006-01-02", *req.Birthdate)
+		if err == nil {
+			person.Birthdate = &t
+		}
 	}
 
 	updatedPerson, err := h.service.UpdatePerson(r.Context(), claims.TenantID, personID, person)

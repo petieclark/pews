@@ -28,7 +28,7 @@ func (s *Service) ListPeople(ctx context.Context, tenantID string, query string,
 		page = 1
 	}
 	if limit < 1 || limit > 100 {
-		limit = 50
+		limit = 25
 	}
 	offset := (page - 1) * limit
 
@@ -42,11 +42,11 @@ func (s *Service) ListPeople(ctx context.Context, tenantID string, query string,
 		       COALESCE(photo_url, ''), COALESCE(notes, ''), 
 		       COALESCE(custom_fields, '{}'), created_at, updated_at
 		FROM people
-		WHERE 1=1`
+		WHERE tenant_id = $1`
 
-	countQuery := `SELECT COUNT(*) FROM people WHERE 1=1`
-	args := []interface{}{}
-	argPos := 1
+	countQuery := `SELECT COUNT(*) FROM people WHERE tenant_id = $1`
+	args := []interface{}{tenantID}
+	argPos := 2
 
 	if query != "" {
 		searchFilter := fmt.Sprintf(` AND (first_name ILIKE $%d OR last_name ILIKE $%d OR email ILIKE $%d OR phone ILIKE $%d)`, argPos, argPos, argPos, argPos)
