@@ -236,12 +236,12 @@ func (s *StripeService) HandlePaymentIntentSucceeded(ctx context.Context, pi *st
 
 	paymentMethod := "card"
 	chargeID := ""
-	if len(pi.Charges.Data) > 0 {
-		chargeID = pi.Charges.Data[0].ID
-		if pi.Charges.Data[0].PaymentMethodDetails != nil {
-			if pi.Charges.Data[0].PaymentMethodDetails.Type == stripe.PaymentMethodTypeCard {
+	if pi.LatestCharge != nil {
+		chargeID = pi.LatestCharge.ID
+		if pi.LatestCharge.PaymentMethodDetails != nil {
+			if string(pi.LatestCharge.PaymentMethodDetails.Type) == "card" {
 				paymentMethod = "card"
-			} else if pi.Charges.Data[0].PaymentMethodDetails.Type == stripe.PaymentMethodTypeUSBankAccount {
+			} else if string(pi.LatestCharge.PaymentMethodDetails.Type) == "us_bank_account" {
 				paymentMethod = "ach"
 			}
 		}

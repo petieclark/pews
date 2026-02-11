@@ -273,7 +273,7 @@ func (s *Service) CreateDonation(ctx context.Context, tenantID string, personID 
 }
 
 func (s *Service) GetPersonGivingHistory(ctx context.Context, tenantID, personID string) ([]Donation, int, error) {
-	donations, total, err := s.ListDonations(ctx, tenantID, personID, "", "", "", 100, 0)
+	donations, _, err := s.ListDonations(ctx, tenantID, personID, "", "", "", 100, 0)
 	if err != nil {
 		return nil, 0, err
 	}
