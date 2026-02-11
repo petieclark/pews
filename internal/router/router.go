@@ -17,6 +17,7 @@ import (
 	"github.com/petieclark/pews/internal/notification"
 	"github.com/petieclark/pews/internal/people"
 	"github.com/petieclark/pews/internal/prayer"
+	"github.com/petieclark/pews/internal/qr"
 	"github.com/petieclark/pews/internal/reports"
 	"github.com/petieclark/pews/internal/search"
 	"github.com/petieclark/pews/internal/services"
@@ -44,12 +45,14 @@ func New(
 	streamingHandler *streaming.Handler,
 	communicationHandler *communication.Handler,
 	checkinsHandler *checkins.Handler,
+<<<<<<< HEAD
 	reportsHandler *reports.Handler,
 	calendarHandler *calendar.Handler,
 	prayerHandler *prayer.Handler,
 	searchHandler *search.Handler,
 	notificationHandler *notification.Handler,
 	websiteHandler *website.Handler,
+	qrHandler *qr.Handler,
 	webhookSecret string,
 	givingWebhookSecret string,
 	frontendURL string,
@@ -81,6 +84,7 @@ func New(
 	// Public communication route - connection card submission (no auth required)
 	r.Post("/api/communication/cards", communicationHandler.SubmitConnectionCard)
 
+<<<<<<< HEAD
 	// Public prayer routes (no auth required)
 	r.Post("/api/prayer-requests", prayerHandler.CreatePrayerRequestPublic)
 	r.Get("/api/prayer-requests/public", prayerHandler.ListPublicPrayerRequests)
@@ -91,6 +95,12 @@ func New(
 
 	// Public website route (no auth required)
 	r.Get("/{slug}", websiteHandler.RenderPublicWebsite)
+
+	// Public QR code routes (no auth required - for scanning)
+	r.Get("/api/qr/checkin", qrHandler.GenerateCheckinQR)
+	r.Get("/api/qr/connect", qrHandler.GenerateConnectQR)
+	r.Get("/api/qr/give", qrHandler.GenerateGiveQR)
+	r.Get("/api/qr/prayer", qrHandler.GeneratePrayerQR)
 
 	// Health check
 	r.Get("/api/health", func(w http.ResponseWriter, r *http.Request) {
@@ -343,6 +353,9 @@ func New(
 		r.Get("/api/website/config", websiteHandler.GetConfig)
 		r.Put("/api/website/config", websiteHandler.UpdateConfig)
 		r.Get("/api/website/preview", websiteHandler.GetPreview)
+
+		// QR - Custom URL (authenticated)
+		r.Get("/api/qr/custom", qrHandler.GenerateCustomQR)
 	})
 
 	return &Router{r}

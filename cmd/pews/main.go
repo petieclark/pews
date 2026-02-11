@@ -24,6 +24,7 @@ import (
 	"github.com/petieclark/pews/internal/notification"
 	"github.com/petieclark/pews/internal/people"
 	"github.com/petieclark/pews/internal/prayer"
+	"github.com/petieclark/pews/internal/qr"
 	"github.com/petieclark/pews/internal/reports"
 	"github.com/petieclark/pews/internal/router"
 	"github.com/petieclark/pews/internal/search"
@@ -85,6 +86,7 @@ func run() error {
 	searchService := search.NewService(db.Pool)
 	notificationService := notification.NewService(db.Pool)
 	websiteService := website.NewService(db.Pool)
+	qrService := qr.NewService(cfg.FrontendURL)
 
 	// Initialize handlers
 	authHandler := auth.NewHandler(authService, tenantService, billingService)
@@ -99,12 +101,14 @@ func run() error {
 	streamingHandler := streaming.NewHandler(streamingService)
 	communicationHandler := communication.NewHandler(communicationService)
 	checkinsHandler := checkins.NewHandler(checkinsService)
+<<<<<<< HEAD
 	reportsHandler := reports.NewHandler(reportsService)
 	calendarHandler := calendar.NewHandler(calendarService)
 	prayerHandler := prayer.NewHandler(prayerService)
 	searchHandler := search.NewHandler(searchService)
 	notificationHandler := notification.NewHandler(notificationService)
 	websiteHandler := website.NewHandler(websiteService)
+	qrHandler := qr.NewHandler(qrService)
 
 	// Setup router
 	r := router.New(
@@ -121,12 +125,14 @@ func run() error {
 		streamingHandler,
 		communicationHandler,
 		checkinsHandler,
+<<<<<<< HEAD
 		reportsHandler,
 		calendarHandler,
 		prayerHandler,
 		searchHandler,
 		notificationHandler,
 		websiteHandler,
+		qrHandler,
 		cfg.StripeWebhookSecret,
 		cfg.StripeWebhookSecret, // Use same webhook secret for giving
 		cfg.FrontendURL,
