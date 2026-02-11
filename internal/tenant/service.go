@@ -60,9 +60,18 @@ func (s *Service) CreateTenant(ctx context.Context, name string) (*Tenant, error
 func (s *Service) GetTenantBySlug(ctx context.Context, slug string) (*Tenant, error) {
 	tenant := &Tenant{}
 	err := s.db.QueryRow(ctx,
-		`SELECT id, name, slug, COALESCE(domain, ''), plan, created_at, updated_at FROM tenants WHERE slug = $1`,
+		`SELECT id, name, slug, COALESCE(domain, ''), plan, 
+		        COALESCE(address_line1, ''), COALESCE(address_line2, ''), 
+		        COALESCE(city, ''), COALESCE(state, ''), COALESCE(zip, ''),
+		        COALESCE(phone, ''), COALESCE(website, ''), COALESCE(email, ''),
+		        COALESCE(ein, ''), COALESCE(logo, ''), COALESCE(about, ''),
+		        created_at, updated_at 
+		 FROM tenants WHERE slug = $1`,
 		slug,
-	).Scan(&tenant.ID, &tenant.Name, &tenant.Slug, &tenant.Domain, &tenant.Plan, &tenant.CreatedAt, &tenant.UpdatedAt)
+	).Scan(&tenant.ID, &tenant.Name, &tenant.Slug, &tenant.Domain, &tenant.Plan,
+		&tenant.AddressLine1, &tenant.AddressLine2, &tenant.City, &tenant.State, &tenant.Zip,
+		&tenant.Phone, &tenant.Website, &tenant.Email, &tenant.EIN, &tenant.Logo, &tenant.About,
+		&tenant.CreatedAt, &tenant.UpdatedAt)
 
 	if err != nil {
 		return nil, fmt.Errorf("tenant not found: %w", err)
@@ -74,9 +83,18 @@ func (s *Service) GetTenantBySlug(ctx context.Context, slug string) (*Tenant, er
 func (s *Service) GetTenantByID(ctx context.Context, id string) (*Tenant, error) {
 	tenant := &Tenant{}
 	err := s.db.QueryRow(ctx,
-		`SELECT id, name, slug, COALESCE(domain, ''), plan, created_at, updated_at FROM tenants WHERE id = $1`,
+		`SELECT id, name, slug, COALESCE(domain, ''), plan, 
+		        COALESCE(address_line1, ''), COALESCE(address_line2, ''), 
+		        COALESCE(city, ''), COALESCE(state, ''), COALESCE(zip, ''),
+		        COALESCE(phone, ''), COALESCE(website, ''), COALESCE(email, ''),
+		        COALESCE(ein, ''), COALESCE(logo, ''), COALESCE(about, ''),
+		        created_at, updated_at 
+		 FROM tenants WHERE id = $1`,
 		id,
-	).Scan(&tenant.ID, &tenant.Name, &tenant.Slug, &tenant.Domain, &tenant.Plan, &tenant.CreatedAt, &tenant.UpdatedAt)
+	).Scan(&tenant.ID, &tenant.Name, &tenant.Slug, &tenant.Domain, &tenant.Plan,
+		&tenant.AddressLine1, &tenant.AddressLine2, &tenant.City, &tenant.State, &tenant.Zip,
+		&tenant.Phone, &tenant.Website, &tenant.Email, &tenant.EIN, &tenant.Logo, &tenant.About,
+		&tenant.CreatedAt, &tenant.UpdatedAt)
 
 	if err != nil {
 		return nil, fmt.Errorf("tenant not found: %w", err)
@@ -97,4 +115,41 @@ func (s *Service) UpdateTenant(ctx context.Context, id string, name, domain stri
 	}
 
 	return s.GetTenantByID(ctx, id)
+}
+
+func (s *Service) UpdateProfile(ctx context.Context, id string, req UpdateProfileRequest) (*Tenant, error) {
+	_, err := s.db.Exec(ctx,
+		`UPDATE tenants SET 
+			name = $1, 
+			address_line1 = $2, 
+			address_line2 = $3,
+			city = $4,
+			state = $5,
+			zip = $6,
+			phone = $7,
+			website = $8,
+			email = $9,
+			ein = $10,
+			about = $11
+		WHERE id = $12`,
+		req.Name, req.AddressLine1, req.AddressLine2, req.City, req.State, req.Zip,
+		req.Phone, req.Website, req.Email, req.EIN, req.About, id,
+	)
+	if err != nil {
+		return nil, fmt.Errorf("failed to update profile: %w", err)
+	}
+
+	return s.GetTenantByID(ctx, id)
+}
+
+func (s *Service) UpdateLogo(ctx context.Context, id string, logo string) error {
+	_, err := s.db.Exec(ctx,
+		`UPDATE tenants SET logo = $1 WHERE id = $2`,
+		logo, id,
+	)
+	if err != nil {
+		return fmt.Errorf("failed to update logo: %w", err)
+	}
+
+	return nil
 }

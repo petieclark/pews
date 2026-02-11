@@ -1,17 +1,28 @@
 <script>
 	import { goto } from '$app/navigation';
 	import { onMount } from 'svelte';
-	import { getToken, clearToken } from '$lib/api';
+	import { getToken, clearToken, api } from '$lib/api';
 	import ThemeToggle from '$lib/ThemeToggle.svelte';
 
 	let email = '';
+	let churchName = 'Pews';
+	let churchLogo = '';
 
-	onMount(() => {
+	onMount(async () => {
 		if (!getToken()) {
 			goto('/login');
 			return;
 		}
 		email = localStorage.getItem('email') || '';
+		
+		// Fetch tenant profile for logo and name
+		try {
+			const tenant = await api('/api/tenant/profile');
+			churchName = tenant.name || 'Pews';
+			churchLogo = tenant.logo || '';
+		} catch (err) {
+			console.error('Failed to load tenant profile:', err);
+		}
 	});
 
 	function logout() {
@@ -26,8 +37,14 @@
 		<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
 			<div class="flex justify-between h-16">
 				<div class="flex items-center space-x-8">
-					<a href="/dashboard" class="text-2xl font-bold text-[var(--text-primary)]">Pews</a>
+					<a href="/dashboard" class="flex items-center space-x-3">
+						{#if churchLogo}
+							<img src={churchLogo} alt="{churchName} logo" class="h-10 w-10 object-contain" />
+						{/if}
+						<span class="text-2xl font-bold text-[var(--text-primary)]">{churchName}</span>
+					</a>
 					<a href="/dashboard" class="text-secondary hover:text-primary">Dashboard</a>
+					<a href="/dashboard/reports" class="text-secondary hover:text-primary">Reports</a>
 					<a href="/dashboard/people" class="text-secondary hover:text-primary">People</a>
 					<a href="/dashboard/groups" class="text-secondary hover:text-primary">Groups</a>
 					<a href="/dashboard/services" class="text-secondary hover:text-primary">Services</a>
