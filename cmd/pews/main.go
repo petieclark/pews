@@ -18,6 +18,7 @@ import (
 	"github.com/petieclark/pews/internal/communication"
 	"github.com/petieclark/pews/internal/config"
 	"github.com/petieclark/pews/internal/database"
+	"github.com/petieclark/pews/internal/engagement"
 	"github.com/petieclark/pews/internal/giving"
 	"github.com/petieclark/pews/internal/groups"
 	"github.com/petieclark/pews/internal/module"
@@ -108,6 +109,10 @@ func run() error {
 	notificationHandler := notification.NewHandler(notificationService)
 	websiteHandler := website.NewHandler(websiteService)
 	qrHandler := qr.NewHandler(qrService)
+	
+	// Engagement (Phase 6)
+	engagementService := engagement.NewService(db.Pool)
+	engagementHandler := engagement.NewHandler(engagementService)
 
 	// Setup router
 	r := router.New(
@@ -131,6 +136,7 @@ func run() error {
 		notificationHandler,
 		websiteHandler,
 		qrHandler,
+		engagementHandler,
 		cfg.StripeWebhookSecret,
 		cfg.StripeWebhookSecret, // Use same webhook secret for giving
 		cfg.FrontendURL,

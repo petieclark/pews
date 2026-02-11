@@ -10,6 +10,7 @@ import (
 	"github.com/petieclark/pews/internal/calendar"
 	"github.com/petieclark/pews/internal/checkins"
 	"github.com/petieclark/pews/internal/communication"
+	"github.com/petieclark/pews/internal/engagement"
 	"github.com/petieclark/pews/internal/giving"
 	"github.com/petieclark/pews/internal/groups"
 	"github.com/petieclark/pews/internal/middleware"
@@ -52,6 +53,7 @@ func New(
 	notificationHandler *notification.Handler,
 	websiteHandler *website.Handler,
 	qrHandler *qr.Handler,
+	engagementHandler *engagement.Handler,
 	webhookSecret string,
 	givingWebhookSecret string,
 	frontendURL string,
@@ -354,6 +356,16 @@ func New(
 
 		// QR - Custom URL (authenticated)
 		r.Get("/api/qr/custom", qrHandler.GenerateCustomQR)
+
+		// Engagement - Scores
+		r.Get("/api/engagement/scores", engagementHandler.GetAllScores)
+		r.Get("/api/engagement/scores/{personID}", engagementHandler.GetPersonScore)
+		r.Post("/api/engagement/scores/{personID}/calculate", engagementHandler.CalculatePersonScore)
+		r.Get("/api/engagement/at-risk", engagementHandler.GetAtRiskPeople)
+		r.Post("/api/engagement/recalculate", engagementHandler.RecalculateAllScores)
+
+		// Dashboard - KPIs
+		r.Get("/api/dashboard/kpis", engagementHandler.GetDashboardKPIs)
 	})
 
 	return &Router{r}
