@@ -8,6 +8,7 @@ import (
 	"github.com/petieclark/pews/internal/billing"
 	"github.com/petieclark/pews/internal/checkins"
 	"github.com/petieclark/pews/internal/communication"
+	"github.com/petieclark/pews/internal/followup"
 	"github.com/petieclark/pews/internal/giving"
 	"github.com/petieclark/pews/internal/groups"
 	"github.com/petieclark/pews/internal/middleware"
@@ -35,6 +36,7 @@ func New(
 	streamingHandler *streaming.Handler,
 	communicationHandler *communication.Handler,
 	checkinsHandler *checkins.Handler,
+	followupHandler *followup.Handler,
 	webhookSecret string,
 	givingWebhookSecret string,
 	frontendURL string,
@@ -258,6 +260,16 @@ func New(
 		// Check-ins - Stats & Search
 		r.Get("/api/checkins/stats", checkinsHandler.GetStats)
 		r.Get("/api/checkins/search", checkinsHandler.SearchPeople)
+
+		// Follow-ups
+		r.Get("/api/follow-ups", followupHandler.ListFollowUps)
+		r.Post("/api/follow-ups", followupHandler.CreateFollowUp)
+		r.Get("/api/follow-ups/my", followupHandler.GetMyFollowUps)
+		r.Get("/api/follow-ups/overdue", followupHandler.GetOverdueFollowUps)
+		r.Get("/api/follow-ups/stats", followupHandler.GetDashboardStats)
+		r.Get("/api/follow-ups/{id}", followupHandler.GetFollowUp)
+		r.Put("/api/follow-ups/{id}", followupHandler.UpdateFollowUp)
+		r.Delete("/api/follow-ups/{id}", followupHandler.DeleteFollowUp)
 	})
 
 	return &Router{r}
