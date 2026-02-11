@@ -38,6 +38,13 @@ go.work
 # Environment
 .env
 .env.local
+.env.production
+
+# Secrets and backups
+secrets/*.txt
+backups/*.sql
+backups/*.sql.gz
+backups/*.dump
 
 # Database
 *.db
