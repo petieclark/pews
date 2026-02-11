@@ -6,6 +6,7 @@ import (
 	"log"
 	"net/http"
 
+	"github.com/petieclark/pews/internal/audit"
 	"github.com/petieclark/pews/internal/tenant"
 )
 
@@ -13,6 +14,7 @@ type Handler struct {
 	authService    *Service
 	tenantService  *tenant.Service
 	billingService BillingSubscriptionCreator
+	auditService   *audit.Service
 }
 
 // BillingSubscriptionCreator allows auth handler to create subscriptions on registration
@@ -20,11 +22,12 @@ type BillingSubscriptionCreator interface {
 	EnsureSubscription(ctx context.Context, tenantID string) error
 }
 
-func NewHandler(authService *Service, tenantService *tenant.Service, billingCreator BillingSubscriptionCreator) *Handler {
+func NewHandler(authService *Service, tenantService *tenant.Service, billingCreator BillingSubscriptionCreator, auditService *audit.Service) *Handler {
 	return &Handler{
 		authService:    authService,
 		tenantService:  tenantService,
 		billingService: billingCreator,
+		auditService:   auditService,
 	}
 }
 

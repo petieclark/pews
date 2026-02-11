@@ -10,6 +10,7 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/petieclark/pews/internal/audit"
 	"github.com/petieclark/pews/internal/auth"
 	"github.com/petieclark/pews/internal/billing"
 	"github.com/petieclark/pews/internal/checkins"
@@ -57,6 +58,7 @@ func run() error {
 	log.Println("Migrations completed")
 
 	// Initialize services
+	auditService := audit.NewService(db.DB)
 	authService := auth.NewService(db.Pool, cfg.JWTSecret)
 	tenantService := tenant.NewService(db.Pool)
 	moduleService := module.NewService(db.Pool)
@@ -71,7 +73,8 @@ func run() error {
 	checkinsService := checkins.NewService(db.Pool)
 
 	// Initialize handlers
-	authHandler := auth.NewHandler(authService, tenantService, billingService)
+	auditHandler := audit.NewHandler(auditService)
+	authHandler := auth.NewHandler(authService, tenantService, billingService, auditService)
 	tenantHandler := tenant.NewHandler(tenantService)
 	moduleHandler := module.NewHandler(moduleService)
 	billingHandler := billing.NewHandler(billingService)
@@ -97,6 +100,8 @@ func run() error {
 		streamingHandler,
 		communicationHandler,
 		checkinsHandler,
+		auditHandler,
+		auditService,
 		cfg.StripeWebhookSecret,
 		cfg.StripeWebhookSecret, // Use same webhook secret for giving
 		cfg.FrontendURL,

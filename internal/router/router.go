@@ -4,6 +4,7 @@ import (
 	"net/http"
 
 	"github.com/go-chi/chi/v5"
+	"github.com/petieclark/pews/internal/audit"
 	"github.com/petieclark/pews/internal/auth"
 	"github.com/petieclark/pews/internal/billing"
 	"github.com/petieclark/pews/internal/checkins"
@@ -35,6 +36,8 @@ func New(
 	streamingHandler *streaming.Handler,
 	communicationHandler *communication.Handler,
 	checkinsHandler *checkins.Handler,
+	auditHandler *audit.Handler,
+	auditService *audit.Service,
 	webhookSecret string,
 	givingWebhookSecret string,
 	frontendURL string,
@@ -71,9 +74,19 @@ func New(
 	// Protected routes
 	r.Group(func(r chi.Router) {
 		r.Use(authService.Middleware)
+		
+		// Audit middleware (logs all mutating actions)
+		auditMiddleware := middleware.NewAuditMiddleware(auditService)
+		r.Use(auditMiddleware.AuditLog)
 
 		// Auth
 		r.Post("/api/auth/logout", authHandler.Logout)
+
+		// Audit & Security (admin only)
+		r.Get("/api/audit/logs", auditHandler.GetLogs)
+		r.Get("/api/audit/logs/user/{id}", auditHandler.GetUserLogs)
+		r.Get("/api/audit/security", auditHandler.GetSecurityDashboard)
+		r.Get("/api/audit/export", auditHandler.ExportLogs)
 
 		// Tenant
 		r.Get("/api/tenant", tenantHandler.GetTenant)
