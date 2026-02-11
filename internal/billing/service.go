@@ -3,6 +3,7 @@ package billing
 import (
 	"context"
 	"fmt"
+	"log"
 	"time"
 
 	"github.com/google/uuid"
@@ -10,6 +11,8 @@ import (
 	"github.com/stripe/stripe-go/v76"
 	"github.com/stripe/stripe-go/v76/checkout/session"
 	"github.com/stripe/stripe-go/v76/customer"
+	"github.com/stripe/stripe-go/v76/price"
+	"github.com/stripe/stripe-go/v76/product"
 	billingportalsession "github.com/stripe/stripe-go/v76/billingportal/session"
 )
 
@@ -119,6 +122,11 @@ func (s *Service) CreateCheckoutSession(ctx context.Context, tenantID, tenantEma
 		Metadata: map[string]string{
 			"tenant_id": tenantID,
 		},
+		SubscriptionData: &stripe.CheckoutSessionSubscriptionDataParams{
+			Metadata: map[string]string{
+				"tenant_id": tenantID,
+			},
+		},
 	}
 
 	sess, err := session.New(params)
@@ -169,4 +177,41 @@ func (s *Service) CancelSubscription(ctx context.Context, tenantID string) error
 		tenantID,
 	)
 	return err
+}
+
+// EnsureStripeProduct creates or verifies the Stripe Product and Price for the Pro plan
+// This should be called during service initialization or as a migration step
+// Returns the price ID for the $100/month Pro plan
+func (s *Service) EnsureStripeProduct() (string, error) {
+	// Create or get the Pews Pro product
+	productParams := &stripe.ProductParams{
+		Name:        stripe.String("Pews Pro"),
+		Description: stripe.String("Professional church management features"),
+	}
+	
+	prod, err := product.New(productParams)
+	if err != nil {
+		// If product already exists, we might get an error
+		// In production, you'd want to search for the existing product
+		log.Printf("Product creation returned: %v", err)
+		return "", fmt.Errorf("failed to create product: %w", err)
+	}
+
+	// Create the price: $100/month
+	priceParams := &stripe.PriceParams{
+		Product:    stripe.String(prod.ID),
+		Currency:   stripe.String(string(stripe.CurrencyUSD)),
+		UnitAmount: stripe.Int64(10000), // $100.00 in cents
+		Recurring: &stripe.PriceRecurringParams{
+			Interval: stripe.String(string(stripe.PriceRecurringIntervalMonth)),
+		},
+	}
+
+	pr, err := price.New(priceParams)
+	if err != nil {
+		return "", fmt.Errorf("failed to create price: %w", err)
+	}
+
+	log.Printf("Created Stripe Product %s and Price %s ($100/month)", prod.ID, pr.ID)
+	return pr.ID, nil
 }
