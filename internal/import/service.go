@@ -322,12 +322,6 @@ func (s *Service) ImportGiving(ctx context.Context, tenantID string, donations [
 
 // ImportPCOPeople bulk imports people from PCO with support for custom fields and updates
 func (s *Service) ImportPCOPeople(ctx context.Context, tenantID string, people []PersonImport, updateMode string) (*PCOImportResult, error) {
-	// Set tenant context
-	_, err := s.db.Exec(ctx, "SELECT set_config('app.current_tenant_id', $1, TRUE)", tenantID)
-	if err != nil {
-		return nil, fmt.Errorf("failed to set tenant context: %w", err)
-	}
-
 	result := &PCOImportResult{
 		Imported: 0,
 		Updated:  0,
@@ -342,12 +336,21 @@ func (s *Service) ImportPCOPeople(ctx context.Context, tenantID string, people [
 	}
 	defer tx.Rollback(ctx)
 
+	// Set tenant context INSIDE the transaction
+	_, err = tx.Exec(ctx, "SELECT set_config('app.current_tenant_id', $1, TRUE)", tenantID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to set tenant context: %w", err)
+	}
+
 	for i, person := range people {
 		// Skip if missing required fields
 		if person.FirstName == "" || person.LastName == "" {
 			result.Errors = append(result.Errors, fmt.Sprintf("Row %d: missing required fields (first_name, last_name)", i+1))
 			continue
 		}
+
+		savepointName := fmt.Sprintf("sp_%d", i)
+		_, _ = tx.Exec(ctx, "SAVEPOINT "+savepointName)
 
 		// Check for duplicate by email
 		var existingID string
@@ -357,9 +360,9 @@ func (s *Service) ImportPCOPeople(ctx context.Context, tenantID string, people [
 				// Person exists
 				if updateMode == "skip" {
 					result.Skipped++
+					_, _ = tx.Exec(ctx, "RELEASE SAVEPOINT "+savepointName)
 					continue
 				} else if updateMode == "update" {
-					// Update existing person
 					_, err := tx.Exec(ctx, `
 						UPDATE people SET
 							first_name = COALESCE(NULLIF($1, ''), first_name),
@@ -391,12 +394,18 @@ func (s *Service) ImportPCOPeople(ctx context.Context, tenantID string, people [
 
 					if err != nil {
 						result.Errors = append(result.Errors, fmt.Sprintf("Row %d: %v", i+1, err))
+						_, _ = tx.Exec(ctx, "ROLLBACK TO SAVEPOINT "+savepointName)
 						continue
 					}
 
 					result.Updated++
+					_, _ = tx.Exec(ctx, "RELEASE SAVEPOINT "+savepointName)
 					continue
 				}
+			} else {
+				// No match — rollback savepoint from failed SELECT
+				_, _ = tx.Exec(ctx, "ROLLBACK TO SAVEPOINT "+savepointName)
+				_, _ = tx.Exec(ctx, "SAVEPOINT "+savepointName)
 			}
 		}
 
@@ -427,15 +436,17 @@ func (s *Service) ImportPCOPeople(ctx context.Context, tenantID string, people [
 
 		if err != nil {
 			result.Errors = append(result.Errors, fmt.Sprintf("Row %d: %v", i+1, err))
+			_, _ = tx.Exec(ctx, "ROLLBACK TO SAVEPOINT "+savepointName)
 			continue
 		}
 
 		result.Imported++
+		_, _ = tx.Exec(ctx, "RELEASE SAVEPOINT "+savepointName)
 	}
 
 	// Commit transaction
 	if err := tx.Commit(ctx); err != nil {
-		return nil, fmt.Errorf("failed to commit transaction: %w", err)
+		return nil, fmt.Errorf("failed to commit transaction (%d imported, %d errors): %w", result.Imported, len(result.Errors), err)
 	}
 
 	// Log import to history
@@ -446,12 +457,6 @@ func (s *Service) ImportPCOPeople(ctx context.Context, tenantID string, people [
 
 // ImportPCOSongs bulk imports songs from PCO with support for updates
 func (s *Service) ImportPCOSongs(ctx context.Context, tenantID string, songs []SongImport, updateMode string) (*PCOImportResult, error) {
-	// Set tenant context
-	_, err := s.db.Exec(ctx, "SELECT set_config('app.current_tenant_id', $1, TRUE)", tenantID)
-	if err != nil {
-		return nil, fmt.Errorf("failed to set tenant context: %w", err)
-	}
-
 	result := &PCOImportResult{
 		Imported: 0,
 		Updated:  0,
@@ -466,12 +471,22 @@ func (s *Service) ImportPCOSongs(ctx context.Context, tenantID string, songs []S
 	}
 	defer tx.Rollback(ctx)
 
+	// Set tenant context INSIDE the transaction
+	_, err = tx.Exec(ctx, "SELECT set_config('app.current_tenant_id', $1, TRUE)", tenantID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to set tenant context: %w", err)
+	}
+
 	for i, song := range songs {
 		// Skip if missing required fields
 		if song.Title == "" {
 			result.Errors = append(result.Errors, fmt.Sprintf("Row %d: missing required field (title)", i+1))
 			continue
 		}
+
+		// Use savepoint so a failed row doesn't poison the entire transaction
+		savepointName := fmt.Sprintf("sp_%d", i)
+		_, _ = tx.Exec(ctx, "SAVEPOINT "+savepointName)
 
 		// Check for duplicate by title+artist or CCLI number
 		var existingID string
@@ -489,9 +504,9 @@ func (s *Service) ImportPCOSongs(ctx context.Context, tenantID string, songs []S
 			// Song exists
 			if updateMode == "skip" {
 				result.Skipped++
+				_, _ = tx.Exec(ctx, "RELEASE SAVEPOINT "+savepointName)
 				continue
 			} else if updateMode == "update" {
-				// Update existing song
 				_, err := tx.Exec(ctx, `
 					UPDATE songs SET
 						artist = COALESCE(NULLIF($1, ''), artist),
@@ -510,11 +525,34 @@ func (s *Service) ImportPCOSongs(ctx context.Context, tenantID string, songs []S
 
 				if err != nil {
 					result.Errors = append(result.Errors, fmt.Sprintf("Row %d: %v", i+1, err))
+					_, _ = tx.Exec(ctx, "ROLLBACK TO SAVEPOINT "+savepointName)
 					continue
 				}
 
 				result.Updated++
+				_, _ = tx.Exec(ctx, "RELEASE SAVEPOINT "+savepointName)
 				continue
+			}
+		} else {
+			// No match found — rollback the failed SELECT savepoint (pgx marks it failed on no rows in some cases)
+			_, _ = tx.Exec(ctx, "ROLLBACK TO SAVEPOINT "+savepointName)
+			_, _ = tx.Exec(ctx, "SAVEPOINT "+savepointName)
+		}
+
+		// Parse last_used date if present (PCO format: "January 12, 2022")
+		var lastUsed *time.Time
+		if song.LastUsed != "" {
+			for _, layout := range []string{
+				"January 2, 2006",
+				"Jan 2, 2006",
+				"2006-01-02",
+				"01/02/2006",
+				"1/2/2006",
+			} {
+				if t, e := time.Parse(layout, song.LastUsed); e == nil {
+					lastUsed = &t
+					break
+				}
 			}
 		}
 
@@ -526,23 +564,25 @@ func (s *Service) ImportPCOSongs(ctx context.Context, tenantID string, songs []S
 				ccli_number, lyrics, notes, tags, times_used, last_used,
 				created_at, updated_at
 			) VALUES (
-				$1, $2, $3, $4, $5, $6, $7, $8, $9, $10, 0, NULL, NOW(), NOW()
+				$1, $2, $3, $4, $5, $6, $7, $8, $9, $10, 0, $11, NOW(), NOW()
 			)`,
 			id, tenantID, song.Title, song.Artist, song.Key, song.Tempo,
-			song.CCLINumber, song.Lyrics, song.Notes, song.Tags,
+			song.CCLINumber, song.Lyrics, song.Notes, song.Tags, lastUsed,
 		)
 
 		if err != nil {
 			result.Errors = append(result.Errors, fmt.Sprintf("Row %d: %v", i+1, err))
+			_, _ = tx.Exec(ctx, "ROLLBACK TO SAVEPOINT "+savepointName)
 			continue
 		}
 
 		result.Imported++
+		_, _ = tx.Exec(ctx, "RELEASE SAVEPOINT "+savepointName)
 	}
 
 	// Commit transaction
 	if err := tx.Commit(ctx); err != nil {
-		return nil, fmt.Errorf("failed to commit transaction: %w", err)
+		return nil, fmt.Errorf("failed to commit transaction (%d imported, %d errors): %w", result.Imported, len(result.Errors), err)
 	}
 
 	// Log import to history

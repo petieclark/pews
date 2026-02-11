@@ -65,6 +65,7 @@ type SongImport struct {
 	Lyrics     string `json:"lyrics,omitempty"`
 	Notes      string `json:"notes,omitempty"`
 	Tags       string `json:"tags,omitempty"`
+	LastUsed   string `json:"last_used,omitempty"`
 }
 
 // ImportGivingRequest is the request body for bulk donation import
