@@ -23,7 +23,7 @@ func (s *Service) GetDB() *pgxpool.Pool {
 
 // People operations
 
-func (s *Service) ListPeople(ctx context.Context, tenantID string, query string, status string, sortBy string, page, limit int) ([]Person, int, error) {
+func (s *Service) ListPeople(ctx context.Context, tenantID string, query string, status string, sortBy string, page, limit int, tagIDs ...string) ([]Person, int, error) {
 	if page < 1 {
 		page = 1
 	}
@@ -34,22 +34,33 @@ func (s *Service) ListPeople(ctx context.Context, tenantID string, query string,
 
 	// Build query
 	sqlQuery := `
-		SELECT id, tenant_id, first_name, last_name, 
-		       COALESCE(email, ''), COALESCE(phone, ''), 
-		       COALESCE(address_line1, ''), COALESCE(address_line2, ''), 
-		       COALESCE(city, ''), COALESCE(state, ''), COALESCE(zip, ''), 
-		       birthdate, COALESCE(gender, ''), membership_status, 
-		       COALESCE(photo_url, ''), COALESCE(notes, ''), 
-		       COALESCE(custom_fields, '{}'), created_at, updated_at
-		FROM people
-		WHERE tenant_id = $1`
+		SELECT p.id, p.tenant_id, p.first_name, p.last_name, 
+		       COALESCE(p.email, ''), COALESCE(p.phone, ''), 
+		       COALESCE(p.address_line1, ''), COALESCE(p.address_line2, ''), 
+		       COALESCE(p.city, ''), COALESCE(p.state, ''), COALESCE(p.zip, ''), 
+		       p.birthdate, COALESCE(p.gender, ''), p.membership_status, 
+		       COALESCE(p.photo_url, ''), COALESCE(p.notes, ''), 
+		       COALESCE(p.custom_fields, '{}'), p.created_at, p.updated_at
+		FROM people p`
 
-	countQuery := `SELECT COUNT(*) FROM people WHERE tenant_id = $1`
+	countQuery := `SELECT COUNT(*) FROM people p`
 	args := []interface{}{tenantID}
 	argPos := 2
 
+	// Join for tag filter
+	if len(tagIDs) > 0 && tagIDs[0] != "" {
+		tagJoin := fmt.Sprintf(` JOIN person_tags pt ON pt.person_id = p.id AND pt.tag_id = $%d`, argPos)
+		sqlQuery += tagJoin
+		countQuery += tagJoin
+		args = append(args, tagIDs[0])
+		argPos++
+	}
+
+	sqlQuery += ` WHERE p.tenant_id = $1`
+	countQuery += ` WHERE p.tenant_id = $1`
+
 	if query != "" {
-		searchFilter := fmt.Sprintf(` AND (first_name ILIKE $%d OR last_name ILIKE $%d OR email ILIKE $%d OR phone ILIKE $%d OR (first_name || ' ' || last_name) ILIKE $%d)`, argPos, argPos, argPos, argPos, argPos)
+		searchFilter := fmt.Sprintf(` AND (p.first_name ILIKE $%d OR p.last_name ILIKE $%d OR p.email ILIKE $%d OR p.phone ILIKE $%d OR (p.first_name || ' ' || p.last_name) ILIKE $%d)`, argPos, argPos, argPos, argPos, argPos)
 		sqlQuery += searchFilter
 		countQuery += searchFilter
 		args = append(args, "%"+query+"%")
@@ -57,7 +68,7 @@ func (s *Service) ListPeople(ctx context.Context, tenantID string, query string,
 	}
 
 	if status != "" && status != "all" {
-		statusFilter := fmt.Sprintf(` AND membership_status = $%d`, argPos)
+		statusFilter := fmt.Sprintf(` AND p.membership_status = $%d`, argPos)
 		sqlQuery += statusFilter
 		countQuery += statusFilter
 		args = append(args, status)
@@ -72,14 +83,14 @@ func (s *Service) ListPeople(ctx context.Context, tenantID string, query string,
 	}
 
 	// Add sorting
-	orderBy := " ORDER BY last_name, first_name"
+	orderBy := " ORDER BY p.last_name, p.first_name"
 	switch sortBy {
 	case "name_desc":
-		orderBy = " ORDER BY last_name DESC, first_name DESC"
+		orderBy = " ORDER BY p.last_name DESC, p.first_name DESC"
 	case "newest":
-		orderBy = " ORDER BY created_at DESC"
+		orderBy = " ORDER BY p.created_at DESC"
 	case "oldest":
-		orderBy = " ORDER BY created_at ASC"
+		orderBy = " ORDER BY p.created_at ASC"
 	}
 
 	sqlQuery += fmt.Sprintf(`%s LIMIT $%d OFFSET $%d`, orderBy, argPos, argPos+1)
@@ -104,6 +115,36 @@ func (s *Service) ListPeople(ctx context.Context, tenantID string, query string,
 			return nil, 0, fmt.Errorf("failed to scan person: %w", err)
 		}
 		people = append(people, p)
+	}
+
+	// Batch load tags for all people
+	if len(people) > 0 {
+		personIDs := make([]string, len(people))
+		for i, p := range people {
+			personIDs[i] = p.ID
+		}
+		tagRows, tagErr := s.db.Query(ctx, `
+			SELECT pt.person_id, t.id, t.tenant_id, t.name, t.color, t.created_at
+			FROM person_tags pt
+			JOIN tags t ON t.id = pt.tag_id
+			WHERE pt.person_id = ANY($1)
+			ORDER BY t.name`, personIDs)
+		if tagErr == nil {
+			defer tagRows.Close()
+			tagMap := make(map[string][]Tag)
+			for tagRows.Next() {
+				var personID string
+				var tag Tag
+				if err := tagRows.Scan(&personID, &tag.ID, &tag.TenantID, &tag.Name, &tag.Color, &tag.CreatedAt); err == nil {
+					tagMap[personID] = append(tagMap[personID], tag)
+				}
+			}
+			for i := range people {
+				if tags, ok := tagMap[people[i].ID]; ok {
+					people[i].Tags = tags
+				}
+			}
+		}
 	}
 
 	return people, total, nil
@@ -271,9 +312,12 @@ func (s *Service) RemoveTagFromPerson(ctx context.Context, tenantID, personID, t
 
 func (s *Service) ListTags(ctx context.Context, tenantID string) ([]Tag, error) {
 	rows, err := s.db.Query(ctx, `
-		SELECT id, tenant_id, name, color, created_at
-		FROM tags
-		ORDER BY name`)
+		SELECT t.id, t.tenant_id, t.name, t.color, t.created_at, COUNT(pt.person_id)
+		FROM tags t
+		LEFT JOIN person_tags pt ON pt.tag_id = t.id
+		WHERE t.tenant_id = $1
+		GROUP BY t.id
+		ORDER BY t.name`, tenantID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to list tags: %w", err)
 	}
@@ -282,13 +326,84 @@ func (s *Service) ListTags(ctx context.Context, tenantID string) ([]Tag, error) 
 	tags := []Tag{}
 	for rows.Next() {
 		var tag Tag
-		if err := rows.Scan(&tag.ID, &tag.TenantID, &tag.Name, &tag.Color, &tag.CreatedAt); err != nil {
+		if err := rows.Scan(&tag.ID, &tag.TenantID, &tag.Name, &tag.Color, &tag.CreatedAt, &tag.PersonCount); err != nil {
 			return nil, fmt.Errorf("failed to scan tag: %w", err)
 		}
 		tags = append(tags, tag)
 	}
 
 	return tags, nil
+}
+
+func (s *Service) DeleteTag(ctx context.Context, tenantID, tagID string) error {
+	result, err := s.db.Exec(ctx, "DELETE FROM tags WHERE id = $1 AND tenant_id = $2", tagID, tenantID)
+	if err != nil {
+		return fmt.Errorf("failed to delete tag: %w", err)
+	}
+	if result.RowsAffected() == 0 {
+		return fmt.Errorf("tag not found")
+	}
+	return nil
+}
+
+func (s *Service) AddTagsToPerson(ctx context.Context, tenantID, personID string, tagIDs []string) error {
+	for _, tagID := range tagIDs {
+		_, err := s.db.Exec(ctx, `
+			INSERT INTO person_tags (person_id, tag_id)
+			SELECT $1, $2 WHERE EXISTS (SELECT 1 FROM tags WHERE id = $2 AND tenant_id = $3)
+			ON CONFLICT DO NOTHING`, personID, tagID, tenantID)
+		if err != nil {
+			return fmt.Errorf("failed to add tag %s: %w", tagID, err)
+		}
+	}
+	return nil
+}
+
+func (s *Service) BulkAddTag(ctx context.Context, tenantID string, personIDs []string, tagID string) (int64, error) {
+	var count int64
+	for _, pid := range personIDs {
+		result, err := s.db.Exec(ctx, `
+			INSERT INTO person_tags (person_id, tag_id)
+			SELECT $1, $2 WHERE EXISTS (SELECT 1 FROM tags WHERE id = $2 AND tenant_id = $3)
+			ON CONFLICT DO NOTHING`, pid, tagID, tenantID)
+		if err != nil {
+			return count, fmt.Errorf("failed to bulk add tag: %w", err)
+		}
+		count += result.RowsAffected()
+	}
+	return count, nil
+}
+
+func (s *Service) BulkRemoveTag(ctx context.Context, tenantID string, personIDs []string, tagID string) (int64, error) {
+	result, err := s.db.Exec(ctx, `
+		DELETE FROM person_tags WHERE tag_id = $1 AND person_id = ANY($2)`, tagID, personIDs)
+	if err != nil {
+		return 0, fmt.Errorf("failed to bulk remove tag: %w", err)
+	}
+	return result.RowsAffected(), nil
+}
+
+// EnsureTagForTenant creates a tag if it doesn't exist, returns the tag ID.
+func (s *Service) EnsureTagForTenant(ctx context.Context, tenantID, name, color string) (string, error) {
+	var tagID string
+	err := s.db.QueryRow(ctx, `
+		INSERT INTO tags (id, tenant_id, name, color)
+		VALUES (gen_random_uuid(), $1, $2, $3)
+		ON CONFLICT (tenant_id, name) DO UPDATE SET name = EXCLUDED.name
+		RETURNING id`, tenantID, name, color).Scan(&tagID)
+	if err != nil {
+		return "", fmt.Errorf("failed to ensure tag: %w", err)
+	}
+	return tagID, nil
+}
+
+// AutoTagPerson ensures a tag exists and adds it to a person.
+func (s *Service) AutoTagPerson(ctx context.Context, tenantID, personID, tagName string) error {
+	tagID, err := s.EnsureTagForTenant(ctx, tenantID, tagName, "#4A8B8C")
+	if err != nil {
+		return err
+	}
+	return s.AddTagToPerson(ctx, tenantID, personID, tagID)
 }
 
 func (s *Service) CreateTag(ctx context.Context, tenantID string, tag *Tag) (*Tag, error) {

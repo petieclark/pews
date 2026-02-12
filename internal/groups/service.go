@@ -258,7 +258,26 @@ func (s *Service) AddMemberToGroup(ctx context.Context, tenantID, groupID, perso
 		return nil, fmt.Errorf("failed to add member to group: %w", err)
 	}
 
+	// Auto-tag person with group name
+	var groupName string
+	_ = s.db.QueryRow(ctx, "SELECT name FROM groups WHERE id = $1", groupID).Scan(&groupName)
+	if groupName != "" {
+		s.autoTagPerson(ctx, tenantID, personID, groupName)
+	}
+
 	return &m, nil
+}
+
+func (s *Service) autoTagPerson(ctx context.Context, tenantID, personID, tagName string) {
+	var tagID string
+	_ = s.db.QueryRow(ctx, `
+		INSERT INTO tags (id, tenant_id, name, color)
+		VALUES (gen_random_uuid(), $1, $2, '#4A8B8C')
+		ON CONFLICT (tenant_id, name) DO UPDATE SET name = EXCLUDED.name
+		RETURNING id`, tenantID, tagName).Scan(&tagID)
+	if tagID != "" {
+		_, _ = s.db.Exec(ctx, `INSERT INTO person_tags (person_id, tag_id) VALUES ($1, $2) ON CONFLICT DO NOTHING`, personID, tagID)
+	}
 }
 
 func (s *Service) UpdateMemberRole(ctx context.Context, tenantID, memberID, role string) error {

@@ -409,6 +409,19 @@ func (h *Handler) GroupSignup(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Auto-tag with group name
+	{
+		var tagID string
+		_ = h.db.QueryRow(ctx, `
+			INSERT INTO tags (id, tenant_id, name, color)
+			VALUES (gen_random_uuid(), $1, $2, '#4A8B8C')
+			ON CONFLICT (tenant_id, name) DO UPDATE SET name = EXCLUDED.name
+			RETURNING id`, tenantID, groupName).Scan(&tagID)
+		if tagID != "" {
+			_, _ = h.db.Exec(ctx, `INSERT INTO person_tags (person_id, tag_id) VALUES ($1, $2) ON CONFLICT DO NOTHING`, personID, tagID)
+		}
+	}
+
 	// Add as pending member
 	memberID := uuid.New().String()
 	_, err = h.db.Exec(ctx, `

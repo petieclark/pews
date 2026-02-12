@@ -191,6 +191,11 @@ func New(
 		// Tags
 		r.Get("/api/tags", peopleHandler.ListTags)
 		r.Post("/api/tags", peopleHandler.CreateTag)
+		r.Delete("/api/tags/{id}", peopleHandler.DeleteTag)
+
+		// Bulk tagging
+		r.Post("/api/people/bulk/tags", peopleHandler.BulkAddTag)
+		r.Delete("/api/people/bulk/tags", peopleHandler.BulkRemoveTag)
 
 		// Households
 		r.Get("/api/households", peopleHandler.ListHouseholds)

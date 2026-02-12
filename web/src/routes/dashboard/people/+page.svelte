@@ -17,6 +17,13 @@
 	let selectAll = false;
 	let viewMode = 'cards'; // 'cards' or 'table'
 	let searchTimeout;
+	let tagFilter = '';
+	let availableTags = [];
+	let showBulkTagModal = false;
+	let bulkTagId = '';
+	let showTagManager = false;
+	let newTagName = '';
+	let newTagColor = '#4A8B8C';
 
 	let newPerson = {
 		first_name: '',
@@ -38,6 +45,7 @@
 
 	onMount(() => {
 		loadPeople();
+		loadTags();
 	});
 
 	async function loadPeople() {
@@ -50,6 +58,7 @@
 			});
 			if (searchQuery) params.append('q', searchQuery);
 			if (statusFilter !== 'all') params.append('status', statusFilter);
+			if (tagFilter) params.append('tag', tagFilter);
 
 			const response = await api(`/api/people?${params}`);
 			people = response.people || [];
@@ -156,6 +165,45 @@
 		}
 	}
 
+	async function loadTags() {
+		try { availableTags = await api('/api/tags', { silent: true }); } catch (e) { availableTags = []; }
+	}
+
+	async function bulkAddTag() {
+		if (selectedIds.size === 0 || !bulkTagId) return;
+		try {
+			await api('/api/people/bulk/tags', {
+				method: 'POST',
+				body: JSON.stringify({ person_ids: [...selectedIds], tag_id: bulkTagId })
+			});
+			showBulkTagModal = false;
+			bulkTagId = '';
+			loadPeople();
+		} catch (error) { alert('Failed to tag: ' + error.message); }
+	}
+
+	async function createTag() {
+		if (!newTagName.trim()) return;
+		try {
+			await api('/api/tags', {
+				method: 'POST',
+				body: JSON.stringify({ name: newTagName.trim(), color: newTagColor })
+			});
+			newTagName = '';
+			newTagColor = '#4A8B8C';
+			loadTags();
+		} catch (error) { alert('Failed to create tag: ' + error.message); }
+	}
+
+	async function deleteTag(tagId) {
+		if (!confirm('Delete this tag? It will be removed from all people.')) return;
+		try {
+			await api(`/api/tags/${tagId}`, { method: 'DELETE' });
+			loadTags();
+			if (tagFilter === tagId) { tagFilter = ''; loadPeople(); }
+		} catch (error) { alert('Failed to delete tag: ' + error.message); }
+	}
+
 	function getInitials(first, last) {
 		return ((first?.[0] || '') + (last?.[0] || '')).toUpperCase();
 	}
@@ -199,6 +247,14 @@
 			<h1 class="text-3xl font-bold text-primary">People</h1>
 			<p class="text-secondary text-sm mt-1">{total} {total === 1 ? 'person' : 'people'} total</p>
 		</div>
+		<div class="flex gap-2">
+		<button
+			on:click={() => (showTagManager = true)}
+			class="px-4 py-2.5 bg-surface border border-custom text-primary rounded-lg hover:bg-[var(--surface-hover)] transition-colors flex items-center gap-2 font-medium text-sm"
+		>
+			<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" /></svg>
+			Tags
+		</button>
 		<button
 			on:click={() => (showCreateModal = true)}
 			class="px-5 py-2.5 bg-[var(--teal)] text-white rounded-lg hover:opacity-90 transition-opacity flex items-center gap-2 font-medium"
@@ -208,6 +264,7 @@
 			</svg>
 			Add Person
 		</button>
+		</div>
 	</div>
 
 	<!-- Search, Filter, Sort Bar -->
@@ -244,6 +301,16 @@
 				<option value="newest">Newest First</option>
 				<option value="oldest">Oldest First</option>
 			</select>
+			<select
+				bind:value={tagFilter}
+				on:change={handleFilterChange}
+				class="px-4 py-2.5 border input-border rounded-lg bg-[var(--input-bg)] text-primary text-sm focus:outline-none focus:ring-2 focus:ring-[var(--teal)]"
+			>
+				<option value="">All Tags</option>
+				{#each availableTags as tag}
+					<option value={tag.id}>{tag.name} ({tag.person_count})</option>
+				{/each}
+			</select>
 			<div class="flex gap-1 border input-border rounded-lg overflow-hidden">
 				<button
 					on:click={() => viewMode = 'cards'}
@@ -270,6 +337,9 @@
 			<div class="flex gap-2">
 				<button on:click={exportCSV} class="px-3 py-1.5 text-xs bg-surface border border-custom rounded-lg hover:bg-[var(--surface-hover)] text-primary">
 					Export CSV
+				</button>
+				<button on:click={() => showBulkTagModal = true} class="px-3 py-1.5 text-xs bg-surface border border-custom rounded-lg hover:bg-[var(--surface-hover)] text-primary">
+					Add Tag
 				</button>
 				<select
 					on:change={(e) => { if (e.target.value) { bulkChangeStatus(e.target.value); e.target.value = ''; }}}
@@ -335,9 +405,21 @@
 						</div>
 						<div class="min-w-0 flex-1">
 							<h3 class="font-semibold text-primary truncate">{person.first_name} {person.last_name}</h3>
-							<span class="inline-block mt-1 px-2 py-0.5 text-xs font-medium rounded-full" style="background-color: {badge.bg}; color: {badge.color}">
-								{badge.label}
-							</span>
+							<div class="flex flex-wrap items-center gap-1 mt-1">
+								<span class="inline-block px-2 py-0.5 text-xs font-medium rounded-full" style="background-color: {badge.bg}; color: {badge.color}">
+									{badge.label}
+								</span>
+								{#if person.tags && person.tags.length > 0}
+									{#each person.tags.slice(0, 3) as tag}
+										<span class="px-1.5 py-0.5 text-[10px] rounded-full" style="background-color: {tag.color}20; color: {tag.color}">
+											{tag.name}
+										</span>
+									{/each}
+									{#if person.tags.length > 3}
+										<span class="text-[10px] text-secondary">+{person.tags.length - 3}</span>
+									{/if}
+								{/if}
+							</div>
 						</div>
 					</div>
 
@@ -375,6 +457,7 @@
 							<th class="px-4 py-3 text-left text-xs font-medium text-secondary uppercase tracking-wider">Name</th>
 							<th class="px-4 py-3 text-left text-xs font-medium text-secondary uppercase tracking-wider">Email</th>
 							<th class="px-4 py-3 text-left text-xs font-medium text-secondary uppercase tracking-wider">Phone</th>
+							<th class="px-4 py-3 text-left text-xs font-medium text-secondary uppercase tracking-wider">Tags</th>
 							<th class="px-4 py-3 text-left text-xs font-medium text-secondary uppercase tracking-wider">Status</th>
 						</tr>
 					</thead>
@@ -406,6 +489,16 @@
 								</td>
 								<td class="px-4 py-3 whitespace-nowrap text-sm text-secondary">{person.email || '—'}</td>
 								<td class="px-4 py-3 whitespace-nowrap text-sm text-secondary">{formatPhone(person.phone) || '—'}</td>
+								<td class="px-4 py-3">
+									<div class="flex flex-wrap gap-1">
+										{#if person.tags}
+											{#each person.tags.slice(0, 2) as tag}
+												<span class="px-1.5 py-0.5 text-[10px] rounded-full" style="background-color: {tag.color}20; color: {tag.color}">{tag.name}</span>
+											{/each}
+											{#if person.tags.length > 2}<span class="text-[10px] text-secondary">+{person.tags.length - 2}</span>{/if}
+										{/if}
+									</div>
+								</td>
 								<td class="px-4 py-3 whitespace-nowrap">
 									<span class="px-2 py-0.5 text-xs font-medium rounded-full" style="background-color: {badge.bg}; color: {badge.color}">
 										{badge.label}
@@ -525,4 +618,46 @@
 			</button>
 		</div>
 	</form>
+</Modal>
+
+<!-- Bulk Tag Modal -->
+<Modal show={showBulkTagModal} title="Add Tag to {selectedIds.size} People" onClose={() => (showBulkTagModal = false)}>
+	<div class="space-y-4">
+		<select bind:value={bulkTagId} class="w-full px-3 py-2 border input-border rounded-lg bg-[var(--input-bg)] text-primary text-sm">
+			<option value="">Select a tag...</option>
+			{#each availableTags as tag}
+				<option value={tag.id}>{tag.name}</option>
+			{/each}
+		</select>
+		<div class="flex gap-3">
+			<button on:click={() => (showBulkTagModal = false)} class="flex-1 px-4 py-2.5 border border-custom rounded-lg text-primary text-sm font-medium hover:bg-[var(--surface-hover)]">Cancel</button>
+			<button on:click={bulkAddTag} disabled={!bulkTagId} class="flex-1 px-4 py-2.5 bg-[var(--teal)] text-white rounded-lg text-sm font-medium hover:opacity-90 disabled:opacity-40">Add Tag</button>
+		</div>
+	</div>
+</Modal>
+
+<!-- Tag Manager Modal -->
+<Modal show={showTagManager} title="Manage Tags" onClose={() => (showTagManager = false)}>
+	<div class="space-y-4">
+		<div class="flex gap-2">
+			<input type="text" bind:value={newTagName} placeholder="New tag name..." class="flex-1 px-3 py-2 border input-border rounded-lg bg-[var(--input-bg)] text-primary text-sm" />
+			<input type="color" bind:value={newTagColor} class="w-10 h-10 rounded-lg border input-border cursor-pointer" />
+			<button on:click={createTag} class="px-4 py-2 bg-[var(--teal)] text-white rounded-lg text-sm font-medium hover:opacity-90">Add</button>
+		</div>
+		<div class="space-y-2 max-h-64 overflow-y-auto">
+			{#each availableTags as tag}
+				<div class="flex items-center justify-between p-3 bg-[var(--surface-hover)] rounded-lg">
+					<div class="flex items-center gap-2">
+						<span class="w-3 h-3 rounded-full flex-shrink-0" style="background-color: {tag.color}"></span>
+						<span class="text-sm text-primary font-medium">{tag.name}</span>
+						<span class="text-xs text-secondary">{tag.person_count} {tag.person_count === 1 ? 'person' : 'people'}</span>
+					</div>
+					<button on:click={() => deleteTag(tag.id)} class="text-red-500 hover:text-red-700 text-xs">Delete</button>
+				</div>
+			{/each}
+			{#if availableTags.length === 0}
+				<p class="text-sm text-secondary text-center py-4">No tags yet. Create one above.</p>
+			{/if}
+		</div>
+	</div>
 </Modal>

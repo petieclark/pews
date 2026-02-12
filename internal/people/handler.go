@@ -58,10 +58,11 @@ func (h *Handler) ListPeople(w http.ResponseWriter, r *http.Request) {
 	query := r.URL.Query().Get("q")
 	status := r.URL.Query().Get("status")
 	sort := r.URL.Query().Get("sort")
+	tagFilter := r.URL.Query().Get("tag")
 	page, _ := strconv.Atoi(r.URL.Query().Get("page"))
 	limit, _ := strconv.Atoi(r.URL.Query().Get("limit"))
 
-	people, total, err := h.service.ListPeople(r.Context(), claims.TenantID, query, status, sort, page, limit)
+	people, total, err := h.service.ListPeople(r.Context(), claims.TenantID, query, status, sort, page, limit, tagFilter)
 	if err != nil {
 		http.Error(w, "Failed to list people: "+err.Error(), http.StatusInternalServerError)
 		return
@@ -347,7 +348,8 @@ func (h *Handler) DeletePerson(w http.ResponseWriter, r *http.Request) {
 // Tag handlers
 
 type AddTagRequest struct {
-	TagID string `json:"tag_id"`
+	TagID  string   `json:"tag_id"`
+	TagIDs []string `json:"tag_ids"`
 }
 
 func (h *Handler) AddTagToPerson(w http.ResponseWriter, r *http.Request) {
@@ -365,8 +367,19 @@ func (h *Handler) AddTagToPerson(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := h.service.AddTagToPerson(r.Context(), claims.TenantID, personID, req.TagID); err != nil {
-		http.Error(w, "Failed to add tag: "+err.Error(), http.StatusInternalServerError)
+	// Support both single tag_id and array of tag_ids
+	ids := req.TagIDs
+	if len(ids) == 0 && req.TagID != "" {
+		ids = []string{req.TagID}
+	}
+
+	if len(ids) == 0 {
+		http.Error(w, "tag_id or tag_ids required", http.StatusBadRequest)
+		return
+	}
+
+	if err := h.service.AddTagsToPerson(r.Context(), claims.TenantID, personID, ids); err != nil {
+		http.Error(w, "Failed to add tags: "+err.Error(), http.StatusInternalServerError)
 		return
 	}
 
@@ -444,6 +457,84 @@ func (h *Handler) CreateTag(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusCreated)
 	json.NewEncoder(w).Encode(createdTag)
+}
+
+func (h *Handler) DeleteTag(w http.ResponseWriter, r *http.Request) {
+	claims, ok := middleware.GetClaims(r.Context())
+	if !ok {
+		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		return
+	}
+
+	tagID := chi.URLParam(r, "id")
+	if err := h.service.DeleteTag(r.Context(), claims.TenantID, tagID); err != nil {
+		http.Error(w, "Failed to delete tag: "+err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	w.WriteHeader(http.StatusNoContent)
+}
+
+func (h *Handler) BulkAddTag(w http.ResponseWriter, r *http.Request) {
+	claims, ok := middleware.GetClaims(r.Context())
+	if !ok {
+		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		return
+	}
+
+	var req struct {
+		PersonIDs []string `json:"person_ids"`
+		TagID     string   `json:"tag_id"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, "Invalid request body", http.StatusBadRequest)
+		return
+	}
+
+	if len(req.PersonIDs) == 0 || req.TagID == "" {
+		http.Error(w, "person_ids and tag_id are required", http.StatusBadRequest)
+		return
+	}
+
+	count, err := h.service.BulkAddTag(r.Context(), claims.TenantID, req.PersonIDs, req.TagID)
+	if err != nil {
+		http.Error(w, "Failed to bulk add tag: "+err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]interface{}{"tagged": count})
+}
+
+func (h *Handler) BulkRemoveTag(w http.ResponseWriter, r *http.Request) {
+	claims, ok := middleware.GetClaims(r.Context())
+	if !ok {
+		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		return
+	}
+
+	var req struct {
+		PersonIDs []string `json:"person_ids"`
+		TagID     string   `json:"tag_id"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, "Invalid request body", http.StatusBadRequest)
+		return
+	}
+
+	if len(req.PersonIDs) == 0 || req.TagID == "" {
+		http.Error(w, "person_ids and tag_id are required", http.StatusBadRequest)
+		return
+	}
+
+	count, err := h.service.BulkRemoveTag(r.Context(), claims.TenantID, req.PersonIDs, req.TagID)
+	if err != nil {
+		http.Error(w, "Failed to bulk remove tag: "+err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]interface{}{"removed": count})
 }
 
 // Household handlers

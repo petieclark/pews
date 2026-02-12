@@ -202,7 +202,7 @@
 					<select bind:value={targetId} class="w-full px-4 py-2 rounded-lg border" style="background: var(--bg); border-color: var(--border); color: var(--text-primary)">
 						<option value="">— Select Tag —</option>
 						{#each tags as tag}
-							<option value={tag.name}>{tag.name}</option>
+							<option value={tag.id}>{tag.name} ({tag.person_count})</option>
 						{/each}
 					</select>
 				</div>

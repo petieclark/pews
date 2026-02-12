@@ -178,7 +178,27 @@ func (s *Service) AddMember(ctx context.Context, teamID, personID string, positi
 	// Fetch person name
 	_ = s.db.QueryRow(ctx, `SELECT first_name, last_name, COALESCE(email, '') FROM people WHERE id = $1`, personID).
 		Scan(&m.FirstName, &m.LastName, &m.Email)
+
+	// Auto-tag person with team name
+	var teamName, tenantID string
+	_ = s.db.QueryRow(ctx, "SELECT name, tenant_id FROM volunteer_teams WHERE id = $1", teamID).Scan(&teamName, &tenantID)
+	if teamName != "" && tenantID != "" {
+		s.autoTagPerson(ctx, tenantID, personID, teamName)
+	}
+
 	return &m, nil
+}
+
+func (s *Service) autoTagPerson(ctx context.Context, tenantID, personID, tagName string) {
+	var tagID string
+	_ = s.db.QueryRow(ctx, `
+		INSERT INTO tags (id, tenant_id, name, color)
+		VALUES (gen_random_uuid(), $1, $2, '#4A8B8C')
+		ON CONFLICT (tenant_id, name) DO UPDATE SET name = EXCLUDED.name
+		RETURNING id`, tenantID, tagName).Scan(&tagID)
+	if tagID != "" {
+		_, _ = s.db.Exec(ctx, `INSERT INTO person_tags (person_id, tag_id) VALUES ($1, $2) ON CONFLICT DO NOTHING`, personID, tagID)
+	}
 }
 
 func (s *Service) UpdateMember(ctx context.Context, memberID string, positionID *string) error {
