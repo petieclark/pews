@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
+	import { api } from '$lib/api';
 
 	let donations = [];
 	let loading = true;
@@ -9,9 +10,11 @@
 
 	// Filters
 	let fundFilter = '';
-	let personFilter = '';
+	let searchQuery = '';
+	let paymentMethodFilter = '';
 	let fromDate = '';
 	let toDate = '';
+	let sortBy = '';
 
 	let funds = [];
 
@@ -23,14 +26,7 @@
 
 	async function loadFunds() {
 		try {
-			const response = await fetch('/api/giving/funds', {
-				headers: {
-					'Authorization': `Bearer ${localStorage.getItem('token')}`
-				}
-			});
-			if (response.ok) {
-				funds = await response.json();
-			}
+			funds = await api('/api/giving/funds', { silent: true });
 		} catch (error) {
 			console.error('Failed to load funds:', error);
 		}
@@ -41,20 +37,15 @@
 		try {
 			let url = `/api/giving/donations?page=${page}&per_page=${perPage}`;
 			if (fundFilter) url += `&fund_id=${fundFilter}`;
-			if (personFilter) url += `&person_id=${personFilter}`;
+			if (searchQuery) url += `&search=${encodeURIComponent(searchQuery)}`;
+			if (paymentMethodFilter) url += `&payment_method=${paymentMethodFilter}`;
 			if (fromDate) url += `&from=${fromDate}`;
 			if (toDate) url += `&to=${toDate}`;
+			if (sortBy) url += `&sort=${sortBy}`;
 
-			const response = await fetch(url, {
-				headers: {
-					'Authorization': `Bearer ${localStorage.getItem('token')}`
-				}
-			});
-			if (response.ok) {
-				const data = await response.json();
-				donations = data.donations || [];
-				total = data.total || 0;
-			}
+			const data = await api(url, { silent: true });
+			donations = data.donations || [];
+			total = data.total || 0;
 		} catch (error) {
 			console.error('Failed to load donations:', error);
 		} finally {
@@ -69,9 +60,11 @@
 
 	async function clearFilters() {
 		fundFilter = '';
-		personFilter = '';
+		searchQuery = '';
+		paymentMethodFilter = '';
 		fromDate = '';
 		toDate = '';
+		sortBy = '';
 		page = 1;
 		await loadDonations();
 	}
@@ -130,10 +123,19 @@
 		</a>
 	</div>
 
-	<!-- Filters -->
+	<!-- Search & Filters -->
 	<div class="bg-surface rounded-lg shadow p-6 mb-6 border border-custom">
-		<h2 class="text-lg font-semibold text-primary mb-4">Filters</h2>
-		<div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+		<div class="mb-4">
+			<label class="block text-sm font-medium text-primary mb-1">Search by Donor Name</label>
+			<input
+				type="text"
+				bind:value={searchQuery}
+				on:keydown={(e) => { if (e.key === 'Enter') applyFilters(); }}
+				placeholder="Search donor name..."
+				class="w-full px-3 py-2 border input-border bg-[var(--input-bg)] text-primary rounded-lg focus:ring-2 focus:ring-[var(--teal)] focus:border-transparent"
+			/>
+		</div>
+		<div class="grid grid-cols-1 md:grid-cols-5 gap-4">
 			<div>
 				<label class="block text-sm font-medium text-primary mb-1">Fund</label>
 				<select
@@ -144,6 +146,20 @@
 					{#each funds as fund}
 						<option value={fund.id}>{fund.name}</option>
 					{/each}
+				</select>
+			</div>
+
+			<div>
+				<label class="block text-sm font-medium text-primary mb-1">Payment Method</label>
+				<select
+					bind:value={paymentMethodFilter}
+					class="w-full px-3 py-2 border input-border bg-[var(--input-bg)] text-primary rounded-lg focus:ring-2 focus:ring-[var(--teal)] focus:border-transparent"
+				>
+					<option value="">All Methods</option>
+					<option value="cash">Cash</option>
+					<option value="check">Check</option>
+					<option value="card">Card</option>
+					<option value="ach">ACH</option>
 				</select>
 			</div>
 
@@ -165,20 +181,32 @@
 				/>
 			</div>
 
-			<div class="flex items-end gap-2">
-				<button
-					on:click={applyFilters}
-					class="flex-1 px-4 py-2 bg-[var(--teal)] text-white rounded-lg hover:opacity-90 transition"
+			<div>
+				<label class="block text-sm font-medium text-primary mb-1">Sort By</label>
+				<select
+					bind:value={sortBy}
+					class="w-full px-3 py-2 border input-border bg-[var(--input-bg)] text-primary rounded-lg focus:ring-2 focus:ring-[var(--teal)] focus:border-transparent"
 				>
-					Apply
-				</button>
-				<button
-					on:click={clearFilters}
-					class="flex-1 px-4 py-2 border border-custom text-primary rounded-lg hover:bg-[var(--surface-hover)] transition"
-				>
-					Clear
-				</button>
+					<option value="">Date (Newest)</option>
+					<option value="date_asc">Date (Oldest)</option>
+					<option value="amount_desc">Amount (High → Low)</option>
+					<option value="amount_asc">Amount (Low → High)</option>
+				</select>
 			</div>
+		</div>
+		<div class="flex gap-2 mt-4">
+			<button
+				on:click={applyFilters}
+				class="px-6 py-2 bg-[var(--teal)] text-white rounded-lg hover:opacity-90 transition"
+			>
+				Apply Filters
+			</button>
+			<button
+				on:click={clearFilters}
+				class="px-6 py-2 border border-custom text-primary rounded-lg hover:bg-[var(--surface-hover)] transition"
+			>
+				Clear
+			</button>
 		</div>
 	</div>
 

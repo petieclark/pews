@@ -2,8 +2,6 @@
 	import { onMount } from 'svelte';
 	import { page } from '$app/stores';
 
-	const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8190';
-
 	let slug = $page.params.slug;
 	let church = null;
 	let loading = true;
@@ -23,7 +21,7 @@
 
 	onMount(async () => {
 		try {
-			const res = await fetch(`${API_URL}/api/public/give/${slug}`);
+			const res = await fetch(`/api/public/give/${slug}`);
 			if (!res.ok) throw new Error('Church not found');
 			church = await res.json();
 			if (church.funds?.length > 0) {
@@ -73,7 +71,7 @@
 
 		submitting = true;
 		try {
-			const res = await fetch(`${API_URL}/api/public/give`, {
+			const res = await fetch(`/api/public/give`, {
 				method: 'POST',
 				headers: { 'Content-Type': 'application/json' },
 				body: JSON.stringify({

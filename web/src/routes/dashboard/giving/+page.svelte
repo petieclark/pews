@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
+	import { api } from '$lib/api';
 	import { Chart, registerables } from 'chart.js';
 	Chart.register(...registerables);
 
@@ -19,12 +20,11 @@
 		connected: false,
 		onboarding_completed: false
 	};
-	let donorCount = 0;
 	let trendChart: Chart | null = null;
 	let chartCanvas: HTMLCanvasElement;
 
 	onMount(async () => {
-		await Promise.all([loadStats(), loadRecentDonations(), loadConnectStatus(), loadDonorCount()]);
+		await Promise.all([loadStats(), loadRecentDonations(), loadConnectStatus()]);
 		loading = false;
 		if (stats.monthly_trend.length > 0) {
 			renderChart();
@@ -33,49 +33,26 @@
 
 	async function loadStats() {
 		try {
-			const response = await fetch('/api/giving/stats', {
-				headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
-			});
-			if (response.ok) stats = await response.json();
+			stats = await api('/api/giving/stats', { silent: true });
 		} catch (error) { console.error('Failed to load stats:', error); }
 	}
 
 	async function loadRecentDonations() {
 		try {
-			const response = await fetch('/api/giving/donations?per_page=10', {
-				headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
-			});
-			if (response.ok) {
-				const data = await response.json();
-				recentDonations = data.donations || [];
-			}
+			const data = await api('/api/giving/donations?per_page=10', { silent: true });
+			recentDonations = data.donations || [];
 		} catch (error) { console.error('Failed to load donations:', error); }
 	}
 
 	async function loadConnectStatus() {
 		try {
-			const response = await fetch('/api/giving/connect/status', {
-				headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
-			});
-			if (response.ok) connectStatus = await response.json();
+			connectStatus = await api('/api/giving/connect/status', { silent: true });
 		} catch (error) { console.error('Failed to load connect status:', error); }
-	}
-
-	async function loadDonorCount() {
-		try {
-			const response = await fetch('/api/giving/donations?per_page=1', {
-				headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
-			});
-			if (response.ok) {
-				const data = await response.json();
-				donorCount = data.total || 0;
-			}
-		} catch (error) { console.error('Failed to load donor count:', error); }
 	}
 
 	function renderChart() {
 		if (!chartCanvas) return;
-		const trend = [...stats.monthly_trend].reverse();
+		const trend = stats.monthly_trend;
 		const labels = trend.map(t => {
 			const [y, m] = t.month.split('-');
 			return new Date(parseInt(y), parseInt(m) - 1).toLocaleDateString('en-US', { month: 'short', year: '2-digit' });

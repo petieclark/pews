@@ -158,6 +158,9 @@ func (h *Handler) ListDonations(w http.ResponseWriter, r *http.Request) {
 	fundID := r.URL.Query().Get("fund_id")
 	fromDate := r.URL.Query().Get("from")
 	toDate := r.URL.Query().Get("to")
+	search := r.URL.Query().Get("search")
+	paymentMethod := r.URL.Query().Get("payment_method")
+	sortBy := r.URL.Query().Get("sort")
 
 	page, _ := strconv.Atoi(r.URL.Query().Get("page"))
 	if page < 1 {
@@ -171,7 +174,7 @@ func (h *Handler) ListDonations(w http.ResponseWriter, r *http.Request) {
 
 	offset := (page - 1) * perPage
 
-	donations, total, err := h.service.ListDonations(r.Context(), claims.TenantID, personID, fundID, fromDate, toDate, perPage, offset)
+	donations, total, err := h.service.ListDonations(r.Context(), claims.TenantID, personID, fundID, fromDate, toDate, search, paymentMethod, sortBy, perPage, offset)
 	if err != nil {
 		http.Error(w, "Failed to list donations: "+err.Error(), http.StatusInternalServerError)
 		return

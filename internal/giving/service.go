@@ -121,13 +121,13 @@ func (s *Service) GetFund(ctx context.Context, tenantID, fundID string) (*Fund, 
 
 // Donations
 
-func (s *Service) ListDonations(ctx context.Context, tenantID, personID, fundID, fromDate, toDate string, limit, offset int) ([]Donation, int, error) {
+func (s *Service) ListDonations(ctx context.Context, tenantID, personID, fundID, fromDate, toDate, search, paymentMethod, sortBy string, limit, offset int) ([]Donation, int, error) {
 	query := `
 		SELECT d.id, d.tenant_id, d.person_id, d.fund_id, d.amount_cents, d.currency,
 		       d.payment_method, d.stripe_payment_intent_id, d.stripe_charge_id, d.status,
-		       d.is_recurring, d.recurring_frequency, d.stripe_subscription_id, d.memo,
+		       d.is_recurring, d.recurring_frequency, d.stripe_subscription_id, COALESCE(d.memo, ''),
 		       d.donated_at, d.created_at, d.updated_at,
-		       COALESCE(p.first_name || ' ' || p.last_name, 'Anonymous') as person_name,
+		       COALESCE(p.first_name || ' ' || p.last_name, COALESCE(d.donor_name, 'Anonymous')) as person_name,
 		       COALESCE(f.name, 'Unknown Fund') as fund_name
 		FROM donations d
 		LEFT JOIN people p ON d.person_id = p.id
@@ -161,6 +161,18 @@ func (s *Service) ListDonations(ctx context.Context, tenantID, personID, fundID,
 		argNum++
 	}
 
+	if search != "" {
+		query += fmt.Sprintf(" AND (COALESCE(p.first_name || ' ' || p.last_name, '') ILIKE $%d OR COALESCE(d.donor_name, '') ILIKE $%d)", argNum, argNum)
+		args = append(args, "%"+search+"%")
+		argNum++
+	}
+
+	if paymentMethod != "" {
+		query += fmt.Sprintf(" AND d.payment_method = $%d", argNum)
+		args = append(args, paymentMethod)
+		argNum++
+	}
+
 	// Get total count
 	countQuery := "SELECT COUNT(*) FROM (" + query + ") AS count_query"
 	var total int
@@ -168,8 +180,17 @@ func (s *Service) ListDonations(ctx context.Context, tenantID, personID, fundID,
 		return nil, 0, err
 	}
 
-	// Add pagination
-	query += " ORDER BY d.donated_at DESC"
+	// Add sorting
+	switch sortBy {
+	case "amount_asc":
+		query += " ORDER BY d.amount_cents ASC"
+	case "amount_desc":
+		query += " ORDER BY d.amount_cents DESC"
+	case "date_asc":
+		query += " ORDER BY d.donated_at ASC"
+	default:
+		query += " ORDER BY d.donated_at DESC"
+	}
 	query += fmt.Sprintf(" LIMIT $%d OFFSET $%d", argNum, argNum+1)
 	args = append(args, limit, offset)
 
@@ -184,16 +205,20 @@ func (s *Service) ListDonations(ctx context.Context, tenantID, personID, fundID,
 		var d Donation
 		var personName string
 		var fundName string
+		var memo string
 
 		if err := rows.Scan(
 			&d.ID, &d.TenantID, &d.PersonID, &d.FundID, &d.AmountCents, &d.Currency,
 			&d.PaymentMethod, &d.StripePaymentIntentID, &d.StripeChargeID, &d.Status,
-			&d.IsRecurring, &d.RecurringFrequency, &d.StripeSubscriptionID, &d.Memo,
+			&d.IsRecurring, &d.RecurringFrequency, &d.StripeSubscriptionID, &memo,
 			&d.DonatedAt, &d.CreatedAt, &d.UpdatedAt, &personName, &fundName,
 		); err != nil {
 			return nil, 0, err
 		}
 
+		if memo != "" {
+			d.Memo = &memo
+		}
 		d.PersonName = &personName
 		d.FundName = fundName
 		d.AmountDisplay = formatCents(d.AmountCents)
@@ -278,7 +303,7 @@ func (s *Service) CreateDonation(ctx context.Context, tenantID string, personID 
 }
 
 func (s *Service) GetPersonGivingHistory(ctx context.Context, tenantID, personID string) ([]Donation, int, error) {
-	donations, _, err := s.ListDonations(ctx, tenantID, personID, "", "", "", 100, 0)
+	donations, _, err := s.ListDonations(ctx, tenantID, personID, "", "", "", "", "", "", 100, 0)
 	if err != nil {
 		return nil, 0, err
 	}
@@ -303,11 +328,11 @@ func (s *Service) GetGivingStats(ctx context.Context, tenantID string) (*GivingS
 	// Total this month
 	monthStart := time.Date(now.Year(), now.Month(), 1, 0, 0, 0, 0, now.Location())
 	err := s.db.QueryRow(ctx,
-		`SELECT COALESCE(SUM(amount_cents), 0), COUNT(*) 
+		`SELECT COALESCE(SUM(amount_cents), 0) 
 		 FROM donations 
 		 WHERE tenant_id = $1 AND status = 'completed' AND donated_at >= $2`,
 		tenantID, monthStart,
-	).Scan(&stats.TotalThisMonth, &stats.DonationCount)
+	).Scan(&stats.TotalThisMonth)
 	if err != nil {
 		return nil, err
 	}
@@ -323,19 +348,18 @@ func (s *Service) GetGivingStats(ctx context.Context, tenantID string) (*GivingS
 		return nil, err
 	}
 
-	// Total all time
-	var count int
+	// Total all time and donation count
 	err = s.db.QueryRow(ctx,
 		`SELECT COALESCE(SUM(amount_cents), 0), COUNT(*) FROM donations 
 		 WHERE tenant_id = $1 AND status = 'completed'`,
 		tenantID,
-	).Scan(&stats.TotalAllTime, &count)
+	).Scan(&stats.TotalAllTime, &stats.DonationCount)
 	if err != nil {
 		return nil, err
 	}
 
-	if count > 0 {
-		stats.AverageDonation = stats.TotalAllTime / count
+	if stats.DonationCount > 0 {
+		stats.AverageDonation = stats.TotalAllTime / stats.DonationCount
 	}
 
 	// Unique donor count
@@ -384,7 +408,7 @@ func (s *Service) GetGivingStats(ctx context.Context, tenantID string) (*GivingS
 		 WHERE tenant_id = $1 AND status = 'completed' 
 		   AND donated_at >= $2
 		 GROUP BY TO_CHAR(donated_at, 'YYYY-MM')
-		 ORDER BY month DESC`,
+		 ORDER BY month ASC`,
 		tenantID, now.AddDate(0, -12, 0),
 	)
 	if err != nil {
