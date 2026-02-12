@@ -44,7 +44,8 @@ func (h *Handler) ListModules(w http.ResponseWriter, r *http.Request) {
 	response := []ModuleResponse{}
 	for _, m := range AvailableModules {
 		resp := ModuleResponse{
-			Module: m,
+			Module:  m,
+			Enabled: true, // Default to enabled (opt-out model)
 		}
 		if tm, ok := moduleMap[m.Name]; ok {
 			resp.Enabled = tm.Enabled

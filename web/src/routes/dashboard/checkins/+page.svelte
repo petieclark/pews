@@ -22,22 +22,22 @@
 	let searchTimeout;
 
 	onMount(async () => {
-		try {
-			const [statsData, eventsData, trendsData] = await Promise.all([
-				api('/api/checkins/stats'),
-				api('/api/checkins/events'),
-				api('/api/attendance/trends?period=weekly&limit=12')
-			]);
-			stats = statsData;
-			events = (eventsData || []).filter(e => e.is_active);
-			trends = trendsData || [];
+		const results = await Promise.allSettled([
+			api('/api/checkins/stats'),
+			api('/api/checkins/events'),
+			api('/api/attendance/trends?period=weekly&limit=12')
+		]);
+		if (results[0].status === 'fulfilled' && results[0].value) stats = results[0].value;
+		if (results[1].status === 'fulfilled') events = (results[1].value || []).filter(e => e.is_active);
+		if (results[2].status === 'fulfilled') trends = results[2].value || [];
 
+		try {
 			if (events.length > 0) {
 				selectedEvent = events[0].id;
-				const attendees = await api(`/api/checkins/events/${events[0].id}/attendees`);
+				const attendees = await api(`/api/checkins/events/${events[0].id}/attendees`).catch(() => []);
 				recentCheckins = (attendees || []).slice(0, 10);
 			}
-		} catch (error) { console.error('Failed to load dashboard:', error); }
+		} catch {}
 		loading = false;
 		if (trends.length > 0) renderTrendChart();
 	});
