@@ -104,7 +104,8 @@ func (s *Service) GetAttendanceReport(ctx context.Context, tenantID uuid.UUID, r
 		SELECT COALESCE(st.name, 'Unknown') as type_name, COUNT(c.id)
 		FROM checkins c
 		LEFT JOIN checkin_events ce ON ce.id = c.event_id AND ce.tenant_id = c.tenant_id
-		LEFT JOIN service_types st ON st.id = ce.service_type_id AND st.tenant_id = c.tenant_id
+		LEFT JOIN services sv ON sv.id = ce.service_id AND sv.tenant_id = c.tenant_id
+		LEFT JOIN service_types st ON st.id = sv.service_type_id AND st.tenant_id = c.tenant_id
 		WHERE c.tenant_id = $1 AND c.checked_in_at >= $2
 		GROUP BY type_name ORDER BY COUNT(c.id) DESC`, tenantID, since)
 	if err != nil {
@@ -486,7 +487,7 @@ func (s *Service) GetSongsReport(ctx context.Context, tenantID uuid.UUID) (*Song
 
 	// Songs by key
 	rows2, err := s.db.Query(ctx, `
-		SELECT COALESCE(NULLIF(key, ''), 'Unknown') as song_key, COUNT(*)
+		SELECT COALESCE(NULLIF(default_key, ''), 'Unknown') as song_key, COUNT(*)
 		FROM songs WHERE tenant_id = $1
 		GROUP BY song_key ORDER BY COUNT(*) DESC`, tenantID)
 	if err != nil {
@@ -629,8 +630,8 @@ func (s *Service) GetEngagementReport(ctx context.Context, tenantID uuid.UUID) (
 
 	// Trend (monthly avg engagement score) - last 12 months
 	rows2, err := s.db.Query(ctx, `
-		SELECT TO_CHAR(updated_at, 'YYYY-MM') as month, AVG(score)
-		FROM engagement_scores WHERE tenant_id = $1 AND updated_at >= NOW() - INTERVAL '12 months'
+		SELECT TO_CHAR(calculated_at, 'YYYY-MM') as month, AVG(score)
+		FROM engagement_scores WHERE tenant_id = $1 AND calculated_at >= NOW() - INTERVAL '12 months'
 		GROUP BY month ORDER BY month`, tenantID)
 	if err != nil {
 		return nil, fmt.Errorf("engagement trend: %w", err)

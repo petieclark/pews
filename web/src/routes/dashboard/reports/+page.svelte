@@ -15,8 +15,9 @@
 	const ranges = [
 		{ value: '1m', label: 'This Month' },
 		{ value: '3m', label: 'Last 3 Months' },
-		{ value: '1y', label: 'This Year' },
-		{ value: '12m', label: 'Last 12 Months' }
+		{ value: '6m', label: 'Last 6 Months' },
+		{ value: '12m', label: 'Last 12 Months' },
+		{ value: '12w', label: 'Last 12 Weeks' }
 	];
 
 	let loading = false;
@@ -30,7 +31,6 @@
 		script.src = 'https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js';
 		script.onload = () => {
 			chartReady = true;
-			loadTab();
 		};
 		document.head.appendChild(script);
 	});
@@ -39,15 +39,20 @@
 		Object.values(charts).forEach(c => c?.destroy?.());
 	});
 
-	$: if (chartReady && activeTab) loadTab();
-	$: if (chartReady && dateRange) loadTab();
+	let prevTab = '';
+	let prevRange = '';
+	$: if (chartReady && (activeTab !== prevTab || dateRange !== prevRange)) {
+		prevTab = activeTab;
+		prevRange = dateRange;
+		loadTab();
+	}
 
 	async function loadTab() {
 		if (!chartReady) return;
 		loading = true;
 		error = null;
 		try {
-			const rangeParam = activeTab === 'songs' ? '' : `?range=${dateRange}`;
+			const rangeParam = (activeTab === 'songs' || activeTab === 'engagement') ? '' : `?range=${dateRange}`;
 			data[activeTab] = await api(`/api/reports/${activeTab}${rangeParam}`);
 			setTimeout(() => renderCharts(), 50);
 		} catch (e) {
