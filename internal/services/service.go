@@ -680,6 +680,20 @@ func (s *Service) GetSongStats(ctx context.Context, tenantID string) (*SongStats
 		}
 	}
 
+	// Ensure slices are non-nil for JSON serialization
+	if stats.MostUsed == nil {
+		stats.MostUsed = []Song{}
+	}
+	if stats.RecentlyAdded == nil {
+		stats.RecentlyAdded = []Song{}
+	}
+	if stats.AllKeys == nil {
+		stats.AllKeys = []string{}
+	}
+	if stats.AllTags == nil {
+		stats.AllTags = []string{}
+	}
+
 	return stats, nil
 }
 

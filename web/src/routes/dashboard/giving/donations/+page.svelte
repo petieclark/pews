@@ -26,7 +26,7 @@
 
 	async function loadFunds() {
 		try {
-			funds = await api('/api/giving/funds', { silent: true });
+			funds = (await api('/api/giving/funds', { silent: true })) || [];
 		} catch (error) {
 			console.error('Failed to load funds:', error);
 		}

@@ -85,7 +85,7 @@ func (s *Service) ListSermons(ctx context.Context, tenantID string, filters Serm
 	}
 	defer rows.Close()
 
-	var sermons []Sermon
+	sermons := []Sermon{}
 	for rows.Next() {
 		var sermon Sermon
 		var serviceID sql.NullString

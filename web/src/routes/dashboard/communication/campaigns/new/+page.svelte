@@ -28,10 +28,10 @@
 				api('/api/groups'),
 				api('/api/people')
 			]);
-			templates = templatesData;
-			tags = tagsData;
-			groups = groupsData;
-			people = peopleData || [];
+			templates = Array.isArray(templatesData) ? templatesData : (templatesData?.templates || []);
+			tags = Array.isArray(tagsData) ? tagsData : (tagsData?.tags || []);
+			groups = Array.isArray(groupsData) ? groupsData : (groupsData?.groups || []);
+			people = Array.isArray(peopleData) ? peopleData : (peopleData?.people || []);
 			updateRecipientCount();
 		} catch (err) {
 			error = err.message;

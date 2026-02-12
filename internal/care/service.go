@@ -58,7 +58,7 @@ func (s *Service) ListFollowUps(ctx context.Context, tenantID string, status, ty
 	}
 	defer rows.Close()
 
-	var items []FollowUp
+	items := []FollowUp{}
 	for rows.Next() {
 		var f FollowUp
 		var dueStr string
@@ -97,7 +97,7 @@ func (s *Service) ListByPerson(ctx context.Context, tenantID, personID string) (
 	}
 	defer rows.Close()
 
-	var items []FollowUp
+	items := []FollowUp{}
 	for rows.Next() {
 		var f FollowUp
 		var dueStr string
@@ -283,7 +283,7 @@ func (s *Service) ListNotes(ctx context.Context, tenantID, followUpID string) ([
 	}
 	defer rows.Close()
 
-	var notes []Note
+	notes := []Note{}
 	for rows.Next() {
 		var n Note
 		if err := rows.Scan(&n.ID, &n.FollowUpID, &n.AuthorID, &n.AuthorName, &n.Note, &n.CreatedAt); err != nil {

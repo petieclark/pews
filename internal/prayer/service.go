@@ -79,7 +79,7 @@ func (s *Service) ListPrayerRequests(ctx context.Context, tenantID string, filte
 	}
 	defer rows.Close()
 
-	var requests []PrayerRequest
+	requests := []PrayerRequest{}
 	for rows.Next() {
 		var pr PrayerRequest
 		var followerCount int
@@ -129,7 +129,7 @@ func (s *Service) ListPublicPrayerRequests(ctx context.Context, tenantID string,
 	}
 	defer rows.Close()
 
-	var requests []PrayerRequest
+	requests := []PrayerRequest{}
 	for rows.Next() {
 		var pr PrayerRequest
 		if err := rows.Scan(&pr.ID, &pr.TenantID, &pr.Name, &pr.RequestText, &pr.SubmittedAt); err != nil {

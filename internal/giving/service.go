@@ -36,7 +36,7 @@ func (s *Service) ListFunds(ctx context.Context, tenantID string) ([]Fund, error
 	}
 	defer rows.Close()
 
-	var funds []Fund
+	funds := []Fund{}
 	for rows.Next() {
 		var f Fund
 		if err := rows.Scan(&f.ID, &f.TenantID, &f.Name, &f.Description, &f.IsDefault, &f.IsActive, &f.CreatedAt, &f.UpdatedAt); err != nil {
@@ -200,7 +200,7 @@ func (s *Service) ListDonations(ctx context.Context, tenantID, personID, fundID,
 	}
 	defer rows.Close()
 
-	var donations []Donation
+	donations := []Donation{}
 	for rows.Next() {
 		var d Donation
 		var personName string
@@ -424,6 +424,14 @@ func (s *Service) GetGivingStats(ctx context.Context, tenantID string) (*GivingS
 		stats.MonthlyTrend = append(stats.MonthlyTrend, mt)
 	}
 
+	// Ensure slices are non-nil for JSON serialization
+	if stats.FundBreakdown == nil {
+		stats.FundBreakdown = []FundSummary{}
+	}
+	if stats.MonthlyTrend == nil {
+		stats.MonthlyTrend = []MonthlyTotal{}
+	}
+
 	return stats, nil
 }
 
@@ -488,7 +496,7 @@ func (s *Service) ListRecurringDonations(ctx context.Context, tenantID string) (
 	}
 	defer rows.Close()
 
-	var donations []Donation
+	donations := []Donation{}
 	for rows.Next() {
 		var d Donation
 		var personName, fundName string

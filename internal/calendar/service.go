@@ -69,7 +69,7 @@ func (s *Service) GetServicesAsEvents(ctx context.Context, tenantID, fromDate, t
 	}
 	defer rows.Close()
 
-	var events []Event
+	events := []Event{}
 	for rows.Next() {
 		var e Event
 		var serviceDate time.Time
@@ -212,7 +212,7 @@ func (s *Service) ListEvents(ctx context.Context, tenantID, fromDate, toDate, ev
 	}
 	defer rows.Close()
 
-	var events []Event
+	events := []Event{}
 	for rows.Next() {
 		e, err := scanEvent(rows.Scan)
 		if err != nil {
@@ -342,7 +342,7 @@ func (s *Service) GetUpcomingEvents(ctx context.Context, tenantID string, limit 
 	}
 	defer rows.Close()
 
-	var events []Event
+	events := []Event{}
 	for rows.Next() {
 		e, err := scanEvent(rows.Scan)
 		if err != nil {
