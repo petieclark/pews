@@ -38,6 +38,10 @@ type RecipientInfo struct {
 // MergeTags replaces merge tags in text with recipient data.
 func MergeTags(text string, r RecipientInfo, churchName string) string {
 	replacer := strings.NewReplacer(
+		"{{first_name}}", r.FirstName,
+		"{{last_name}}", r.LastName,
+		"{{email}}", r.Email,
+		"{{church_name}}", churchName,
 		"{first_name}", r.FirstName,
 		"{last_name}", r.LastName,
 		"{email}", r.Email,

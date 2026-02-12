@@ -262,6 +262,31 @@ func New(
 		r.Get("/api/services/songs/attachments/{attachmentId}", servicesHandler.GetSongAttachment)
 		r.Delete("/api/services/songs/attachments/{attachmentId}", servicesHandler.DeleteSongAttachment)
 
+		// Services - Volunteer Teams
+		r.Get("/api/services/volunteer-teams", servicesHandler.ListVolunteerTeams)
+		r.Post("/api/services/volunteer-teams", servicesHandler.CreateVolunteerTeam)
+		r.Get("/api/services/volunteer-teams/{id}", servicesHandler.GetVolunteerTeam)
+		r.Put("/api/services/volunteer-teams/{id}", servicesHandler.UpdateVolunteerTeam)
+		r.Delete("/api/services/volunteer-teams/{id}", servicesHandler.DeleteVolunteerTeam)
+
+		// Services - Team Members
+		r.Get("/api/services/volunteer-teams/{id}/members", servicesHandler.GetTeamMembers)
+		r.Post("/api/services/volunteer-teams/{id}/members", servicesHandler.AddTeamMember)
+		r.Put("/api/services/team-members/{id}", servicesHandler.UpdateTeamMember)
+		r.Delete("/api/services/team-members/{id}", servicesHandler.RemoveTeamMember)
+		r.Get("/api/services/people/{id}/teams", servicesHandler.GetPersonTeams)
+
+		// Services - Volunteer Availability
+		r.Get("/api/services/people/{id}/availability", servicesHandler.GetPersonAvailability)
+		r.Post("/api/services/availability", servicesHandler.AddAvailability)
+		r.Put("/api/services/availability/{id}", servicesHandler.UpdateAvailability)
+		r.Delete("/api/services/availability/{id}", servicesHandler.DeleteAvailability)
+
+		// Services - Scheduling Helpers
+		r.Get("/api/services/scheduling/conflicts", servicesHandler.GetSchedulingConflicts)
+		r.Get("/api/services/volunteer-teams/{id}/available", servicesHandler.GetAvailableVolunteers)
+		r.Put("/api/services/service-teams/{id}/status", servicesHandler.UpdateServiceTeamStatus)
+
 		// Worship - Service Plans (TODO: wire up worship handler)
 		// r.Get("/api/worship/plans", worshipHandler.ListPlans)
 		// r.Post("/api/worship/plans", worshipHandler.CreatePlan)

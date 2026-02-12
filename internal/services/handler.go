@@ -948,3 +948,485 @@ func (h *Handler) GetSongUsage(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(usage)
 }
+// Volunteer Teams handlers
+
+type CreateVolunteerTeamRequest struct {
+	Name        string `json:"name"`
+	Description string `json:"description,omitempty"`
+	Color       string `json:"color,omitempty"`
+	IsActive    bool   `json:"is_active"`
+}
+
+func (h *Handler) ListVolunteerTeams(w http.ResponseWriter, r *http.Request) {
+	claims, ok := middleware.GetClaims(r.Context())
+	if !ok {
+		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		return
+	}
+
+	teams, err := h.service.ListVolunteerTeams(r.Context(), claims.TenantID)
+	if err != nil {
+		http.Error(w, "Failed to list volunteer teams: "+err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(teams)
+}
+
+func (h *Handler) GetVolunteerTeam(w http.ResponseWriter, r *http.Request) {
+	claims, ok := middleware.GetClaims(r.Context())
+	if !ok {
+		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		return
+	}
+
+	teamID := chi.URLParam(r, "id")
+
+	team, err := h.service.GetVolunteerTeamByID(r.Context(), claims.TenantID, teamID)
+	if err != nil {
+		http.Error(w, "Failed to get volunteer team: "+err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(team)
+}
+
+func (h *Handler) CreateVolunteerTeam(w http.ResponseWriter, r *http.Request) {
+	claims, ok := middleware.GetClaims(r.Context())
+	if !ok {
+		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		return
+	}
+
+	var req CreateVolunteerTeamRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, "Invalid request body", http.StatusBadRequest)
+		return
+	}
+
+	team := &VolunteerTeam{
+		Name:        req.Name,
+		Description: req.Description,
+		Color:       req.Color,
+		IsActive:    req.IsActive,
+	}
+
+	if team.Color == "" {
+		team.Color = "#4A8B8C"
+	}
+
+	createdTeam, err := h.service.CreateVolunteerTeam(r.Context(), claims.TenantID, team)
+	if err != nil {
+		http.Error(w, "Failed to create volunteer team: "+err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusCreated)
+	json.NewEncoder(w).Encode(createdTeam)
+}
+
+func (h *Handler) UpdateVolunteerTeam(w http.ResponseWriter, r *http.Request) {
+	claims, ok := middleware.GetClaims(r.Context())
+	if !ok {
+		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		return
+	}
+
+	teamID := chi.URLParam(r, "id")
+
+	var req CreateVolunteerTeamRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, "Invalid request body", http.StatusBadRequest)
+		return
+	}
+
+	team := &VolunteerTeam{
+		Name:        req.Name,
+		Description: req.Description,
+		Color:       req.Color,
+		IsActive:    req.IsActive,
+	}
+
+	updatedTeam, err := h.service.UpdateVolunteerTeam(r.Context(), claims.TenantID, teamID, team)
+	if err != nil {
+		http.Error(w, "Failed to update volunteer team: "+err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(updatedTeam)
+}
+
+func (h *Handler) DeleteVolunteerTeam(w http.ResponseWriter, r *http.Request) {
+	claims, ok := middleware.GetClaims(r.Context())
+	if !ok {
+		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		return
+	}
+
+	teamID := chi.URLParam(r, "id")
+
+	if err := h.service.DeleteVolunteerTeam(r.Context(), claims.TenantID, teamID); err != nil {
+		http.Error(w, "Failed to delete volunteer team: "+err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	w.WriteHeader(http.StatusNoContent)
+}
+
+// Team Members handlers
+
+type AddTeamMemberRequest struct {
+	PersonID string `json:"person_id"`
+	Role     string `json:"role,omitempty"`
+	IsActive bool   `json:"is_active"`
+}
+
+func (h *Handler) GetTeamMembers(w http.ResponseWriter, r *http.Request) {
+	claims, ok := middleware.GetClaims(r.Context())
+	if !ok {
+		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		return
+	}
+
+	teamID := chi.URLParam(r, "id")
+
+	members, err := h.service.GetTeamMembers(r.Context(), claims.TenantID, teamID)
+	if err != nil {
+		http.Error(w, "Failed to get team members: "+err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(members)
+}
+
+func (h *Handler) GetPersonTeams(w http.ResponseWriter, r *http.Request) {
+	claims, ok := middleware.GetClaims(r.Context())
+	if !ok {
+		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		return
+	}
+
+	personID := chi.URLParam(r, "id")
+
+	teams, err := h.service.GetPersonTeams(r.Context(), claims.TenantID, personID)
+	if err != nil {
+		http.Error(w, "Failed to get person teams: "+err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(teams)
+}
+
+func (h *Handler) AddTeamMember(w http.ResponseWriter, r *http.Request) {
+	claims, ok := middleware.GetClaims(r.Context())
+	if !ok {
+		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		return
+	}
+
+	teamID := chi.URLParam(r, "id")
+
+	var req AddTeamMemberRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, "Invalid request body", http.StatusBadRequest)
+		return
+	}
+
+	member := &TeamMember{
+		TeamID:   teamID,
+		PersonID: req.PersonID,
+		Role:     req.Role,
+		IsActive: req.IsActive,
+	}
+
+	addedMember, err := h.service.AddTeamMember(r.Context(), claims.TenantID, member)
+	if err != nil {
+		http.Error(w, "Failed to add team member: "+err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusCreated)
+	json.NewEncoder(w).Encode(addedMember)
+}
+
+func (h *Handler) UpdateTeamMember(w http.ResponseWriter, r *http.Request) {
+	claims, ok := middleware.GetClaims(r.Context())
+	if !ok {
+		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		return
+	}
+
+	memberID := chi.URLParam(r, "id")
+
+	var req AddTeamMemberRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, "Invalid request body", http.StatusBadRequest)
+		return
+	}
+
+	member := &TeamMember{
+		Role:     req.Role,
+		IsActive: req.IsActive,
+	}
+
+	updatedMember, err := h.service.UpdateTeamMember(r.Context(), claims.TenantID, memberID, member)
+	if err != nil {
+		http.Error(w, "Failed to update team member: "+err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(updatedMember)
+}
+
+func (h *Handler) RemoveTeamMember(w http.ResponseWriter, r *http.Request) {
+	claims, ok := middleware.GetClaims(r.Context())
+	if !ok {
+		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		return
+	}
+
+	memberID := chi.URLParam(r, "id")
+
+	if err := h.service.RemoveTeamMember(r.Context(), claims.TenantID, memberID); err != nil {
+		http.Error(w, "Failed to remove team member: "+err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	w.WriteHeader(http.StatusNoContent)
+}
+
+// Volunteer Availability handlers
+
+type AddAvailabilityRequest struct {
+	PersonID  string `json:"person_id"`
+	TeamID    string `json:"team_id,omitempty"`
+	StartDate string `json:"start_date"`
+	EndDate   string `json:"end_date"`
+	Reason    string `json:"reason,omitempty"`
+}
+
+func (h *Handler) GetPersonAvailability(w http.ResponseWriter, r *http.Request) {
+	claims, ok := middleware.GetClaims(r.Context())
+	if !ok {
+		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		return
+	}
+
+	personID := chi.URLParam(r, "id")
+
+	availability, err := h.service.GetPersonAvailability(r.Context(), claims.TenantID, personID)
+	if err != nil {
+		http.Error(w, "Failed to get person availability: "+err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(availability)
+}
+
+func (h *Handler) AddAvailability(w http.ResponseWriter, r *http.Request) {
+	claims, ok := middleware.GetClaims(r.Context())
+	if !ok {
+		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		return
+	}
+
+	var req AddAvailabilityRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, "Invalid request body", http.StatusBadRequest)
+		return
+	}
+
+	startDate, err := time.Parse("2006-01-02", req.StartDate)
+	if err != nil {
+		http.Error(w, "Invalid start date format", http.StatusBadRequest)
+		return
+	}
+
+	endDate, err := time.Parse("2006-01-02", req.EndDate)
+	if err != nil {
+		http.Error(w, "Invalid end date format", http.StatusBadRequest)
+		return
+	}
+
+	avail := &VolunteerAvailability{
+		PersonID:  req.PersonID,
+		StartDate: startDate,
+		EndDate:   endDate,
+		Reason:    req.Reason,
+	}
+
+	if req.TeamID != "" {
+		avail.TeamID = &req.TeamID
+	}
+
+	addedAvail, err := h.service.AddAvailability(r.Context(), claims.TenantID, avail)
+	if err != nil {
+		http.Error(w, "Failed to add availability: "+err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusCreated)
+	json.NewEncoder(w).Encode(addedAvail)
+}
+
+func (h *Handler) UpdateAvailability(w http.ResponseWriter, r *http.Request) {
+	claims, ok := middleware.GetClaims(r.Context())
+	if !ok {
+		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		return
+	}
+
+	availID := chi.URLParam(r, "id")
+
+	var req AddAvailabilityRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, "Invalid request body", http.StatusBadRequest)
+		return
+	}
+
+	startDate, err := time.Parse("2006-01-02", req.StartDate)
+	if err != nil {
+		http.Error(w, "Invalid start date format", http.StatusBadRequest)
+		return
+	}
+
+	endDate, err := time.Parse("2006-01-02", req.EndDate)
+	if err != nil {
+		http.Error(w, "Invalid end date format", http.StatusBadRequest)
+		return
+	}
+
+	avail := &VolunteerAvailability{
+		StartDate: startDate,
+		EndDate:   endDate,
+		Reason:    req.Reason,
+	}
+
+	if req.TeamID != "" {
+		avail.TeamID = &req.TeamID
+	}
+
+	updatedAvail, err := h.service.UpdateAvailability(r.Context(), claims.TenantID, availID, avail)
+	if err != nil {
+		http.Error(w, "Failed to update availability: "+err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(updatedAvail)
+}
+
+func (h *Handler) DeleteAvailability(w http.ResponseWriter, r *http.Request) {
+	claims, ok := middleware.GetClaims(r.Context())
+	if !ok {
+		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		return
+	}
+
+	availID := chi.URLParam(r, "id")
+
+	if err := h.service.DeleteAvailability(r.Context(), claims.TenantID, availID); err != nil {
+		http.Error(w, "Failed to delete availability: "+err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	w.WriteHeader(http.StatusNoContent)
+}
+
+// Scheduling helpers
+
+func (h *Handler) GetSchedulingConflicts(w http.ResponseWriter, r *http.Request) {
+	claims, ok := middleware.GetClaims(r.Context())
+	if !ok {
+		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		return
+	}
+
+	dateStr := r.URL.Query().Get("date")
+	if dateStr == "" {
+		http.Error(w, "date query parameter required", http.StatusBadRequest)
+		return
+	}
+
+	date, err := time.Parse("2006-01-02", dateStr)
+	if err != nil {
+		http.Error(w, "Invalid date format", http.StatusBadRequest)
+		return
+	}
+
+	conflicts, err := h.service.GetSchedulingConflicts(r.Context(), claims.TenantID, date)
+	if err != nil {
+		http.Error(w, "Failed to get scheduling conflicts: "+err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(conflicts)
+}
+
+func (h *Handler) GetAvailableVolunteers(w http.ResponseWriter, r *http.Request) {
+	claims, ok := middleware.GetClaims(r.Context())
+	if !ok {
+		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		return
+	}
+
+	teamID := chi.URLParam(r, "id")
+	dateStr := r.URL.Query().Get("date")
+	if dateStr == "" {
+		http.Error(w, "date query parameter required", http.StatusBadRequest)
+		return
+	}
+
+	date, err := time.Parse("2006-01-02", dateStr)
+	if err != nil {
+		http.Error(w, "Invalid date format", http.StatusBadRequest)
+		return
+	}
+
+	volunteers, err := h.service.GetAvailableVolunteers(r.Context(), claims.TenantID, teamID, date)
+	if err != nil {
+		http.Error(w, "Failed to get available volunteers: "+err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(volunteers)
+}
+
+type UpdateServiceTeamStatusRequest struct {
+	Status string `json:"status"`
+}
+
+func (h *Handler) UpdateServiceTeamStatus(w http.ResponseWriter, r *http.Request) {
+	claims, ok := middleware.GetClaims(r.Context())
+	if !ok {
+		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		return
+	}
+
+	teamMemberID := chi.URLParam(r, "id")
+
+	var req UpdateServiceTeamStatusRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, "Invalid request body", http.StatusBadRequest)
+		return
+	}
+
+	if err := h.service.UpdateServiceTeamStatus(r.Context(), claims.TenantID, teamMemberID, req.Status); err != nil {
+		http.Error(w, "Failed to update service team status: "+err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	w.WriteHeader(http.StatusNoContent)
+}

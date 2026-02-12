@@ -51,9 +51,10 @@ type HouseholdMember struct {
 }
 
 type Tag struct {
-	ID        string    `json:"id"`
-	TenantID  string    `json:"tenant_id"`
-	Name      string    `json:"name"`
-	Color     string    `json:"color"`
-	CreatedAt time.Time `json:"created_at"`
+	ID          string    `json:"id"`
+	TenantID    string    `json:"tenant_id"`
+	Name        string    `json:"name"`
+	Color       string    `json:"color"`
+	CreatedAt   time.Time `json:"created_at"`
+	PersonCount int       `json:"person_count,omitempty"`
 }

@@ -47,7 +47,7 @@ func (s *Service) ListTemplates(ctx context.Context, tenantID, channel, category
 	}
 
 	query := `
-		SELECT id, tenant_id, name, subject, body, channel, category, variables, created_at, updated_at
+		SELECT id, tenant_id, name, COALESCE(subject,''), body, channel, COALESCE(category,''), COALESCE(variables,''), created_at, updated_at
 		FROM message_templates
 		WHERE 1=1`
 	
@@ -154,9 +154,9 @@ func (s *Service) ListCampaigns(ctx context.Context, tenantID, status string) ([
 	}
 
 	query := `
-		SELECT id, tenant_id, name, template_id, channel, subject, body, status,
-		       scheduled_at, sent_at, recipient_count, opened_count, clicked_count,
-		       target_type, target_id, created_at, updated_at
+		SELECT id, tenant_id, name, template_id, channel, COALESCE(subject,''), body, COALESCE(status,'draft'),
+		       scheduled_at, sent_at, COALESCE(recipient_count,0), COALESCE(opened_count,0), COALESCE(clicked_count,0),
+		       target_type, COALESCE(target_id,''), created_at, updated_at
 		FROM campaigns
 		WHERE 1=1`
 
@@ -223,9 +223,9 @@ func (s *Service) GetCampaign(ctx context.Context, tenantID, campaignID string) 
 	}
 
 	query := `
-		SELECT id, tenant_id, name, template_id, channel, subject, body, status,
-		       scheduled_at, sent_at, recipient_count, opened_count, clicked_count,
-		       target_type, target_id, created_at, updated_at
+		SELECT id, tenant_id, name, template_id, channel, COALESCE(subject,''), body, COALESCE(status,'draft'),
+		       scheduled_at, sent_at, COALESCE(recipient_count,0), COALESCE(opened_count,0), COALESCE(clicked_count,0),
+		       target_type, COALESCE(target_id,''), created_at, updated_at
 		FROM campaigns
 		WHERE id = $1`
 
@@ -361,7 +361,7 @@ func (s *Service) ListJourneys(ctx context.Context, tenantID string) ([]Journey,
 	}
 
 	query := `
-		SELECT j.id, j.tenant_id, j.name, j.description, j.trigger_type, j.trigger_value, j.is_active, j.created_at, j.updated_at,
+		SELECT j.id, j.tenant_id, j.name, COALESCE(j.description,''), j.trigger_type, COALESCE(j.trigger_value,''), j.is_active, j.created_at, j.updated_at,
 		       COUNT(DISTINCT je.id) as enrollment_count
 		FROM journeys j
 		LEFT JOIN journey_enrollments je ON j.id = je.journey_id AND je.status = 'active'
@@ -418,7 +418,7 @@ func (s *Service) GetJourney(ctx context.Context, tenantID, journeyID string) (*
 	}
 
 	query := `
-		SELECT id, tenant_id, name, description, trigger_type, trigger_value, is_active, created_at, updated_at
+		SELECT id, tenant_id, name, COALESCE(description,''), trigger_type, COALESCE(trigger_value,''), is_active, created_at, updated_at
 		FROM journeys
 		WHERE id = $1`
 
@@ -677,7 +677,7 @@ func (s *Service) ListConnectionCards(ctx context.Context, tenantID string, proc
 	}
 
 	query := `
-		SELECT id, tenant_id, first_name, last_name, email, phone, is_first_visit, how_heard, prayer_request, interested_in, submitted_at, processed, person_id
+		SELECT id, tenant_id, first_name, COALESCE(last_name,''), COALESCE(email,''), COALESCE(phone,''), is_first_visit, COALESCE(how_heard,''), COALESCE(prayer_request,''), COALESCE(interested_in,''), submitted_at, processed, person_id
 		FROM connection_cards
 		WHERE 1=1`
 
@@ -714,7 +714,7 @@ func (s *Service) GetConnectionCard(ctx context.Context, tenantID, cardID string
 	}
 
 	query := `
-		SELECT id, tenant_id, first_name, last_name, email, phone, is_first_visit, how_heard, prayer_request, interested_in, submitted_at, processed, person_id
+		SELECT id, tenant_id, first_name, COALESCE(last_name,''), COALESCE(email,''), COALESCE(phone,''), is_first_visit, COALESCE(how_heard,''), COALESCE(prayer_request,''), COALESCE(interested_in,''), submitted_at, processed, person_id
 		FROM connection_cards
 		WHERE id = $1`
 
