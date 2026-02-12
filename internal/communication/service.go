@@ -11,15 +11,23 @@ import (
 )
 
 type Service struct {
-	db *pgxpool.Pool
+	db     *pgxpool.Pool
+	sender *Sender
 }
 
 func NewService(db *pgxpool.Pool) *Service {
-	return &Service{db: db}
+	return &Service{
+		db:     db,
+		sender: NewSender(db),
+	}
 }
 
 func (s *Service) GetDB() *pgxpool.Pool {
 	return s.db
+}
+
+func (s *Service) GetSender() *Sender {
+	return s.sender
 }
 
 // Helper to set tenant context
@@ -275,29 +283,44 @@ func (s *Service) SendCampaign(ctx context.Context, tenantID, campaignID string,
 		return err
 	}
 
-	// TODO: Actually implement sending logic (email/SMS provider integration)
-	// For now, just mark as sent or scheduled
-
-	status := "sent"
-	var sentAt *time.Time
+	// If scheduled for the future, just mark as scheduled
 	if scheduledAt != nil && scheduledAt.After(time.Now()) {
-		status = "scheduled"
-	} else {
-		now := time.Now()
-		sentAt = &now
+		_, err := s.db.Exec(ctx,
+			`UPDATE campaigns SET status = 'scheduled', scheduled_at = $1 WHERE id = $2`,
+			scheduledAt, campaignID)
+		if err != nil {
+			return fmt.Errorf("failed to schedule campaign: %w", err)
+		}
+		return nil
 	}
 
-	query := `
-		UPDATE campaigns
-		SET status = $1, scheduled_at = $2, sent_at = $3
-		WHERE id = $4`
-
-	_, err := s.db.Exec(ctx, query, status, scheduledAt, sentAt, campaignID)
+	// Get the campaign
+	campaign, err := s.GetCampaign(ctx, tenantID, campaignID)
 	if err != nil {
-		return fmt.Errorf("failed to send campaign: %w", err)
+		return err
 	}
 
-	return nil
+	// Mark as sending
+	_, _ = s.db.Exec(ctx, `UPDATE campaigns SET status = 'sending' WHERE id = $1`, campaignID)
+
+	// Actually deliver
+	sendErr := s.sender.SendCampaign(ctx, tenantID, campaign)
+
+	// Mark final status
+	now := time.Now()
+	finalStatus := "sent"
+	if sendErr != nil {
+		finalStatus = "failed"
+	}
+
+	_, err = s.db.Exec(ctx,
+		`UPDATE campaigns SET status = $1, sent_at = $2 WHERE id = $3`,
+		finalStatus, &now, campaignID)
+	if err != nil {
+		return fmt.Errorf("failed to update campaign status: %w", err)
+	}
+
+	return sendErr
 }
 
 func (s *Service) GetCampaignRecipients(ctx context.Context, tenantID, campaignID string) ([]CampaignRecipient, error) {

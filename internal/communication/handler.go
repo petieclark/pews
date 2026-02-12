@@ -1,6 +1,7 @@
 package communication
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -623,6 +624,9 @@ func (h *Handler) SubmitConnectionCard(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
+
+	// Send welcome email (async, best-effort)
+	go h.service.GetSender().SendWelcomeEmail(context.Background(), tenantID, created)
 
 	// Create notification for all admins
 	notifTitle := "New Connection Card"
