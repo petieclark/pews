@@ -732,6 +732,33 @@
 	</div>
 {/if}
 
+<!-- Copy Assignments Modal -->
+{#if showCopyModal}
+	<div class="modal-overlay" on:click|self={() => (showCopyModal = false)}>
+		<div class="modal-content max-w-md">
+			<div class="flex items-center justify-between mb-5">
+				<h2 class="text-lg font-bold text-[var(--text-primary)]">Copy Team Assignments</h2>
+				<button on:click={() => (showCopyModal = false)} class="close-btn">
+					<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+				</button>
+			</div>
+			<p class="text-sm text-[var(--text-secondary)] mb-4">Select a service to copy volunteer assignments from. All assignments will be set to "Pending".</p>
+			<div class="space-y-2 max-h-60 overflow-y-auto">
+				{#each allServices as svc}
+					<button on:click={() => copyFromService(svc.id)}
+						class="w-full text-left p-3 rounded-lg bg-[var(--bg)] hover:bg-[var(--surface-hover)] border border-[var(--border)]">
+						<div class="font-medium text-sm text-[var(--text-primary)]">{svc.service_type_name || 'Service'}</div>
+						<div class="text-xs text-[var(--text-secondary)]">{new Date(svc.service_date).toLocaleDateString()} {svc.service_time || ''}</div>
+					</button>
+				{/each}
+				{#if allServices.length === 0}
+					<p class="text-sm text-[var(--text-secondary)] text-center py-4">No other services found</p>
+				{/if}
+			</div>
+		</div>
+	</div>
+{/if}
+
 <!-- Add Item Modal -->
 {#if showAddItemModal}
 	<div class="modal-overlay" on:click|self={() => (showAddItemModal = false)}>

@@ -29,10 +29,12 @@
 			items: [
 				{ href: '/dashboard/services', label: 'Services', icon: 'services', module: 'services' },
 				{ href: '/dashboard/services/teams', label: 'Teams', icon: 'groups', module: 'services' },
+				{ href: '/dashboard/schedule', label: 'Schedule', icon: 'calendar', module: 'services' },
 				{ href: '/dashboard/calendar', label: 'Calendar', icon: 'calendar', module: 'calendar' },
 				{ href: '/dashboard/checkins', label: 'Check-Ins', icon: 'checkins', module: 'checkins' },
 				{ href: '/dashboard/care', label: 'Care', icon: 'care', module: 'care' },
 				{ href: '/dashboard/prayer', label: 'Prayer', icon: 'prayer', module: 'prayer' },
+				{ href: '/dashboard/sermons', label: 'Sermons', icon: 'services', module: 'sermons' },
 				{ href: '/dashboard/communication', label: 'Communication', icon: 'comm', module: 'communication' }
 			]
 		},

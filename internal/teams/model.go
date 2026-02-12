@@ -34,6 +34,10 @@ type ServiceTeamAssignment struct {
 	PositionName    *string `json:"position_name,omitempty"`
 	TeamName        string  `json:"team_name,omitempty"`
 	TeamColor       string  `json:"team_color,omitempty"`
+	// Service details (for schedule view)
+	ServiceDate string `json:"service_date,omitempty"`
+	ServiceTime string `json:"service_time,omitempty"`
+	ServiceTypeName string `json:"service_type_name,omitempty"`
 }
 
 type Position struct {

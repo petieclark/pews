@@ -304,11 +304,14 @@ func (s *Service) GetPersonSchedule(ctx context.Context, tenantID, personID stri
 		SELECT sta.id, sta.tenant_id, sta.service_id, sta.team_id, sta.position_id, sta.person_id,
 		       sta.status, COALESCE(sta.notes, ''),
 		       p.first_name, p.last_name, COALESCE(p.email, ''),
-		       tp.name as position_name, t.name as team_name, t.color as team_color
+		       tp.name as position_name, t.name as team_name, t.color as team_color,
+		       s.service_date::text, COALESCE(s.service_time, ''),
+		       COALESCE(st.name, '')
 		FROM service_team_assignments sta
 		JOIN people p ON p.id = sta.person_id
 		JOIN teams t ON t.id = sta.team_id
 		JOIN services s ON s.id = sta.service_id
+		LEFT JOIN service_types st ON st.id = s.service_type_id
 		LEFT JOIN team_positions tp ON tp.id = sta.position_id
 		WHERE sta.person_id = $1 AND sta.tenant_id = $2
 		  AND s.service_date >= CURRENT_DATE
@@ -324,7 +327,8 @@ func (s *Service) GetPersonSchedule(ctx context.Context, tenantID, personID stri
 		if err := rows.Scan(&a.ID, &a.TenantID, &a.ServiceID, &a.TeamID, &a.PositionID, &a.PersonID,
 			&a.Status, &a.Notes,
 			&a.PersonFirstName, &a.PersonLastName, &a.PersonEmail,
-			&a.PositionName, &a.TeamName, &a.TeamColor); err != nil {
+			&a.PositionName, &a.TeamName, &a.TeamColor,
+			&a.ServiceDate, &a.ServiceTime, &a.ServiceTypeName); err != nil {
 			return nil, err
 		}
 		assignments = append(assignments, a)
