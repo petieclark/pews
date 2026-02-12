@@ -91,7 +91,7 @@
 		// Prayer requests are listed globally; filter client-side by person
 		try {
 			const res = await api(`/api/prayer-requests?limit=200`, { silent: true });
-			personPrayers = (res || []).filter((p: any) => p.person_id === personId);
+			personPrayers = (res || []).filter((p) => p.person_id === personId);
 		} catch { personPrayers = []; }
 	}
 
