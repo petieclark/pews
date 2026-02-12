@@ -242,9 +242,9 @@ func (s *Service) UpdatePosition(ctx context.Context, teamID, positionID, name s
 func (s *Service) GetServiceAssignments(ctx context.Context, tenantID, serviceID string) ([]ServiceTeamAssignment, error) {
 	rows, err := s.db.Query(ctx, `
 		SELECT sta.id, sta.tenant_id, sta.service_id, sta.team_id, sta.position_id, sta.person_id,
-		       sta.status, COALESCE(sta.notes, ''),
-		       p.first_name, p.last_name, COALESCE(p.email, ''),
-		       tp.name as position_name, t.name as team_name, t.color as team_color
+		       COALESCE(sta.status, 'pending'), COALESCE(sta.notes, ''),
+		       COALESCE(p.first_name, ''), COALESCE(p.last_name, ''), COALESCE(p.email, ''),
+		       tp.name as position_name, t.name as team_name, COALESCE(t.color, '#4A8B8C') as team_color
 		FROM service_team_assignments sta
 		JOIN people p ON p.id = sta.person_id
 		JOIN teams t ON t.id = sta.team_id
@@ -322,9 +322,9 @@ func (s *Service) UpdateAssignmentStatus(ctx context.Context, tenantID, assignme
 func (s *Service) GetPersonSchedule(ctx context.Context, tenantID, personID string) ([]ServiceTeamAssignment, error) {
 	rows, err := s.db.Query(ctx, `
 		SELECT sta.id, sta.tenant_id, sta.service_id, sta.team_id, sta.position_id, sta.person_id,
-		       sta.status, COALESCE(sta.notes, ''),
-		       p.first_name, p.last_name, COALESCE(p.email, ''),
-		       tp.name as position_name, t.name as team_name, t.color as team_color,
+		       COALESCE(sta.status, 'pending'), COALESCE(sta.notes, ''),
+		       COALESCE(p.first_name, ''), COALESCE(p.last_name, ''), COALESCE(p.email, ''),
+		       tp.name as position_name, t.name as team_name, COALESCE(t.color, '#4A8B8C') as team_color,
 		       s.service_date::text, COALESCE(s.service_time, ''),
 		       COALESCE(st.name, '')
 		FROM service_team_assignments sta

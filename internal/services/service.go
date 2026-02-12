@@ -406,8 +406,8 @@ func (s *Service) DeleteServiceItem(ctx context.Context, tenantID, itemID string
 
 func (s *Service) GetServiceTeam(ctx context.Context, tenantID, serviceID string) ([]ServiceTeam, error) {
 	rows, err := s.db.Query(ctx, `
-		SELECT st.id, st.service_id, st.person_id, st.role, st.status, COALESCE(st.notes, ''),
-		       p.first_name, p.last_name
+		SELECT st.id, st.service_id, st.person_id, st.role, COALESCE(st.status, 'pending'), COALESCE(st.notes, ''),
+		       COALESCE(p.first_name, ''), COALESCE(p.last_name, '')
 		FROM service_teams st
 		JOIN people p ON p.id = st.person_id
 		WHERE st.service_id = $1
