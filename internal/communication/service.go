@@ -616,7 +616,7 @@ func (s *Service) GetJourneyEnrollments(ctx context.Context, tenantID, journeyID
 
 	query := `
 		SELECT je.id, je.journey_id, je.person_id, je.current_step, je.status, je.enrolled_at, je.next_step_at, je.completed_at,
-		       p.first_name || ' ' || p.last_name as person_name
+		       COALESCE(p.first_name || ' ' || COALESCE(p.last_name,''), p.first_name) as person_name
 		FROM journey_enrollments je
 		JOIN people p ON je.person_id = p.id
 		WHERE je.journey_id = $1
