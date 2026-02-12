@@ -633,6 +633,82 @@ func (h *Handler) CreateCheckout(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(resp)
 }
 
+// Test Mode Toggle
+
+func (h *Handler) SetTestMode(w http.ResponseWriter, r *http.Request) {
+	claims, ok := middleware.GetClaims(r.Context())
+	if !ok {
+		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		return
+	}
+
+	if claims.Role != "admin" {
+		http.Error(w, "Forbidden: admin role required", http.StatusForbidden)
+		return
+	}
+
+	var req struct {
+		TestMode bool `json:"test_mode"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, "Invalid request body", http.StatusBadRequest)
+		return
+	}
+
+	if err := h.stripeService.SetTestMode(r.Context(), claims.TenantID, req.TestMode); err != nil {
+		http.Error(w, "Failed to update test mode: "+err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]bool{"test_mode": req.TestMode})
+}
+
+// Public Giving Page
+
+func (h *Handler) GetPublicTenantInfo(w http.ResponseWriter, r *http.Request) {
+	slug := chi.URLParam(r, "slug")
+	if slug == "" {
+		http.Error(w, "Tenant slug is required", http.StatusBadRequest)
+		return
+	}
+
+	info, err := h.stripeService.GetPublicTenantInfo(r.Context(), slug)
+	if err != nil {
+		http.Error(w, "Church not found", http.StatusNotFound)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(info)
+}
+
+func (h *Handler) CreatePublicGivingCheckout(w http.ResponseWriter, r *http.Request) {
+	var req PublicGiveRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, "Invalid request body", http.StatusBadRequest)
+		return
+	}
+
+	if req.TenantSlug == "" || req.FundID == "" || req.AmountCents < 100 {
+		http.Error(w, "tenant_slug, fund_id, and amount_cents (min 100) are required", http.StatusBadRequest)
+		return
+	}
+
+	if req.Frequency == "" {
+		req.Frequency = "one-time"
+	}
+
+	url, err := h.stripeService.CreatePublicGivingSession(r.Context(), req)
+	if err != nil {
+		http.Error(w, "Failed to create checkout: "+err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]string{"url": url})
+}
+
 // Webhook
 
 func (h *Handler) HandleWebhook(webhookSecret string) http.HandlerFunc {
@@ -650,13 +726,23 @@ func (h *Handler) HandleWebhook(webhookSecret string) http.HandlerFunc {
 		}
 
 		switch event.Type {
+		case "checkout.session.completed":
+			var sess stripe.CheckoutSession
+			if err := json.Unmarshal(event.Data.Raw, &sess); err != nil {
+				http.Error(w, "Failed to parse event", http.StatusBadRequest)
+				return
+			}
+			if err := h.stripeService.HandleCheckoutSessionCompleted(r.Context(), &sess); err != nil {
+				http.Error(w, "Failed to handle checkout: "+err.Error(), http.StatusInternalServerError)
+				return
+			}
+
 		case "payment_intent.succeeded":
 			var pi stripe.PaymentIntent
 			if err := json.Unmarshal(event.Data.Raw, &pi); err != nil {
 				http.Error(w, "Failed to parse event", http.StatusBadRequest)
 				return
 			}
-
 			if err := h.stripeService.HandlePaymentIntentSucceeded(r.Context(), &pi); err != nil {
 				http.Error(w, "Failed to handle payment: "+err.Error(), http.StatusInternalServerError)
 				return

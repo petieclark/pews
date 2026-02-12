@@ -234,3 +234,176 @@ func (h *Handler) DeleteMember(w http.ResponseWriter, r *http.Request) {
 
 	w.WriteHeader(http.StatusNoContent)
 }
+
+type updateMemberStatusRequest struct {
+	Status string `json:"status"`
+}
+
+func (h *Handler) UpdateMemberStatus(w http.ResponseWriter, r *http.Request) {
+	memberID := chi.URLParam(r, "memberId")
+	var req updateMemberStatusRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, "Invalid request body", http.StatusBadRequest)
+		return
+	}
+	if err := h.service.UpdateMemberStatus(r.Context(), memberID, req.Status); err != nil {
+		http.Error(w, "Failed to update member status", http.StatusInternalServerError)
+		return
+	}
+	w.WriteHeader(http.StatusNoContent)
+}
+
+type updatePositionRequest struct {
+	Name      string `json:"name"`
+	SortOrder int    `json:"sort_order"`
+}
+
+func (h *Handler) UpdatePosition(w http.ResponseWriter, r *http.Request) {
+	id := chi.URLParam(r, "id")
+	positionID := chi.URLParam(r, "positionId")
+	var req updatePositionRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, "Invalid request body", http.StatusBadRequest)
+		return
+	}
+	pos, err := h.service.UpdatePosition(r.Context(), id, positionID, req.Name, req.SortOrder)
+	if err != nil {
+		http.Error(w, "Failed to update position", http.StatusInternalServerError)
+		return
+	}
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(pos)
+}
+
+// ---- Service Team Assignments ----
+
+func (h *Handler) GetServiceAssignments(w http.ResponseWriter, r *http.Request) {
+	claims, ok := middleware.GetClaims(r.Context())
+	if !ok {
+		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		return
+	}
+	serviceID := chi.URLParam(r, "id")
+	assignments, err := h.service.GetServiceAssignments(r.Context(), claims.TenantID, serviceID)
+	if err != nil {
+		http.Error(w, "Failed to get assignments: "+err.Error(), http.StatusInternalServerError)
+		return
+	}
+	if assignments == nil {
+		assignments = []ServiceTeamAssignment{}
+	}
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]interface{}{"assignments": assignments})
+}
+
+type saveAssignmentsRequest struct {
+	Assignments []struct {
+		TeamID     string  `json:"team_id"`
+		PositionID *string `json:"position_id,omitempty"`
+		PersonID   string  `json:"person_id"`
+		Status     string  `json:"status"`
+		Notes      string  `json:"notes"`
+	} `json:"assignments"`
+}
+
+func (h *Handler) SaveServiceAssignments(w http.ResponseWriter, r *http.Request) {
+	claims, ok := middleware.GetClaims(r.Context())
+	if !ok {
+		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		return
+	}
+	serviceID := chi.URLParam(r, "id")
+
+	var req saveAssignmentsRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, "Invalid request body", http.StatusBadRequest)
+		return
+	}
+
+	var assignments []ServiceTeamAssignment
+	for _, a := range req.Assignments {
+		status := a.Status
+		if status == "" {
+			status = "pending"
+		}
+		assignments = append(assignments, ServiceTeamAssignment{
+			TeamID:     a.TeamID,
+			PositionID: a.PositionID,
+			PersonID:   a.PersonID,
+			Status:     status,
+			Notes:      a.Notes,
+		})
+	}
+
+	if err := h.service.SaveServiceAssignments(r.Context(), claims.TenantID, serviceID, assignments); err != nil {
+		http.Error(w, "Failed to save assignments: "+err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	// Return updated assignments
+	h.GetServiceAssignments(w, r)
+}
+
+func (h *Handler) CopyServiceAssignments(w http.ResponseWriter, r *http.Request) {
+	claims, ok := middleware.GetClaims(r.Context())
+	if !ok {
+		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		return
+	}
+	targetID := chi.URLParam(r, "id")
+	sourceID := chi.URLParam(r, "sourceId")
+
+	assignments, err := h.service.CopyServiceAssignments(r.Context(), claims.TenantID, targetID, sourceID)
+	if err != nil {
+		http.Error(w, "Failed to copy assignments: "+err.Error(), http.StatusInternalServerError)
+		return
+	}
+	if assignments == nil {
+		assignments = []ServiceTeamAssignment{}
+	}
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]interface{}{"assignments": assignments})
+}
+
+func (h *Handler) UpdateAssignmentStatus(w http.ResponseWriter, r *http.Request) {
+	claims, ok := middleware.GetClaims(r.Context())
+	if !ok {
+		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		return
+	}
+	assignmentID := chi.URLParam(r, "assignmentId")
+
+	var req struct {
+		Status string `json:"status"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, "Invalid request body", http.StatusBadRequest)
+		return
+	}
+
+	if err := h.service.UpdateAssignmentStatus(r.Context(), claims.TenantID, assignmentID, req.Status); err != nil {
+		http.Error(w, "Failed to update assignment status", http.StatusInternalServerError)
+		return
+	}
+	w.WriteHeader(http.StatusNoContent)
+}
+
+func (h *Handler) GetPersonSchedule(w http.ResponseWriter, r *http.Request) {
+	claims, ok := middleware.GetClaims(r.Context())
+	if !ok {
+		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		return
+	}
+	personID := chi.URLParam(r, "personId")
+
+	assignments, err := h.service.GetPersonSchedule(r.Context(), claims.TenantID, personID)
+	if err != nil {
+		http.Error(w, "Failed to get schedule: "+err.Error(), http.StatusInternalServerError)
+		return
+	}
+	if assignments == nil {
+		assignments = []ServiceTeamAssignment{}
+	}
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]interface{}{"assignments": assignments})
+}

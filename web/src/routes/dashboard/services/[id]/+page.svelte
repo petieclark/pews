@@ -44,6 +44,12 @@
 		status: 'pending'
 	};
 
+	// Volunteer team assignments
+	let volunteerTeams = [];
+	let teamAssignments = [];
+	let allServices = [];
+	let showCopyModal = false;
+
 	let editForm = {
 		service_type_id: '',
 		service_date: '',
@@ -78,7 +84,94 @@
 		loadService();
 		loadPeople();
 		loadSongs();
+		loadVolunteerTeams();
+		loadTeamAssignments();
 	});
+
+	async function loadVolunteerTeams() {
+		try {
+			const res = await api('/api/teams');
+			volunteerTeams = res.teams || [];
+			// Load full details for each team (positions + members)
+			volunteerTeams = await Promise.all(volunteerTeams.map(t => api(`/api/teams/${t.id}`)));
+		} catch (e) {
+			console.error('Failed to load volunteer teams:', e);
+		}
+	}
+
+	async function loadTeamAssignments() {
+		try {
+			const res = await api(`/api/services/${serviceId}/team-assignments`);
+			teamAssignments = res.assignments || [];
+		} catch (e) {
+			console.error('Failed to load team assignments:', e);
+		}
+	}
+
+	function getAssignment(positionId, teamId) {
+		return teamAssignments.find(a =>
+			a.position_id === positionId && a.team_id === teamId
+		);
+	}
+
+	async function assignPerson(teamId, positionId, personId) {
+		if (!personId) {
+			// Remove assignment
+			teamAssignments = teamAssignments.filter(a => !(a.team_id === teamId && a.position_id === positionId));
+		} else {
+			const existing = teamAssignments.findIndex(a => a.team_id === teamId && a.position_id === positionId);
+			const assignment = { team_id: teamId, position_id: positionId, person_id: personId, status: 'pending' };
+			if (existing >= 0) {
+				teamAssignments[existing] = { ...teamAssignments[existing], ...assignment };
+			} else {
+				teamAssignments = [...teamAssignments, assignment];
+			}
+		}
+		await saveAssignments();
+	}
+
+	async function updateAssignmentStatus(assignmentId, status) {
+		try {
+			await api(`/api/services/${serviceId}/team-assignments/${assignmentId}/status`, {
+				method: 'PATCH',
+				body: JSON.stringify({ status })
+			});
+			loadTeamAssignments();
+		} catch (e) {
+			console.error('Failed to update assignment status:', e);
+		}
+	}
+
+	async function saveAssignments() {
+		try {
+			const res = await api(`/api/services/${serviceId}/team-assignments`, {
+				method: 'POST',
+				body: JSON.stringify({ assignments: teamAssignments })
+			});
+			teamAssignments = res.assignments || [];
+		} catch (e) {
+			console.error('Failed to save assignments:', e);
+		}
+	}
+
+	async function copyFromService(sourceId) {
+		try {
+			const res = await api(`/api/services/${serviceId}/team-assignments/copy-from/${sourceId}`, { method: 'POST' });
+			teamAssignments = res.assignments || [];
+			showCopyModal = false;
+		} catch (e) {
+			console.error('Failed to copy assignments:', e);
+		}
+	}
+
+	async function loadAllServices() {
+		try {
+			const res = await api('/api/services?limit=20');
+			allServices = (res.services || []).filter(s => s.id !== serviceId);
+		} catch (e) {
+			console.error('Failed to load services:', e);
+		}
+	}
 
 	async function loadService() {
 		loading = true;
@@ -516,55 +609,97 @@
 				{/if}
 			</div>
 
-			<!-- Sidebar: Team -->
+			<!-- Sidebar: Team Assignments -->
 			<div class="space-y-6">
+				<!-- Legacy Team (existing service_teams) -->
 				<div class="card">
 					<div class="flex items-center justify-between p-4 border-b border-[var(--border)]">
-						<h2 class="font-semibold text-[var(--text-primary)]">Team</h2>
+						<h2 class="font-semibold text-[var(--text-primary)]">Quick Team</h2>
 						<button on:click={() => (showAddTeamModal = true)} class="btn-primary text-xs px-3 py-1.5">
 							+ Add
 						</button>
 					</div>
-
 					{#if team.length === 0}
-						<div class="p-6 text-center text-sm text-[var(--text-secondary)]">
-							No team members assigned
-						</div>
+						<div class="p-4 text-center text-sm text-[var(--text-secondary)]">No quick team members</div>
 					{:else}
 						<div class="divide-y divide-[var(--border)]">
 							{#each team as member}
 								<div class="p-3">
 									<div class="flex items-center justify-between">
 										<div>
-											<div class="font-medium text-sm text-[var(--text-primary)]">
-												{member.person_first_name} {member.person_last_name}
-											</div>
+											<div class="font-medium text-sm text-[var(--text-primary)]">{member.person_first_name} {member.person_last_name}</div>
 											<div class="text-xs text-[var(--text-secondary)]">{member.role}</div>
 										</div>
 										<div class="flex items-center gap-1">
-											<button
-												on:click={() => updateTeamStatus(member.id, 'accepted')}
-												class="status-btn {member.status === 'accepted' ? 'status-accepted' : ''}"
-												title="Accepted"
-											>✓</button>
-											<button
-												on:click={() => updateTeamStatus(member.id, 'pending')}
-												class="status-btn {member.status === 'pending' ? 'status-pending' : ''}"
-												title="Pending"
-											>?</button>
-											<button
-												on:click={() => updateTeamStatus(member.id, 'declined')}
-												class="status-btn {member.status === 'declined' ? 'status-declined' : ''}"
-												title="Declined"
-											>✕</button>
-											<button
-												on:click={() => removeTeamMember(member.id)}
-												class="ml-1 p-1 rounded text-[var(--text-secondary)] hover:text-red-400"
-												title="Remove"
-											>
+											<button on:click={() => updateTeamStatus(member.id, 'accepted')} class="status-btn {member.status === 'accepted' ? 'status-accepted' : ''}" title="Accepted">✓</button>
+											<button on:click={() => updateTeamStatus(member.id, 'pending')} class="status-btn {member.status === 'pending' ? 'status-pending' : ''}" title="Pending">?</button>
+											<button on:click={() => updateTeamStatus(member.id, 'declined')} class="status-btn {member.status === 'declined' ? 'status-declined' : ''}" title="Declined">✕</button>
+											<button on:click={() => removeTeamMember(member.id)} class="ml-1 p-1 rounded text-[var(--text-secondary)] hover:text-red-400" title="Remove">
 												<svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
 											</button>
 										</div>
+									</div>
+								</div>
+							{/each}
+						</div>
+					{/if}
+				</div>
+
+				<!-- Volunteer Team Assignments -->
+				<div class="card">
+					<div class="flex items-center justify-between p-4 border-b border-[var(--border)]">
+						<h2 class="font-semibold text-[var(--text-primary)]">Volunteer Teams</h2>
+						<button on:click={() => { showCopyModal = true; loadAllServices(); }} class="text-xs text-[var(--teal)] hover:opacity-80">
+							📋 Copy from...
+						</button>
+					</div>
+
+					{#if volunteerTeams.length === 0}
+						<div class="p-6 text-center text-sm text-[var(--text-secondary)]">
+							No teams configured. <a href="/dashboard/services/teams" class="text-[var(--teal)] hover:underline">Create teams</a>
+						</div>
+					{:else}
+						<div class="divide-y divide-[var(--border)]">
+							{#each volunteerTeams as vteam}
+								<div class="p-4">
+									<div class="flex items-center gap-2 mb-3">
+										<div class="w-3 h-3 rounded-full" style="background-color: {vteam.color}"></div>
+										<h3 class="font-semibold text-sm text-[var(--text-primary)]">{vteam.name}</h3>
+									</div>
+									<div class="space-y-2">
+										{#each vteam.positions || [] as pos}
+											{@const assignment = getAssignment(pos.id, vteam.id)}
+											<div class="flex items-center gap-2">
+												<span class="text-xs text-[var(--text-secondary)] w-24 shrink-0 truncate" title={pos.name}>{pos.name}</span>
+												<select
+													value={assignment?.person_id || ''}
+													on:change={e => assignPerson(vteam.id, pos.id, e.target.value || null)}
+													class="flex-1 text-xs bg-[var(--bg)] border border-[var(--border)] rounded px-2 py-1 text-[var(--text-primary)]"
+												>
+													<option value="">— unassigned —</option>
+													{#each (vteam.members || []).filter(m => m.status === 'active') as member}
+														<option value={member.person_id}>{member.first_name} {member.last_name}</option>
+													{/each}
+												</select>
+												{#if assignment}
+													<span class="text-sm shrink-0" title={assignment.status}>
+														{assignment.status === 'confirmed' ? '✅' : assignment.status === 'declined' ? '❌' : '⏳'}
+													</span>
+													<select
+														value={assignment.status}
+														on:change={e => assignment.id && updateAssignmentStatus(assignment.id, e.target.value)}
+														class="text-[10px] bg-transparent border-none text-[var(--text-secondary)] p-0 w-16"
+													>
+														<option value="pending">Pending</option>
+														<option value="confirmed">Confirmed</option>
+														<option value="declined">Declined</option>
+													</select>
+												{/if}
+											</div>
+										{/each}
+										{#if !vteam.positions?.length}
+											<p class="text-xs text-[var(--text-secondary)]">No positions defined</p>
+										{/if}
 									</div>
 								</div>
 							{/each}
@@ -589,7 +724,7 @@
 					</div>
 					<div class="flex justify-between text-sm">
 						<span class="text-[var(--text-secondary)]">Team Size</span>
-						<span class="text-[var(--text-primary)]">{team.length}</span>
+						<span class="text-[var(--text-primary)]">{team.length + teamAssignments.length}</span>
 					</div>
 				</div>
 			</div>

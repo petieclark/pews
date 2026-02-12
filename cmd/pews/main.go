@@ -183,7 +183,7 @@ func run() error {
 		ccliHandler,
 		publicHandler,
 		cfg.StripeWebhookSecret,
-		cfg.StripeWebhookSecret, // Use same webhook secret for giving
+		cfg.StripeGivingWebhookSecret,
 		cfg.FrontendURL,
 	)
 

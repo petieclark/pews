@@ -91,6 +91,10 @@ func New(
 	r.Get("/api/giving/kiosk/config", givingHandler.GetPublicKioskConfig)
 	r.Post("/api/giving/public/checkout", givingHandler.CreatePublicCheckout)
 
+	// Public giving page routes (no auth required)
+	r.Get("/api/public/give/{slug}", givingHandler.GetPublicTenantInfo)
+	r.Post("/api/public/give", givingHandler.CreatePublicGivingCheckout)
+
 	// Public streaming routes (no auth required)
 	r.Get("/api/streaming/watch/{id}", streamingHandler.GetWatchStream)
 	r.Get("/api/streaming/{id}/chat", streamingHandler.GetChatMessages)
@@ -305,6 +309,9 @@ func New(
 		// Giving - Kiosk
 		r.Get("/api/giving/kiosk", givingHandler.GetKioskConfig)
 		r.Put("/api/giving/kiosk", givingHandler.UpdateKioskConfig)
+
+		// Giving - Test Mode
+		r.Put("/api/giving/test-mode", givingHandler.SetTestMode)
 
 		// Streaming - Streams
 		r.Get("/api/streaming", streamingHandler.ListStreams)

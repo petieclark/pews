@@ -1,5 +1,5 @@
 -- Engagement scores table
-CREATE TABLE engagement_scores (
+CREATE TABLE IF NOT EXISTS engagement_scores (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     tenant_id UUID NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
     person_id UUID NOT NULL REFERENCES people(id) ON DELETE CASCADE,
@@ -18,12 +18,12 @@ ALTER TABLE engagement_scores ENABLE ROW LEVEL SECURITY;
 CREATE POLICY engagement_scores_isolation_policy ON engagement_scores
     USING (tenant_id = current_setting('app.current_tenant_id', TRUE)::UUID);
 
-CREATE INDEX idx_engagement_scores_tenant_id ON engagement_scores(tenant_id);
-CREATE INDEX idx_engagement_scores_person_id ON engagement_scores(person_id);
-CREATE INDEX idx_engagement_scores_score ON engagement_scores(tenant_id, score DESC);
+CREATE INDEX IF NOT EXISTS idx_engagement_scores_tenant_id ON engagement_scores(tenant_id);
+CREATE INDEX IF NOT EXISTS idx_engagement_scores_person_id ON engagement_scores(person_id);
+CREATE INDEX IF NOT EXISTS idx_engagement_scores_score ON engagement_scores(tenant_id, score DESC);
 
 -- Engagement score history (for tracking changes over time)
-CREATE TABLE engagement_score_history (
+CREATE TABLE IF NOT EXISTS engagement_score_history (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     tenant_id UUID NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
     person_id UUID NOT NULL REFERENCES people(id) ON DELETE CASCADE,
@@ -41,9 +41,9 @@ ALTER TABLE engagement_score_history ENABLE ROW LEVEL SECURITY;
 CREATE POLICY engagement_score_history_isolation_policy ON engagement_score_history
     USING (tenant_id = current_setting('app.current_tenant_id', TRUE)::UUID);
 
-CREATE INDEX idx_engagement_score_history_tenant_id ON engagement_score_history(tenant_id);
-CREATE INDEX idx_engagement_score_history_person_id ON engagement_score_history(person_id);
-CREATE INDEX idx_engagement_score_history_recorded_at ON engagement_score_history(recorded_at DESC);
+CREATE INDEX IF NOT EXISTS idx_engagement_score_history_tenant_id ON engagement_score_history(tenant_id);
+CREATE INDEX IF NOT EXISTS idx_engagement_score_history_person_id ON engagement_score_history(person_id);
+CREATE INDEX IF NOT EXISTS idx_engagement_score_history_recorded_at ON engagement_score_history(recorded_at DESC);
 
 -- Function to automatically save score history when engagement_scores is updated
 CREATE OR REPLACE FUNCTION save_engagement_score_history()

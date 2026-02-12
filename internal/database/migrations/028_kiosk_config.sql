@@ -7,4 +7,4 @@ ALTER TABLE tenants ADD COLUMN kiosk_config JSONB DEFAULT '{
 }'::jsonb;
 
 -- Index for kiosk enabled lookups
-CREATE INDEX idx_tenants_kiosk_enabled ON tenants ((kiosk_config->>'enabled'));
+CREATE INDEX IF NOT EXISTS idx_tenants_kiosk_enabled ON tenants ((kiosk_config->>'enabled'));

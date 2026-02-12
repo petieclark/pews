@@ -1,5 +1,5 @@
 -- Prayer requests table
-CREATE TABLE prayer_requests (
+CREATE TABLE IF NOT EXISTS prayer_requests (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     tenant_id UUID NOT NULL REFERENCES tenants(id),
     person_id UUID REFERENCES people(id), -- nullable for anonymous submissions
@@ -22,12 +22,12 @@ CREATE POLICY prayer_requests_isolation_policy ON prayer_requests
     USING (tenant_id = current_setting('app.current_tenant_id', TRUE)::UUID);
 
 -- Indexes
-CREATE INDEX idx_prayer_requests_tenant_id ON prayer_requests(tenant_id);
-CREATE INDEX idx_prayer_requests_person_id ON prayer_requests(person_id);
-CREATE INDEX idx_prayer_requests_status ON prayer_requests(status);
-CREATE INDEX idx_prayer_requests_is_public ON prayer_requests(is_public);
-CREATE INDEX idx_prayer_requests_submitted_at ON prayer_requests(submitted_at);
-CREATE INDEX idx_prayer_requests_connection_card_id ON prayer_requests(connection_card_id);
+CREATE INDEX IF NOT EXISTS idx_prayer_requests_tenant_id ON prayer_requests(tenant_id);
+CREATE INDEX IF NOT EXISTS idx_prayer_requests_person_id ON prayer_requests(person_id);
+CREATE INDEX IF NOT EXISTS idx_prayer_requests_status ON prayer_requests(status);
+CREATE INDEX IF NOT EXISTS idx_prayer_requests_is_public ON prayer_requests(is_public);
+CREATE INDEX IF NOT EXISTS idx_prayer_requests_submitted_at ON prayer_requests(submitted_at);
+CREATE INDEX IF NOT EXISTS idx_prayer_requests_connection_card_id ON prayer_requests(connection_card_id);
 
 -- Updated_at trigger
 CREATE TRIGGER update_prayer_requests_updated_at
@@ -36,7 +36,7 @@ CREATE TRIGGER update_prayer_requests_updated_at
     EXECUTE FUNCTION update_updated_at_column();
 
 -- Prayer followers (staff following specific prayer requests)
-CREATE TABLE prayer_followers (
+CREATE TABLE IF NOT EXISTS prayer_followers (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     prayer_request_id UUID NOT NULL REFERENCES prayer_requests(id) ON DELETE CASCADE,
     user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
@@ -56,5 +56,5 @@ CREATE POLICY prayer_followers_isolation_policy ON prayer_followers
     ));
 
 -- Indexes
-CREATE INDEX idx_prayer_followers_prayer_request_id ON prayer_followers(prayer_request_id);
-CREATE INDEX idx_prayer_followers_user_id ON prayer_followers(user_id);
+CREATE INDEX IF NOT EXISTS idx_prayer_followers_prayer_request_id ON prayer_followers(prayer_request_id);
+CREATE INDEX IF NOT EXISTS idx_prayer_followers_user_id ON prayer_followers(user_id);

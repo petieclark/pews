@@ -8,14 +8,18 @@ import (
 )
 
 type Config struct {
-	DatabaseURL         string
-	JWTSecret           string
-	StripeSecretKey     string
-	StripeWebhookSecret string
-	StripePriceID       string
-	Port                string
-	FrontendURL         string
-	SMSEncryptionKey    string
+	DatabaseURL              string
+	JWTSecret                string
+	StripeSecretKey          string
+	StripePublishableKey     string
+	StripeWebhookSecret      string
+	StripeGivingWebhookSecret string
+	StripePriceID            string
+	StripeTestSecretKey      string
+	StripeTestPublishableKey string
+	Port                     string
+	FrontendURL              string
+	SMSEncryptionKey         string
 }
 
 func Load() (*Config, error) {
@@ -23,14 +27,18 @@ func Load() (*Config, error) {
 	_ = godotenv.Load()
 
 	cfg := &Config{
-		DatabaseURL:         getEnv("DATABASE_URL", ""),
-		JWTSecret:           getEnv("JWT_SECRET", ""),
-		StripeSecretKey:     getEnv("STRIPE_SECRET_KEY", ""),
-		StripeWebhookSecret: getEnv("STRIPE_WEBHOOK_SECRET", ""),
-		StripePriceID:       getEnv("STRIPE_PRICE_ID", ""),
-		Port:                getEnv("PORT", "8080"),
-		FrontendURL:         getEnv("FRONTEND_URL", "http://localhost:5173"),
-		SMSEncryptionKey:    getEnv("SMS_ENCRYPTION_KEY", ""),
+		DatabaseURL:              getEnv("DATABASE_URL", ""),
+		JWTSecret:                getEnv("JWT_SECRET", ""),
+		StripeSecretKey:          getEnv("STRIPE_SECRET_KEY", ""),
+		StripePublishableKey:     getEnv("STRIPE_PUBLISHABLE_KEY", ""),
+		StripeWebhookSecret:      getEnv("STRIPE_WEBHOOK_SECRET", ""),
+		StripeGivingWebhookSecret: getEnv("STRIPE_GIVING_WEBHOOK_SECRET", getEnv("STRIPE_WEBHOOK_SECRET", "")),
+		StripePriceID:            getEnv("STRIPE_PRICE_ID", ""),
+		StripeTestSecretKey:      getEnv("STRIPE_TEST_SECRET_KEY", ""),
+		StripeTestPublishableKey: getEnv("STRIPE_TEST_PUBLISHABLE_KEY", ""),
+		Port:                     getEnv("PORT", "8080"),
+		FrontendURL:              getEnv("FRONTEND_URL", "http://localhost:5173"),
+		SMSEncryptionKey:         getEnv("SMS_ENCRYPTION_KEY", ""),
 	}
 
 	if cfg.DatabaseURL == "" {

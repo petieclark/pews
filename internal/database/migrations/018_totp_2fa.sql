@@ -5,4 +5,4 @@ ALTER TABLE users
     ADD COLUMN recovery_codes TEXT[];
 
 -- Index for 2FA enabled users
-CREATE INDEX idx_users_totp_enabled ON users(totp_enabled) WHERE totp_enabled = TRUE;
+CREATE INDEX IF NOT EXISTS idx_users_totp_enabled ON users(totp_enabled) WHERE totp_enabled = TRUE;

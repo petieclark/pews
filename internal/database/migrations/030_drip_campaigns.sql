@@ -1,5 +1,5 @@
 -- Drip campaigns table
-CREATE TABLE drip_campaigns (
+CREATE TABLE IF NOT EXISTS drip_campaigns (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     tenant_id UUID NOT NULL REFERENCES tenants(id),
     name VARCHAR(255) NOT NULL,
@@ -16,9 +16,9 @@ CREATE POLICY drip_campaigns_isolation_policy ON drip_campaigns
     USING (tenant_id = current_setting('app.current_tenant_id', TRUE)::UUID);
 
 -- Indexes
-CREATE INDEX idx_drip_campaigns_tenant_id ON drip_campaigns(tenant_id);
-CREATE INDEX idx_drip_campaigns_trigger_event ON drip_campaigns(trigger_event);
-CREATE INDEX idx_drip_campaigns_is_active ON drip_campaigns(is_active);
+CREATE INDEX IF NOT EXISTS idx_drip_campaigns_tenant_id ON drip_campaigns(tenant_id);
+CREATE INDEX IF NOT EXISTS idx_drip_campaigns_trigger_event ON drip_campaigns(trigger_event);
+CREATE INDEX IF NOT EXISTS idx_drip_campaigns_is_active ON drip_campaigns(is_active);
 
 -- Updated_at trigger
 CREATE TRIGGER update_drip_campaigns_updated_at
@@ -27,7 +27,7 @@ CREATE TRIGGER update_drip_campaigns_updated_at
     EXECUTE FUNCTION update_updated_at_column();
 
 -- Drip campaign steps
-CREATE TABLE drip_steps (
+CREATE TABLE IF NOT EXISTS drip_steps (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     campaign_id UUID NOT NULL REFERENCES drip_campaigns(id) ON DELETE CASCADE,
     step_order INTEGER NOT NULL,
@@ -51,8 +51,8 @@ CREATE POLICY drip_steps_isolation_policy ON drip_steps
     ));
 
 -- Indexes
-CREATE INDEX idx_drip_steps_campaign_id ON drip_steps(campaign_id);
-CREATE INDEX idx_drip_steps_step_order ON drip_steps(step_order);
+CREATE INDEX IF NOT EXISTS idx_drip_steps_campaign_id ON drip_steps(campaign_id);
+CREATE INDEX IF NOT EXISTS idx_drip_steps_step_order ON drip_steps(step_order);
 
 -- Updated_at trigger
 CREATE TRIGGER update_drip_steps_updated_at
@@ -61,7 +61,7 @@ CREATE TRIGGER update_drip_steps_updated_at
     EXECUTE FUNCTION update_updated_at_column();
 
 -- Drip campaign enrollments
-CREATE TABLE drip_enrollments (
+CREATE TABLE IF NOT EXISTS drip_enrollments (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     campaign_id UUID NOT NULL REFERENCES drip_campaigns(id) ON DELETE CASCADE,
     person_id UUID NOT NULL REFERENCES people(id),
@@ -82,12 +82,12 @@ CREATE POLICY drip_enrollments_isolation_policy ON drip_enrollments
     ));
 
 -- Indexes
-CREATE INDEX idx_drip_enrollments_campaign_id ON drip_enrollments(campaign_id);
-CREATE INDEX idx_drip_enrollments_person_id ON drip_enrollments(person_id);
-CREATE INDEX idx_drip_enrollments_status ON drip_enrollments(status);
+CREATE INDEX IF NOT EXISTS idx_drip_enrollments_campaign_id ON drip_enrollments(campaign_id);
+CREATE INDEX IF NOT EXISTS idx_drip_enrollments_person_id ON drip_enrollments(person_id);
+CREATE INDEX IF NOT EXISTS idx_drip_enrollments_status ON drip_enrollments(status);
 
 -- Drip step executions (track when each step was executed)
-CREATE TABLE drip_step_executions (
+CREATE TABLE IF NOT EXISTS drip_step_executions (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     enrollment_id UUID NOT NULL REFERENCES drip_enrollments(id) ON DELETE CASCADE,
     step_id UUID NOT NULL REFERENCES drip_steps(id),
@@ -110,7 +110,7 @@ CREATE POLICY drip_step_executions_isolation_policy ON drip_step_executions
     ));
 
 -- Indexes
-CREATE INDEX idx_drip_step_executions_enrollment_id ON drip_step_executions(enrollment_id);
-CREATE INDEX idx_drip_step_executions_step_id ON drip_step_executions(step_id);
-CREATE INDEX idx_drip_step_executions_status ON drip_step_executions(status);
-CREATE INDEX idx_drip_step_executions_scheduled_at ON drip_step_executions(scheduled_at);
+CREATE INDEX IF NOT EXISTS idx_drip_step_executions_enrollment_id ON drip_step_executions(enrollment_id);
+CREATE INDEX IF NOT EXISTS idx_drip_step_executions_step_id ON drip_step_executions(step_id);
+CREATE INDEX IF NOT EXISTS idx_drip_step_executions_status ON drip_step_executions(status);
+CREATE INDEX IF NOT EXISTS idx_drip_step_executions_scheduled_at ON drip_step_executions(scheduled_at);

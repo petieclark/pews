@@ -1,5 +1,5 @@
 -- Audit logs table (immutable)
-CREATE TABLE audit_logs (
+CREATE TABLE IF NOT EXISTS audit_logs (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     tenant_id UUID NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
     user_id UUID REFERENCES users(id) ON DELETE SET NULL,
@@ -37,14 +37,14 @@ CREATE POLICY audit_logs_insert_policy ON audit_logs
     WITH CHECK (tenant_id = current_setting('app.current_tenant_id', TRUE)::UUID);
 
 -- Indexes for performance
-CREATE INDEX idx_audit_logs_tenant_id ON audit_logs(tenant_id);
-CREATE INDEX idx_audit_logs_user_id ON audit_logs(user_id);
-CREATE INDEX idx_audit_logs_timestamp ON audit_logs(timestamp DESC);
-CREATE INDEX idx_audit_logs_entity ON audit_logs(entity_type, entity_id);
-CREATE INDEX idx_audit_logs_action ON audit_logs(action);
+CREATE INDEX IF NOT EXISTS idx_audit_logs_tenant_id ON audit_logs(tenant_id);
+CREATE INDEX IF NOT EXISTS idx_audit_logs_user_id ON audit_logs(user_id);
+CREATE INDEX IF NOT EXISTS idx_audit_logs_timestamp ON audit_logs(timestamp DESC);
+CREATE INDEX IF NOT EXISTS idx_audit_logs_entity ON audit_logs(entity_type, entity_id);
+CREATE INDEX IF NOT EXISTS idx_audit_logs_action ON audit_logs(action);
 
 -- Failed login attempts tracking table
-CREATE TABLE failed_login_attempts (
+CREATE TABLE IF NOT EXISTS failed_login_attempts (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     tenant_id UUID NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
     email VARCHAR(255) NOT NULL,
@@ -61,12 +61,12 @@ CREATE POLICY failed_login_tenant_isolation_policy ON failed_login_attempts
     USING (tenant_id = current_setting('app.current_tenant_id', TRUE)::UUID);
 
 -- Indexes
-CREATE INDEX idx_failed_login_tenant_id ON failed_login_attempts(tenant_id);
-CREATE INDEX idx_failed_login_attempted_at ON failed_login_attempts(attempted_at DESC);
-CREATE INDEX idx_failed_login_email ON failed_login_attempts(email);
+CREATE INDEX IF NOT EXISTS idx_failed_login_tenant_id ON failed_login_attempts(tenant_id);
+CREATE INDEX IF NOT EXISTS idx_failed_login_attempted_at ON failed_login_attempts(attempted_at DESC);
+CREATE INDEX IF NOT EXISTS idx_failed_login_email ON failed_login_attempts(email);
 
 -- Session tracking table
-CREATE TABLE user_sessions (
+CREATE TABLE IF NOT EXISTS user_sessions (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     tenant_id UUID NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
     user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
@@ -85,10 +85,10 @@ CREATE POLICY user_sessions_tenant_isolation_policy ON user_sessions
     USING (tenant_id = current_setting('app.current_tenant_id', TRUE)::UUID);
 
 -- Indexes
-CREATE INDEX idx_user_sessions_tenant_id ON user_sessions(tenant_id);
-CREATE INDEX idx_user_sessions_user_id ON user_sessions(user_id);
-CREATE INDEX idx_user_sessions_active ON user_sessions(is_active);
-CREATE INDEX idx_user_sessions_last_activity ON user_sessions(last_activity DESC);
+CREATE INDEX IF NOT EXISTS idx_user_sessions_tenant_id ON user_sessions(tenant_id);
+CREATE INDEX IF NOT EXISTS idx_user_sessions_user_id ON user_sessions(user_id);
+CREATE INDEX IF NOT EXISTS idx_user_sessions_active ON user_sessions(is_active);
+CREATE INDEX IF NOT EXISTS idx_user_sessions_last_activity ON user_sessions(last_activity DESC);
 
 -- Add password_changed_at to users table for security tracking
 ALTER TABLE users ADD COLUMN password_changed_at TIMESTAMP;

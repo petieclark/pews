@@ -12,8 +12,8 @@ CREATE TABLE IF NOT EXISTS rooms (
     updated_at TIMESTAMP DEFAULT NOW()
 );
 
-CREATE INDEX idx_rooms_tenant ON rooms(tenant_id);
-CREATE INDEX idx_rooms_active ON rooms(tenant_id, is_active);
+CREATE INDEX IF NOT EXISTS idx_rooms_tenant ON rooms(tenant_id);
+CREATE INDEX IF NOT EXISTS idx_rooms_active ON rooms(tenant_id, is_active);
 
 -- Room bookings table
 CREATE TABLE IF NOT EXISTS room_bookings (
@@ -33,7 +33,7 @@ CREATE TABLE IF NOT EXISTS room_bookings (
     CONSTRAINT valid_status CHECK (status IN ('confirmed', 'tentative', 'cancelled'))
 );
 
-CREATE INDEX idx_bookings_tenant ON room_bookings(tenant_id);
-CREATE INDEX idx_bookings_room ON room_bookings(room_id);
-CREATE INDEX idx_bookings_time ON room_bookings(tenant_id, start_time, end_time);
-CREATE INDEX idx_bookings_status ON room_bookings(tenant_id, status);
+CREATE INDEX IF NOT EXISTS idx_bookings_tenant ON room_bookings(tenant_id);
+CREATE INDEX IF NOT EXISTS idx_bookings_room ON room_bookings(room_id);
+CREATE INDEX IF NOT EXISTS idx_bookings_time ON room_bookings(tenant_id, start_time, end_time);
+CREATE INDEX IF NOT EXISTS idx_bookings_status ON room_bookings(tenant_id, status);

@@ -1,5 +1,5 @@
 -- Events/Calendar table
-CREATE TABLE events (
+CREATE TABLE IF NOT EXISTS events (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     tenant_id UUID NOT NULL REFERENCES tenants(id),
     title VARCHAR(255) NOT NULL,
@@ -23,10 +23,10 @@ CREATE POLICY events_isolation_policy ON events
     USING (tenant_id = current_setting('app.current_tenant_id', TRUE)::UUID);
 
 -- Indexes
-CREATE INDEX idx_events_tenant_id ON events(tenant_id);
-CREATE INDEX idx_events_start_time ON events(start_time);
-CREATE INDEX idx_events_end_time ON events(end_time);
-CREATE INDEX idx_events_created_by ON events(created_by);
+CREATE INDEX IF NOT EXISTS idx_events_tenant_id ON events(tenant_id);
+CREATE INDEX IF NOT EXISTS idx_events_start_time ON events(start_time);
+CREATE INDEX IF NOT EXISTS idx_events_end_time ON events(end_time);
+CREATE INDEX IF NOT EXISTS idx_events_created_by ON events(created_by);
 
 -- Updated_at trigger
 CREATE TRIGGER update_events_updated_at

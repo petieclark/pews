@@ -1,5 +1,5 @@
 -- Service Plans (worship planning / service builder)
-CREATE TABLE service_plans (
+CREATE TABLE IF NOT EXISTS service_plans (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     tenant_id UUID NOT NULL REFERENCES tenants(id),
     service_id UUID NOT NULL REFERENCES services(id) ON DELETE CASCADE,
@@ -18,9 +18,9 @@ CREATE POLICY service_plans_isolation_policy ON service_plans
     USING (tenant_id = current_setting('app.current_tenant_id', TRUE)::UUID);
 
 -- Indexes
-CREATE INDEX idx_service_plans_tenant_id ON service_plans(tenant_id);
-CREATE INDEX idx_service_plans_service_id ON service_plans(service_id);
-CREATE INDEX idx_service_plans_status ON service_plans(status);
+CREATE INDEX IF NOT EXISTS idx_service_plans_tenant_id ON service_plans(tenant_id);
+CREATE INDEX IF NOT EXISTS idx_service_plans_service_id ON service_plans(service_id);
+CREATE INDEX IF NOT EXISTS idx_service_plans_status ON service_plans(status);
 
 -- Updated_at trigger
 CREATE TRIGGER update_service_plans_updated_at
@@ -29,7 +29,7 @@ CREATE TRIGGER update_service_plans_updated_at
     EXECUTE FUNCTION update_updated_at_column();
 
 -- Service Plan Items (individual items in the plan)
-CREATE TABLE service_plan_items (
+CREATE TABLE IF NOT EXISTS service_plan_items (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     plan_id UUID NOT NULL REFERENCES service_plans(id) ON DELETE CASCADE,
     item_order INTEGER NOT NULL,
@@ -55,10 +55,10 @@ CREATE POLICY service_plan_items_isolation_policy ON service_plan_items
     ));
 
 -- Indexes
-CREATE INDEX idx_service_plan_items_plan_id ON service_plan_items(plan_id);
-CREATE INDEX idx_service_plan_items_order ON service_plan_items(plan_id, item_order);
-CREATE INDEX idx_service_plan_items_song_id ON service_plan_items(song_id);
-CREATE INDEX idx_service_plan_items_assigned_to ON service_plan_items(assigned_to);
+CREATE INDEX IF NOT EXISTS idx_service_plan_items_plan_id ON service_plan_items(plan_id);
+CREATE INDEX IF NOT EXISTS idx_service_plan_items_order ON service_plan_items(plan_id, item_order);
+CREATE INDEX IF NOT EXISTS idx_service_plan_items_song_id ON service_plan_items(song_id);
+CREATE INDEX IF NOT EXISTS idx_service_plan_items_assigned_to ON service_plan_items(assigned_to);
 
 -- Updated_at trigger
 CREATE TRIGGER update_service_plan_items_updated_at

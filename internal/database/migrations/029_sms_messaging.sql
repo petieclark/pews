@@ -14,9 +14,9 @@ CREATE TABLE IF NOT EXISTS sms_messages (
     updated_at TIMESTAMP NOT NULL DEFAULT NOW()
 );
 
-CREATE INDEX idx_sms_messages_tenant ON sms_messages(tenant_id);
-CREATE INDEX idx_sms_messages_status ON sms_messages(status);
-CREATE INDEX idx_sms_messages_created ON sms_messages(created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_sms_messages_tenant ON sms_messages(tenant_id);
+CREATE INDEX IF NOT EXISTS idx_sms_messages_status ON sms_messages(status);
+CREATE INDEX IF NOT EXISTS idx_sms_messages_created ON sms_messages(created_at DESC);
 
 -- SMS Templates table (extends existing templates for SMS-specific needs)
 CREATE TABLE IF NOT EXISTS sms_templates (
@@ -29,7 +29,7 @@ CREATE TABLE IF NOT EXISTS sms_templates (
     updated_at TIMESTAMP NOT NULL DEFAULT NOW()
 );
 
-CREATE INDEX idx_sms_templates_tenant ON sms_templates(tenant_id);
+CREATE INDEX IF NOT EXISTS idx_sms_templates_tenant ON sms_templates(tenant_id);
 
 -- Tenant SMS Settings (encrypted Twilio credentials per tenant)
 CREATE TABLE IF NOT EXISTS tenant_sms_settings (

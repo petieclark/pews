@@ -37,12 +37,12 @@ CREATE POLICY follow_up_notes_isolation ON follow_up_notes
     ));
 
 -- Indexes
-CREATE INDEX idx_follow_ups_tenant ON follow_ups(tenant_id);
-CREATE INDEX idx_follow_ups_person ON follow_ups(person_id);
-CREATE INDEX idx_follow_ups_assigned ON follow_ups(assigned_to);
-CREATE INDEX idx_follow_ups_status ON follow_ups(tenant_id, status);
-CREATE INDEX idx_follow_ups_due ON follow_ups(tenant_id, due_date);
-CREATE INDEX idx_follow_up_notes_follow_up ON follow_up_notes(follow_up_id);
+CREATE INDEX IF NOT EXISTS idx_follow_ups_tenant ON follow_ups(tenant_id);
+CREATE INDEX IF NOT EXISTS idx_follow_ups_person ON follow_ups(person_id);
+CREATE INDEX IF NOT EXISTS idx_follow_ups_assigned ON follow_ups(assigned_to);
+CREATE INDEX IF NOT EXISTS idx_follow_ups_status ON follow_ups(tenant_id, status);
+CREATE INDEX IF NOT EXISTS idx_follow_ups_due ON follow_ups(tenant_id, due_date);
+CREATE INDEX IF NOT EXISTS idx_follow_up_notes_follow_up ON follow_up_notes(follow_up_id);
 
 -- Updated_at trigger
 CREATE TRIGGER update_follow_ups_updated_at

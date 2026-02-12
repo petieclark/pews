@@ -15,11 +15,11 @@ CREATE TABLE IF NOT EXISTS media_files (
 );
 
 -- Indexes for efficient querying
-CREATE INDEX idx_media_files_tenant ON media_files(tenant_id);
-CREATE INDEX idx_media_files_folder ON media_files(tenant_id, folder);
-CREATE INDEX idx_media_files_content_type ON media_files(tenant_id, content_type);
-CREATE INDEX idx_media_files_tags ON media_files USING gin(tags);
-CREATE INDEX idx_media_files_created_at ON media_files(tenant_id, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_media_files_tenant ON media_files(tenant_id);
+CREATE INDEX IF NOT EXISTS idx_media_files_folder ON media_files(tenant_id, folder);
+CREATE INDEX IF NOT EXISTS idx_media_files_content_type ON media_files(tenant_id, content_type);
+CREATE INDEX IF NOT EXISTS idx_media_files_tags ON media_files USING gin(tags);
+CREATE INDEX IF NOT EXISTS idx_media_files_created_at ON media_files(tenant_id, created_at DESC);
 
 -- Trigger to update updated_at timestamp
 CREATE TRIGGER update_media_files_updated_at

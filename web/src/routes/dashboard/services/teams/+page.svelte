@@ -136,6 +136,18 @@
 		}
 	}
 
+	async function updateMemberStatus(memberId, status) {
+		try {
+			await api(`/api/teams/${selectedTeam.id}/members/${memberId}/status`, {
+				method: 'PATCH',
+				body: JSON.stringify({ status })
+			});
+			openTeam({ id: selectedTeam.id });
+		} catch (e) {
+			toast.show('Failed to update member status', 'error');
+		}
+	}
+
 	async function updateMemberPosition(memberId, positionId) {
 		try {
 			await api(`/api/teams/${selectedTeam.id}/members/${memberId}`, {
@@ -255,17 +267,34 @@
 								{getInitials(member.first_name, member.last_name)}
 							</div>
 							<div class="flex-1 min-w-0">
-								<div class="text-sm font-medium text-[var(--text-primary)]">{member.first_name} {member.last_name}</div>
-								<select value={member.position_id || ''}
-									on:change={e => updateMemberPosition(member.id, e.target.value || null)}
-									class="text-xs bg-transparent text-secondary border-none p-0 cursor-pointer">
-									<option value="">No position</option>
-									{#each selectedTeam.positions || [] as pos}
-										<option value={pos.id}>{pos.name}</option>
-									{/each}
-								</select>
+								<div class="flex items-center gap-2">
+									<span class="text-sm font-medium text-[var(--text-primary)]">{member.first_name} {member.last_name}</span>
+									<span class="text-[10px] px-1.5 py-0.5 rounded-full font-medium {member.status === 'active' ? 'bg-green-500/20 text-green-400' : member.status === 'on-break' ? 'bg-yellow-500/20 text-yellow-400' : 'bg-gray-500/20 text-gray-400'}">{member.status}</span>
+								</div>
+								<div class="flex items-center gap-2">
+									<select value={member.position_id || ''}
+										on:change={e => updateMemberPosition(member.id, e.target.value || null)}
+										class="text-xs bg-transparent text-secondary border-none p-0 cursor-pointer">
+										<option value="">No position</option>
+										{#each selectedTeam.positions || [] as pos}
+											<option value={pos.id}>{pos.name}</option>
+										{/each}
+									</select>
+									{#if member.email}
+										<span class="text-[10px] text-secondary">{member.email}</span>
+									{/if}
+								</div>
 							</div>
-							<button on:click={() => removeMember(member.id)} class="text-red-400 hover:text-red-300 text-xs">Remove</button>
+							<div class="flex items-center gap-1">
+								<select value={member.status}
+									on:change={e => updateMemberStatus(member.id, e.target.value)}
+									class="text-xs bg-[var(--bg)] text-secondary border border-custom rounded px-1 py-0.5">
+									<option value="active">Active</option>
+									<option value="inactive">Inactive</option>
+									<option value="on-break">On Break</option>
+								</select>
+								<button on:click={() => removeMember(member.id)} class="text-red-400 hover:text-red-300 text-xs">Remove</button>
+							</div>
 						</div>
 					{/each}
 					{#if !selectedTeam.members?.length}
@@ -316,7 +345,7 @@
 								</div>
 								<div class="flex-1">
 									<h3 class="font-semibold text-[var(--text-primary)]">{team.name}</h3>
-									<span class="text-xs text-secondary">{team.member_count} member{team.member_count !== 1 ? 's' : ''}</span>
+									<span class="text-xs text-secondary">{team.member_count} member{team.member_count !== 1 ? 's' : ''} · {team.position_count || 0} position{team.position_count !== 1 ? 's' : ''}</span>
 								</div>
 								<div class="flex gap-1">
 									<button on:click|stopPropagation={() => { editingTeam = { ...team, is_active: true }; }}
