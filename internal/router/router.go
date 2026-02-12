@@ -145,6 +145,12 @@ func New(
 		r.Put("/api/tenant/profile", tenantHandler.UpdateProfile)
 		r.Post("/api/tenant/profile/logo", tenantHandler.UploadLogo)
 
+		// Users
+		r.Get("/api/tenant/users", tenantHandler.ListUsers)
+		r.Post("/api/tenant/users/invite", tenantHandler.InviteUser)
+		r.Put("/api/tenant/users/{userId}/role", tenantHandler.UpdateUserRole)
+		r.Delete("/api/tenant/users/{userId}", tenantHandler.RemoveUser)
+
 		// Modules
 		r.Get("/api/tenant/modules", moduleHandler.ListModules)
 		r.Post("/api/tenant/modules/{name}/enable", moduleHandler.EnableModule)
