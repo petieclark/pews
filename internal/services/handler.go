@@ -534,14 +534,18 @@ func (h *Handler) DeleteServiceTeamMember(w http.ResponseWriter, r *http.Request
 // Songs handlers
 
 type CreateSongRequest struct {
-	Title      string `json:"title"`
-	Artist     string `json:"artist,omitempty"`
-	DefaultKey string `json:"default_key,omitempty"`
-	Tempo      int    `json:"tempo,omitempty"`
-	CCLINumber string `json:"ccli_number,omitempty"`
-	Lyrics     string `json:"lyrics,omitempty"`
-	Notes      string `json:"notes,omitempty"`
-	Tags       string `json:"tags,omitempty"`
+	Title         string `json:"title"`
+	Artist        string `json:"artist,omitempty"`
+	DefaultKey    string `json:"default_key,omitempty"`
+	Tempo         int    `json:"tempo,omitempty"`
+	CCLINumber    string `json:"ccli_number,omitempty"`
+	Lyrics        string `json:"lyrics,omitempty"`
+	Notes         string `json:"notes,omitempty"`
+	Tags          string `json:"tags,omitempty"`
+	YoutubeURL    string `json:"youtube_url,omitempty"`
+	SpotifyURL    string `json:"spotify_url,omitempty"`
+	AppleMusicURL string `json:"apple_music_url,omitempty"`
+	RehearsalURL  string `json:"rehearsal_url,omitempty"`
 }
 
 func (h *Handler) ListSongs(w http.ResponseWriter, r *http.Request) {
@@ -609,14 +613,18 @@ func (h *Handler) CreateSong(w http.ResponseWriter, r *http.Request) {
 	}
 
 	song := &Song{
-		Title:      req.Title,
-		Artist:     req.Artist,
-		DefaultKey: req.DefaultKey,
-		Tempo:      req.Tempo,
-		CCLINumber: req.CCLINumber,
-		Lyrics:     req.Lyrics,
-		Notes:      req.Notes,
-		Tags:       req.Tags,
+		Title:         req.Title,
+		Artist:        req.Artist,
+		DefaultKey:    req.DefaultKey,
+		Tempo:         req.Tempo,
+		CCLINumber:    req.CCLINumber,
+		Lyrics:        req.Lyrics,
+		Notes:         req.Notes,
+		Tags:          req.Tags,
+		YoutubeURL:    req.YoutubeURL,
+		SpotifyURL:    req.SpotifyURL,
+		AppleMusicURL: req.AppleMusicURL,
+		RehearsalURL:  req.RehearsalURL,
 	}
 
 	createdSong, err := h.service.CreateSong(r.Context(), claims.TenantID, song)
@@ -646,14 +654,18 @@ func (h *Handler) UpdateSong(w http.ResponseWriter, r *http.Request) {
 	}
 
 	song := &Song{
-		Title:      req.Title,
-		Artist:     req.Artist,
-		DefaultKey: req.DefaultKey,
-		Tempo:      req.Tempo,
-		CCLINumber: req.CCLINumber,
-		Lyrics:     req.Lyrics,
-		Notes:      req.Notes,
-		Tags:       req.Tags,
+		Title:         req.Title,
+		Artist:        req.Artist,
+		DefaultKey:    req.DefaultKey,
+		Tempo:         req.Tempo,
+		CCLINumber:    req.CCLINumber,
+		Lyrics:        req.Lyrics,
+		Notes:         req.Notes,
+		Tags:          req.Tags,
+		YoutubeURL:    req.YoutubeURL,
+		SpotifyURL:    req.SpotifyURL,
+		AppleMusicURL: req.AppleMusicURL,
+		RehearsalURL:  req.RehearsalURL,
 	}
 
 	updatedSong, err := h.service.UpdateSong(r.Context(), claims.TenantID, songID, song)

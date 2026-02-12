@@ -34,20 +34,24 @@ type ChurchService struct {
 }
 
 type Song struct {
-	ID         string    `json:"id"`
-	TenantID   string    `json:"tenant_id"`
-	Title      string    `json:"title"`
-	Artist     string    `json:"artist,omitempty"`
-	DefaultKey string    `json:"default_key,omitempty"`
-	Tempo      int       `json:"tempo,omitempty"`
-	CCLINumber string    `json:"ccli_number,omitempty"`
-	Lyrics     string    `json:"lyrics,omitempty"`
-	Notes      string    `json:"notes,omitempty"`
-	Tags       string    `json:"tags,omitempty"`
-	LastUsed   *time.Time `json:"last_used,omitempty"`
-	TimesUsed  int       `json:"times_used"`
-	CreatedAt  time.Time `json:"created_at"`
-	UpdatedAt  time.Time `json:"updated_at"`
+	ID            string    `json:"id"`
+	TenantID      string    `json:"tenant_id"`
+	Title         string    `json:"title"`
+	Artist        string    `json:"artist,omitempty"`
+	DefaultKey    string    `json:"default_key,omitempty"`
+	Tempo         int       `json:"tempo,omitempty"`
+	CCLINumber    string    `json:"ccli_number,omitempty"`
+	Lyrics        string    `json:"lyrics,omitempty"`
+	Notes         string    `json:"notes,omitempty"`
+	Tags          string    `json:"tags,omitempty"`
+	YoutubeURL    string    `json:"youtube_url,omitempty"`
+	SpotifyURL    string    `json:"spotify_url,omitempty"`
+	AppleMusicURL string    `json:"apple_music_url,omitempty"`
+	RehearsalURL  string    `json:"rehearsal_url,omitempty"`
+	LastUsed      *time.Time `json:"last_used,omitempty"`
+	TimesUsed     int       `json:"times_used"`
+	CreatedAt     time.Time `json:"created_at"`
+	UpdatedAt     time.Time `json:"updated_at"`
 }
 
 type ServiceItem struct {

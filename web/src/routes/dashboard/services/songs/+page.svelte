@@ -336,7 +336,13 @@
 							class="border-b border-[var(--border)] hover:bg-[var(--surface-hover)] cursor-pointer transition-colors"
 						>
 							<td class="px-5 py-3.5">
-								<div class="text-sm font-medium text-[var(--text-primary)]">{song.title}</div>
+								<div class="flex items-center gap-2">
+									<span class="text-sm font-medium text-[var(--text-primary)]">{song.title}</span>
+									{#if song.youtube_url}<span class="text-xs text-red-400" title="YouTube">▶</span>{/if}
+									{#if song.spotify_url}<span class="text-xs text-green-400" title="Spotify">🟢</span>{/if}
+									{#if song.apple_music_url}<span class="text-xs text-pink-400" title="Apple Music">🍎</span>{/if}
+									{#if song.rehearsal_url}<span class="text-xs text-amber-400" title="Rehearsal">🎧</span>{/if}
+								</div>
 								{#if song.ccli_number}
 									<div class="text-xs text-[var(--text-secondary)] font-mono">CCLI {song.ccli_number}</div>
 								{/if}
@@ -407,6 +413,23 @@
 							<span class="font-mono">CCLI {song.ccli_number}</span>
 						{/if}
 					</div>
+
+					{#if song.youtube_url || song.spotify_url || song.apple_music_url || song.rehearsal_url}
+						<div class="flex items-center gap-2 mb-3">
+							{#if song.youtube_url}
+								<span class="text-xs px-1.5 py-0.5 rounded bg-red-500/15 text-red-400" title="YouTube">▶</span>
+							{/if}
+							{#if song.spotify_url}
+								<span class="text-xs px-1.5 py-0.5 rounded bg-green-500/15 text-green-400" title="Spotify">🟢</span>
+							{/if}
+							{#if song.apple_music_url}
+								<span class="text-xs px-1.5 py-0.5 rounded bg-pink-500/15 text-pink-400" title="Apple Music">🍎</span>
+							{/if}
+							{#if song.rehearsal_url}
+								<span class="text-xs px-1.5 py-0.5 rounded bg-amber-500/15 text-amber-400" title="Rehearsal Track">🎧</span>
+							{/if}
+						</div>
+					{/if}
 
 					{#if song.tags}
 						<div class="flex flex-wrap gap-1 mb-3">

@@ -90,7 +90,11 @@
 				ccli_number: song.ccli_number || '',
 				lyrics: song.lyrics || '',
 				notes: song.notes || '',
-				tags: song.tags || ''
+				tags: song.tags || '',
+				youtube_url: song.youtube_url || '',
+				spotify_url: song.spotify_url || '',
+				apple_music_url: song.apple_music_url || '',
+				rehearsal_url: song.rehearsal_url || ''
 			};
 			payload[field] = field === 'tempo' ? parseInt(editValue) || 0 : editValue;
 			song = await api(`/api/services/songs/${songId}`, {
@@ -224,6 +228,29 @@
 		} catch (error) {
 			alert('Failed to delete attachment');
 		}
+	}
+
+	// Media URL helpers
+	function extractYoutubeId(url) {
+		if (!url) return null;
+		const match = url.match(/(?:youtube\.com\/(?:watch\?v=|embed\/)|youtu\.be\/)([a-zA-Z0-9_-]{11})/);
+		return match ? match[1] : null;
+	}
+
+	function extractSpotifyId(url) {
+		if (!url) return null;
+		const match = url.match(/spotify\.com\/track\/([a-zA-Z0-9]+)/);
+		return match ? match[1] : null;
+	}
+
+	function isAudioUrl(url) {
+		if (!url) return false;
+		return /\.(mp3|wav|ogg|m4a|aac|webm)(\?|$)/i.test(url);
+	}
+
+	function searchYoutube() {
+		const q = encodeURIComponent(`${song.title} ${song.artist || ''}`);
+		window.open(`https://youtube.com/results?search_query=${q}`, '_blank');
 	}
 
 	async function deleteSong() {
@@ -411,6 +438,119 @@
 					{/if}
 				</div>
 			{/if}
+		</div>
+
+		<!-- Media Player Section -->
+		{#if song.youtube_url || song.spotify_url || song.apple_music_url || song.rehearsal_url}
+			<div class="bg-[var(--surface)] rounded-lg border border-[var(--border)]">
+				<div class="p-4 border-b border-[var(--border)]">
+					<h3 class="text-sm font-semibold text-[var(--text-primary)]">🎶 Media & Rehearsal</h3>
+				</div>
+				<div class="p-4 space-y-4">
+					{#if song.youtube_url}
+						{@const ytId = extractYoutubeId(song.youtube_url)}
+						{#if ytId}
+							<div class="aspect-video rounded-lg overflow-hidden bg-black">
+								<iframe
+									src="https://www.youtube.com/embed/{ytId}"
+									class="w-full h-full"
+									frameborder="0"
+									allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+									allowfullscreen
+									title="YouTube video"
+								></iframe>
+							</div>
+						{:else}
+							<a href={song.youtube_url} target="_blank" class="inline-flex items-center gap-2 px-3 py-2 rounded-lg bg-red-500/15 text-red-400 hover:bg-red-500/25 text-sm">
+								▶ Watch on YouTube
+							</a>
+						{/if}
+					{/if}
+
+					{#if song.spotify_url}
+						{@const spotifyId = extractSpotifyId(song.spotify_url)}
+						{#if spotifyId}
+							<div class="rounded-lg overflow-hidden">
+								<iframe
+									src="https://open.spotify.com/embed/track/{spotifyId}?theme=0"
+									width="100%"
+									height="80"
+									frameborder="0"
+									allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture"
+									loading="lazy"
+									title="Spotify player"
+								></iframe>
+							</div>
+						{:else}
+							<a href={song.spotify_url} target="_blank" class="inline-flex items-center gap-2 px-3 py-2 rounded-lg bg-green-500/15 text-green-400 hover:bg-green-500/25 text-sm">
+								🟢 Listen on Spotify
+							</a>
+						{/if}
+					{/if}
+
+					{#if song.apple_music_url}
+						<a href={song.apple_music_url} target="_blank" class="inline-flex items-center gap-2 px-3 py-2 rounded-lg bg-pink-500/15 text-pink-400 hover:bg-pink-500/25 text-sm">
+							🍎 Listen on Apple Music
+						</a>
+					{/if}
+
+					{#if song.rehearsal_url}
+						{#if isAudioUrl(song.rehearsal_url)}
+							<div>
+								<p class="text-xs text-[var(--text-secondary)] mb-1">Rehearsal Track</p>
+								<audio controls class="w-full" src={song.rehearsal_url}>
+									Your browser does not support audio playback.
+								</audio>
+							</div>
+						{:else}
+							<a href={song.rehearsal_url} target="_blank" class="inline-flex items-center gap-2 px-3 py-2 rounded-lg bg-amber-500/15 text-amber-400 hover:bg-amber-500/25 text-sm">
+								🎧 Rehearsal Track
+							</a>
+						{/if}
+					{/if}
+				</div>
+			</div>
+		{/if}
+
+		<!-- Media URLs (editable) -->
+		<div class="bg-[var(--surface)] rounded-lg border border-[var(--border)] p-4">
+			<div class="flex items-center justify-between mb-3">
+				<h3 class="text-xs font-semibold text-[var(--text-secondary)] uppercase tracking-wider">Media Links</h3>
+				<button on:click={searchYoutube} class="text-xs text-red-400 hover:text-red-300 flex items-center gap-1">
+					<svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="currentColor"><path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814z"/><path fill="#fff" d="M9.545 15.568V8.432L15.818 12l-6.273 3.568z"/></svg>
+					Search YouTube
+				</button>
+			</div>
+			<div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+				{#each [
+					{ field: 'youtube_url', label: 'YouTube URL', icon: '▶', placeholder: 'https://youtube.com/watch?v=...' },
+					{ field: 'spotify_url', label: 'Spotify URL', icon: '🟢', placeholder: 'https://open.spotify.com/track/...' },
+					{ field: 'apple_music_url', label: 'Apple Music URL', icon: '🍎', placeholder: 'https://music.apple.com/...' },
+					{ field: 'rehearsal_url', label: 'Rehearsal Track URL', icon: '🎧', placeholder: 'https://example.com/track.mp3' },
+				] as { field, label, icon, placeholder }}
+					<div>
+						<label class="text-xs text-[var(--text-secondary)] mb-1 block">{icon} {label}</label>
+						{#if editing === field}
+							<input
+								bind:value={editValue}
+								on:blur={() => saveField(field)}
+								on:keydown={(e) => handleEditKeydown(e, field)}
+								class="w-full px-2 py-1.5 bg-[var(--bg)] border border-teal rounded text-xs text-[var(--text-primary)] focus:outline-none font-mono"
+								placeholder={placeholder}
+								autofocus
+							/>
+						{:else}
+							<button
+								on:click={() => startEdit(field)}
+								class="w-full text-left px-2 py-1.5 rounded bg-[var(--bg)] border border-[var(--border)] text-xs font-mono truncate hover:border-teal/50 transition-colors {song[field] ? 'text-teal' : 'text-[var(--text-secondary)] italic'}"
+								title="Click to edit"
+							>
+								{song[field] || 'Not set'}
+							</button>
+						{/if}
+					</div>
+				{/each}
+			</div>
 		</div>
 
 		<!-- Chord Chart / Lyrics -->

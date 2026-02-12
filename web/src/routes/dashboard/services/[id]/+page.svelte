@@ -13,6 +13,7 @@
 	let songs = [];
 	let loading = true;
 	let saving = false;
+	let expandedMediaItemId = null;
 	let showAddItemModal = false;
 	let showAddTeamModal = false;
 	let showSongSearch = false;
@@ -341,6 +342,22 @@
 		dragOverIndex = null;
 	}
 
+	function extractYoutubeId(url) {
+		if (!url) return null;
+		const match = url.match(/(?:youtube\.com\/(?:watch\?v=|embed\/)|youtu\.be\/)([a-zA-Z0-9_-]{11})/);
+		return match ? match[1] : null;
+	}
+
+	function extractSpotifyId(url) {
+		if (!url) return null;
+		const match = url.match(/spotify\.com\/track\/([a-zA-Z0-9]+)/);
+		return match ? match[1] : null;
+	}
+
+	function toggleMediaPlayer(itemId) {
+		expandedMediaItemId = expandedMediaItemId === itemId ? null : itemId;
+	}
+
 	// Song selection
 	function selectSong(song) {
 		newItem.song_id = song.id;
@@ -555,8 +572,51 @@
 												{#if item.song.ccli_number}
 													<span class="text-xs text-[var(--text-secondary)]">CCLI {item.song.ccli_number}</span>
 												{/if}
+												{#if item.song.youtube_url || item.song.spotify_url}
+													<button
+														on:click|stopPropagation={() => toggleMediaPlayer(item.id)}
+														class="text-xs px-2 py-0.5 rounded-full transition-colors {expandedMediaItemId === item.id ? 'bg-teal text-white' : 'bg-teal/15 text-teal hover:bg-teal/25'}"
+														title="Play media"
+													>
+														{expandedMediaItemId === item.id ? '⏹' : '▶'} Play
+													</button>
+												{/if}
 											{/if}
 										</div>
+										{#if expandedMediaItemId === item.id && item.song}
+											<div class="mt-3 space-y-3">
+												{#if item.song.youtube_url}
+													{@const ytId = extractYoutubeId(item.song.youtube_url)}
+													{#if ytId}
+														<div class="aspect-video rounded-lg overflow-hidden bg-black max-w-lg">
+															<iframe
+																src="https://www.youtube.com/embed/{ytId}"
+																class="w-full h-full"
+																frameborder="0"
+																allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+																allowfullscreen
+																title="YouTube"
+															></iframe>
+														</div>
+													{/if}
+												{/if}
+												{#if item.song.spotify_url}
+													{@const spotifyId = extractSpotifyId(item.song.spotify_url)}
+													{#if spotifyId}
+														<iframe
+															src="https://open.spotify.com/embed/track/{spotifyId}?theme=0"
+															width="100%"
+															height="80"
+															frameborder="0"
+															allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture"
+															loading="lazy"
+															title="Spotify"
+															class="rounded-lg max-w-lg"
+														></iframe>
+													{/if}
+												{/if}
+											</div>
+										{/if}
 										{#if item.assigned_to}
 											<p class="text-xs text-[var(--text-secondary)] mt-0.5">👤 {item.assigned_to}</p>
 										{/if}

@@ -552,7 +552,7 @@ func (s *Service) ListSongsFiltered(ctx context.Context, tenantID string, params
 
 	// Get songs
 	sqlQuery := fmt.Sprintf(`
-		SELECT id, tenant_id, title, COALESCE(artist, ''), COALESCE(default_key, ''), COALESCE(tempo, 0), COALESCE(ccli_number, ''), COALESCE(lyrics, ''), COALESCE(notes, ''), COALESCE(tags, ''), last_used, times_used, created_at, updated_at
+		SELECT id, tenant_id, title, COALESCE(artist, ''), COALESCE(default_key, ''), COALESCE(tempo, 0), COALESCE(ccli_number, ''), COALESCE(lyrics, ''), COALESCE(notes, ''), COALESCE(tags, ''), COALESCE(youtube_url, ''), COALESCE(spotify_url, ''), COALESCE(apple_music_url, ''), COALESCE(rehearsal_url, ''), last_used, times_used, created_at, updated_at
 		FROM songs
 		%s
 		%s
@@ -571,6 +571,7 @@ func (s *Service) ListSongsFiltered(ctx context.Context, tenantID string, params
 		var song Song
 		err := rows.Scan(&song.ID, &song.TenantID, &song.Title, &song.Artist, &song.DefaultKey,
 			&song.Tempo, &song.CCLINumber, &song.Lyrics, &song.Notes, &song.Tags,
+			&song.YoutubeURL, &song.SpotifyURL, &song.AppleMusicURL, &song.RehearsalURL,
 			&song.LastUsed, &song.TimesUsed, &song.CreatedAt, &song.UpdatedAt)
 		if err != nil {
 			return nil, 0, fmt.Errorf("failed to scan song: %w", err)
@@ -603,7 +604,7 @@ func (s *Service) GetSongStats(ctx context.Context, tenantID string) (*SongStats
 
 	// Most used (top 5)
 	rows, err := s.db.Query(ctx, `
-		SELECT id, tenant_id, title, COALESCE(artist, ''), COALESCE(default_key, ''), COALESCE(tempo, 0), COALESCE(ccli_number, ''), '', '', COALESCE(tags, ''), last_used, times_used, created_at, updated_at
+		SELECT id, tenant_id, title, COALESCE(artist, ''), COALESCE(default_key, ''), COALESCE(tempo, 0), COALESCE(ccli_number, ''), '', '', COALESCE(tags, ''), COALESCE(youtube_url, ''), COALESCE(spotify_url, ''), COALESCE(apple_music_url, ''), COALESCE(rehearsal_url, ''), last_used, times_used, created_at, updated_at
 		FROM songs
 		WHERE times_used > 0
 		ORDER BY times_used DESC
@@ -617,6 +618,7 @@ func (s *Service) GetSongStats(ctx context.Context, tenantID string) (*SongStats
 		var song Song
 		err := rows.Scan(&song.ID, &song.TenantID, &song.Title, &song.Artist, &song.DefaultKey,
 			&song.Tempo, &song.CCLINumber, &song.Lyrics, &song.Notes, &song.Tags,
+			&song.YoutubeURL, &song.SpotifyURL, &song.AppleMusicURL, &song.RehearsalURL,
 			&song.LastUsed, &song.TimesUsed, &song.CreatedAt, &song.UpdatedAt)
 		if err != nil {
 			return nil, fmt.Errorf("failed to scan most used song: %w", err)
@@ -626,7 +628,7 @@ func (s *Service) GetSongStats(ctx context.Context, tenantID string) (*SongStats
 
 	// Recently added (last 5)
 	rows2, err := s.db.Query(ctx, `
-		SELECT id, tenant_id, title, COALESCE(artist, ''), COALESCE(default_key, ''), COALESCE(tempo, 0), COALESCE(ccli_number, ''), '', '', COALESCE(tags, ''), last_used, times_used, created_at, updated_at
+		SELECT id, tenant_id, title, COALESCE(artist, ''), COALESCE(default_key, ''), COALESCE(tempo, 0), COALESCE(ccli_number, ''), '', '', COALESCE(tags, ''), COALESCE(youtube_url, ''), COALESCE(spotify_url, ''), COALESCE(apple_music_url, ''), COALESCE(rehearsal_url, ''), last_used, times_used, created_at, updated_at
 		FROM songs
 		ORDER BY created_at DESC
 		LIMIT 5`)
@@ -639,6 +641,7 @@ func (s *Service) GetSongStats(ctx context.Context, tenantID string) (*SongStats
 		var song Song
 		err := rows2.Scan(&song.ID, &song.TenantID, &song.Title, &song.Artist, &song.DefaultKey,
 			&song.Tempo, &song.CCLINumber, &song.Lyrics, &song.Notes, &song.Tags,
+			&song.YoutubeURL, &song.SpotifyURL, &song.AppleMusicURL, &song.RehearsalURL,
 			&song.LastUsed, &song.TimesUsed, &song.CreatedAt, &song.UpdatedAt)
 		if err != nil {
 			return nil, fmt.Errorf("failed to scan recently added song: %w", err)
@@ -683,10 +686,11 @@ func (s *Service) GetSongStats(ctx context.Context, tenantID string) (*SongStats
 func (s *Service) GetSongByID(ctx context.Context, tenantID, songID string) (*Song, error) {
 	var song Song
 	err := s.db.QueryRow(ctx, `
-		SELECT id, tenant_id, title, COALESCE(artist, ''), COALESCE(default_key, ''), COALESCE(tempo, 0), COALESCE(ccli_number, ''), COALESCE(lyrics, ''), COALESCE(notes, ''), COALESCE(tags, ''), last_used, times_used, created_at, updated_at
+		SELECT id, tenant_id, title, COALESCE(artist, ''), COALESCE(default_key, ''), COALESCE(tempo, 0), COALESCE(ccli_number, ''), COALESCE(lyrics, ''), COALESCE(notes, ''), COALESCE(tags, ''), COALESCE(youtube_url, ''), COALESCE(spotify_url, ''), COALESCE(apple_music_url, ''), COALESCE(rehearsal_url, ''), last_used, times_used, created_at, updated_at
 		FROM songs WHERE id = $1`, songID).Scan(
 		&song.ID, &song.TenantID, &song.Title, &song.Artist, &song.DefaultKey,
 		&song.Tempo, &song.CCLINumber, &song.Lyrics, &song.Notes, &song.Tags,
+		&song.YoutubeURL, &song.SpotifyURL, &song.AppleMusicURL, &song.RehearsalURL,
 		&song.LastUsed, &song.TimesUsed, &song.CreatedAt, &song.UpdatedAt,
 	)
 	if err != nil {
@@ -704,10 +708,10 @@ func (s *Service) CreateSong(ctx context.Context, tenantID string, song *Song) (
 	song.TenantID = tenantID
 
 	err := s.db.QueryRow(ctx, `
-		INSERT INTO songs (id, tenant_id, title, artist, default_key, tempo, ccli_number, lyrics, notes, tags)
-		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+		INSERT INTO songs (id, tenant_id, title, artist, default_key, tempo, ccli_number, lyrics, notes, tags, youtube_url, spotify_url, apple_music_url, rehearsal_url)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)
 		RETURNING created_at, updated_at`,
-		song.ID, song.TenantID, song.Title, song.Artist, song.DefaultKey, song.Tempo, song.CCLINumber, song.Lyrics, song.Notes, song.Tags,
+		song.ID, song.TenantID, song.Title, song.Artist, song.DefaultKey, song.Tempo, song.CCLINumber, song.Lyrics, song.Notes, song.Tags, song.YoutubeURL, song.SpotifyURL, song.AppleMusicURL, song.RehearsalURL,
 	).Scan(&song.CreatedAt, &song.UpdatedAt)
 
 	if err != nil {
@@ -720,10 +724,10 @@ func (s *Service) CreateSong(ctx context.Context, tenantID string, song *Song) (
 func (s *Service) UpdateSong(ctx context.Context, tenantID, songID string, song *Song) (*Song, error) {
 	err := s.db.QueryRow(ctx, `
 		UPDATE songs SET 
-			title = $1, artist = $2, default_key = $3, tempo = $4, ccli_number = $5, lyrics = $6, notes = $7, tags = $8
-		WHERE id = $9
+			title = $1, artist = $2, default_key = $3, tempo = $4, ccli_number = $5, lyrics = $6, notes = $7, tags = $8, youtube_url = $9, spotify_url = $10, apple_music_url = $11, rehearsal_url = $12
+		WHERE id = $13
 		RETURNING created_at, updated_at`,
-		song.Title, song.Artist, song.DefaultKey, song.Tempo, song.CCLINumber, song.Lyrics, song.Notes, song.Tags, songID,
+		song.Title, song.Artist, song.DefaultKey, song.Tempo, song.CCLINumber, song.Lyrics, song.Notes, song.Tags, song.YoutubeURL, song.SpotifyURL, song.AppleMusicURL, song.RehearsalURL, songID,
 	).Scan(&song.CreatedAt, &song.UpdatedAt)
 
 	if err != nil {
