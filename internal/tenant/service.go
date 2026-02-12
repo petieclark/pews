@@ -65,12 +65,14 @@ func (s *Service) GetTenantBySlug(ctx context.Context, slug string) (*Tenant, er
 		        COALESCE(city, ''), COALESCE(state, ''), COALESCE(zip, ''),
 		        COALESCE(phone, ''), COALESCE(website, ''), COALESCE(email, ''),
 		        COALESCE(ein, ''), COALESCE(logo, ''), COALESCE(about, ''),
+		        COALESCE(onboarding_completed, FALSE),
 		        created_at, updated_at 
 		 FROM tenants WHERE slug = $1`,
 		slug,
 	).Scan(&tenant.ID, &tenant.Name, &tenant.Slug, &tenant.Domain, &tenant.Plan,
 		&tenant.AddressLine1, &tenant.AddressLine2, &tenant.City, &tenant.State, &tenant.Zip,
 		&tenant.Phone, &tenant.Website, &tenant.Email, &tenant.EIN, &tenant.Logo, &tenant.About,
+		&tenant.OnboardingCompleted,
 		&tenant.CreatedAt, &tenant.UpdatedAt)
 
 	if err != nil {
@@ -142,6 +144,17 @@ func (s *Service) UpdateProfile(ctx context.Context, id string, req UpdateProfil
 	}
 
 	return s.GetTenantByID(ctx, id)
+}
+
+func (s *Service) SetOnboardingCompleted(ctx context.Context, id string, completed bool) error {
+	_, err := s.db.Exec(ctx,
+		`UPDATE tenants SET onboarding_completed = $1 WHERE id = $2`,
+		completed, id,
+	)
+	if err != nil {
+		return fmt.Errorf("failed to update onboarding status: %w", err)
+	}
+	return nil
 }
 
 func (s *Service) UpdateLogo(ctx context.Context, id string, logo string) error {

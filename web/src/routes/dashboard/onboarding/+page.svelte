@@ -9,25 +9,34 @@
 	let saving = false;
 
 	// Step 1: Church profile
-	let church = { name: '', address: '', timezone: 'America/New_York' };
+	let church = {
+		name: '',
+		address_line1: '',
+		address_line2: '',
+		city: '',
+		state: '',
+		zip: '',
+		phone: '',
+		website: '',
+		email: ''
+	};
 	
 	// Step 2: Modules
 	let modules = [];
 	
-	// Step 3: Import choice
-	let importChoice = 'skip'; // 'pco', 'csv', 'skip'
+	// Step 3: Stripe Connect (placeholder)
+	let stripeConnected = false;
 	
-	// Step 4: Invite team
-	let invites = [{ email: '', role: 'Staff' }];
+	// Step 4: Import choice
+	let importChoice = 'skip'; // 'pco', 'csv', 'skip'
 	
 	let error = '';
 
-	const timezones = [
-		'America/New_York', 'America/Chicago', 'America/Denver', 'America/Los_Angeles',
-		'America/Phoenix', 'America/Anchorage', 'Pacific/Honolulu'
+	const usStates = [
+		'AL','AK','AZ','AR','CA','CO','CT','DE','FL','GA','HI','ID','IL','IN','IA','KS','KY',
+		'LA','ME','MD','MA','MI','MN','MS','MO','MT','NE','NV','NH','NJ','NM','NY','NC','ND',
+		'OH','OK','OR','PA','RI','SC','SD','TN','TX','UT','VT','VA','WA','WV','WI','WY','DC'
 	];
-
-	const roles = ['Admin', 'Staff', 'Volunteer', 'Member'];
 
 	onMount(async () => {
 		try {
@@ -37,8 +46,14 @@
 				api('/api/tenant/modules').catch(() => [])
 			]);
 			if (tenant.name) church.name = tenant.name;
-			if (tenant.address) church.address = tenant.address;
-			if (tenant.timezone) church.timezone = tenant.timezone;
+			if (tenant.address_line1) church.address_line1 = tenant.address_line1;
+			if (tenant.address_line2) church.address_line2 = tenant.address_line2;
+			if (tenant.city) church.city = tenant.city;
+			if (tenant.state) church.state = tenant.state;
+			if (tenant.zip) church.zip = tenant.zip;
+			if (tenant.phone) church.phone = tenant.phone;
+			if (tenant.website) church.website = tenant.website;
+			if (tenant.email) church.email = tenant.email;
 			modules = (mods || []).map(m => ({ ...m, enabled: m.enabled !== false }));
 
 			// Resume from saved step
@@ -60,6 +75,11 @@
 		saving = true;
 		try {
 			if (step === 1) {
+				if (!church.name.trim()) {
+					error = 'Church name is required';
+					saving = false;
+					return;
+				}
 				await api('/api/tenant/profile', {
 					method: 'PUT',
 					body: JSON.stringify(church)
@@ -69,14 +89,8 @@
 					const action = mod.enabled ? 'enable' : 'disable';
 					await api(`/api/tenant/modules/${mod.name}/${action}`, { method: 'POST' }).catch(() => {});
 				}
-			} else if (step === 4) {
-				for (const inv of invites.filter(i => i.email.trim())) {
-					await api('/api/tenant/users/invite', {
-						method: 'POST',
-						body: JSON.stringify(inv)
-					}).catch(() => {});
-				}
 			}
+			// Steps 3 (Stripe) and 4 (Import) are optional / skippable
 
 			if (step < totalSteps) {
 				step++;
@@ -106,22 +120,18 @@
 				method: 'PUT',
 				body: JSON.stringify({ onboarding_completed: true })
 			});
-		} catch (e) {}
+		} catch (e) {
+			console.error('Failed to mark onboarding complete:', e);
+		}
 		localStorage.removeItem('onboarding_step');
 		goto('/dashboard');
-	}
-
-	function addInvite() {
-		invites = [...invites, { email: '', role: 'Staff' }];
-	}
-
-	function removeInvite(i) {
-		invites = invites.filter((_, idx) => idx !== i);
 	}
 
 	function toggleModule(name) {
 		modules = modules.map(m => m.name === name ? { ...m, enabled: !m.enabled } : m);
 	}
+
+	const stepLabels = ['Church Info', 'Modules', 'Stripe', 'Import', 'Done'];
 </script>
 
 {#if loading}
@@ -130,14 +140,27 @@
 	</div>
 {:else}
 	<div class="max-w-lg mx-auto py-8">
-		<!-- Progress bar -->
+		<!-- Progress bar with step labels -->
 		<div class="mb-8">
 			<div class="flex justify-between text-xs text-secondary mb-2">
 				<span>Step {step} of {totalSteps}</span>
-				<span>{Math.round((step / totalSteps) * 100)}%</span>
+				<span>{stepLabels[step - 1]}</span>
 			</div>
 			<div class="h-2 bg-[var(--surface-hover)] rounded-full overflow-hidden">
 				<div class="h-full bg-[var(--teal)] rounded-full transition-all duration-300" style="width: {(step / totalSteps) * 100}%"></div>
+			</div>
+			<!-- Step dots -->
+			<div class="flex justify-between mt-2">
+				{#each stepLabels as label, i}
+					<button
+						class="flex flex-col items-center gap-1 group"
+						on:click={() => { if (i + 1 <= step) { step = i + 1; saveProgress(); } }}
+						disabled={i + 1 > step}
+					>
+						<div class="w-3 h-3 rounded-full transition-colors {i + 1 <= step ? 'bg-[var(--teal)]' : 'bg-[var(--surface-hover)]'}"></div>
+						<span class="text-[10px] {i + 1 === step ? 'text-[var(--teal)] font-semibold' : 'text-secondary'}">{label}</span>
+					</button>
+				{/each}
 			</div>
 		</div>
 
@@ -155,18 +178,43 @@
 						class="w-full px-4 py-2 border input-border rounded-lg focus:ring-2 focus:ring-[var(--teal)] bg-[var(--input-bg)] text-primary" />
 				</div>
 				<div>
-					<label for="ob-addr" class="block text-sm font-medium text-primary mb-1">Address</label>
-					<textarea id="ob-addr" bind:value={church.address} rows="2"
-						class="w-full px-4 py-2 border input-border rounded-lg focus:ring-2 focus:ring-[var(--teal)] bg-[var(--input-bg)] text-primary"></textarea>
+					<label for="ob-addr1" class="block text-sm font-medium text-primary mb-1">Address</label>
+					<input id="ob-addr1" type="text" bind:value={church.address_line1} placeholder="Street address"
+						class="w-full px-4 py-2 border input-border rounded-lg focus:ring-2 focus:ring-[var(--teal)] bg-[var(--input-bg)] text-primary" />
 				</div>
-				<div>
-					<label for="ob-tz" class="block text-sm font-medium text-primary mb-1">Timezone</label>
-					<select id="ob-tz" bind:value={church.timezone}
-						class="w-full px-4 py-2 border input-border rounded-lg focus:ring-2 focus:ring-[var(--teal)] bg-[var(--input-bg)] text-primary">
-						{#each timezones as tz}
-							<option value={tz}>{tz.replace(/_/g, ' ')}</option>
-						{/each}
-					</select>
+				<div class="grid grid-cols-3 gap-3">
+					<div>
+						<label for="ob-city" class="block text-sm font-medium text-primary mb-1">City</label>
+						<input id="ob-city" type="text" bind:value={church.city}
+							class="w-full px-4 py-2 border input-border rounded-lg focus:ring-2 focus:ring-[var(--teal)] bg-[var(--input-bg)] text-primary" />
+					</div>
+					<div>
+						<label for="ob-state" class="block text-sm font-medium text-primary mb-1">State</label>
+						<select id="ob-state" bind:value={church.state}
+							class="w-full px-4 py-2 border input-border rounded-lg focus:ring-2 focus:ring-[var(--teal)] bg-[var(--input-bg)] text-primary">
+							<option value="">—</option>
+							{#each usStates as st}
+								<option value={st}>{st}</option>
+							{/each}
+						</select>
+					</div>
+					<div>
+						<label for="ob-zip" class="block text-sm font-medium text-primary mb-1">ZIP</label>
+						<input id="ob-zip" type="text" bind:value={church.zip}
+							class="w-full px-4 py-2 border input-border rounded-lg focus:ring-2 focus:ring-[var(--teal)] bg-[var(--input-bg)] text-primary" />
+					</div>
+				</div>
+				<div class="grid grid-cols-2 gap-3">
+					<div>
+						<label for="ob-phone" class="block text-sm font-medium text-primary mb-1">Phone</label>
+						<input id="ob-phone" type="tel" bind:value={church.phone} placeholder="(555) 123-4567"
+							class="w-full px-4 py-2 border input-border rounded-lg focus:ring-2 focus:ring-[var(--teal)] bg-[var(--input-bg)] text-primary" />
+					</div>
+					<div>
+						<label for="ob-website" class="block text-sm font-medium text-primary mb-1">Website</label>
+						<input id="ob-website" type="url" bind:value={church.website} placeholder="https://..."
+							class="w-full px-4 py-2 border input-border rounded-lg focus:ring-2 focus:ring-[var(--teal)] bg-[var(--input-bg)] text-primary" />
+					</div>
 				</div>
 			</div>
 
@@ -174,7 +222,7 @@
 		{:else if step === 2}
 			<div class="text-center mb-8">
 				<h1 class="text-3xl font-bold text-primary mb-2">Choose Your Modules</h1>
-				<p class="text-secondary">Select which features you want to use</p>
+				<p class="text-secondary">Select which features you want to use. You can change these later.</p>
 			</div>
 
 			<div class="space-y-3">
@@ -200,10 +248,45 @@
 						</div>
 					</button>
 				{/each}
+				{#if modules.length === 0}
+					<div class="text-center text-secondary py-8">
+						<p>No modules available yet.</p>
+					</div>
+				{/if}
 			</div>
 
-		<!-- Step 3: Import -->
+		<!-- Step 3: Stripe Connect -->
 		{:else if step === 3}
+			<div class="text-center mb-8">
+				<h1 class="text-3xl font-bold text-primary mb-2">Accept Donations</h1>
+				<p class="text-secondary">Connect Stripe to accept online giving</p>
+			</div>
+
+			<div class="bg-surface rounded-lg border border-custom p-8 text-center space-y-6">
+				{#if stripeConnected}
+					<div class="text-5xl">✅</div>
+					<div>
+						<h3 class="font-semibold text-primary text-lg">Stripe Connected!</h3>
+						<p class="text-sm text-secondary mt-1">Your account is ready to accept donations.</p>
+					</div>
+				{:else}
+					<div class="text-5xl">💳</div>
+					<div>
+						<h3 class="font-semibold text-primary text-lg">Connect Stripe</h3>
+						<p class="text-sm text-secondary mt-1">Set up Stripe to enable online giving. You can always do this later in Settings → Billing.</p>
+					</div>
+					<button
+						on:click={() => goto('/dashboard/giving/settings')}
+						class="px-6 py-3 bg-[#635BFF] text-white rounded-lg font-medium hover:opacity-90 inline-flex items-center gap-2"
+					>
+						<svg class="w-5 h-5" viewBox="0 0 24 24" fill="currentColor"><path d="M13.976 9.15c-2.172-.806-3.356-1.426-3.356-2.409 0-.831.683-1.305 1.901-1.305 2.227 0 4.515.858 6.09 1.631l.89-5.494C18.252.975 15.697 0 12.165 0 9.667 0 7.589.654 6.104 1.872 4.56 3.147 3.757 4.992 3.757 7.218c0 4.039 2.467 5.76 6.476 7.219 2.585.94 3.495 1.608 3.495 2.622 0 .955-.79 1.526-2.267 1.526-1.887 0-4.84-1.007-6.799-2.35L3.787 21.8C5.51 22.928 8.648 24 12.007 24c2.623 0 4.77-.64 6.307-1.803 1.693-1.263 2.558-3.163 2.558-5.486-.024-4.118-2.502-5.78-6.896-7.56z"/></svg>
+						Connect Stripe Account
+					</button>
+				{/if}
+			</div>
+
+		<!-- Step 4: Import -->
+		{:else if step === 4}
 			<div class="text-center mb-8">
 				<h1 class="text-3xl font-bold text-primary mb-2">Import Your Data</h1>
 				<p class="text-secondary">Bring your existing data or start fresh</p>
@@ -213,48 +296,49 @@
 				<button on:click={() => { importChoice = 'pco'; }}
 					class="w-full text-left bg-surface rounded-lg border p-5 transition-colors
 						{importChoice === 'pco' ? 'border-[var(--teal)]' : 'border-custom hover:bg-[var(--surface-hover)]'}">
-					<h3 class="font-semibold text-primary">Import from Planning Center</h3>
-					<p class="text-sm text-secondary mt-1">Automatically sync people, groups, and giving data</p>
+					<div class="flex items-center gap-4">
+						<span class="text-3xl">⛪</span>
+						<div>
+							<h3 class="font-semibold text-primary">Import from Planning Center</h3>
+							<p class="text-sm text-secondary mt-1">Automatically sync people, groups, and giving data</p>
+						</div>
+					</div>
 				</button>
 				<button on:click={() => { importChoice = 'csv'; }}
 					class="w-full text-left bg-surface rounded-lg border p-5 transition-colors
 						{importChoice === 'csv' ? 'border-[var(--teal)]' : 'border-custom hover:bg-[var(--surface-hover)]'}">
-					<h3 class="font-semibold text-primary">Upload CSV</h3>
-					<p class="text-sm text-secondary mt-1">Import from a spreadsheet</p>
+					<div class="flex items-center gap-4">
+						<span class="text-3xl">📄</span>
+						<div>
+							<h3 class="font-semibold text-primary">Upload CSV</h3>
+							<p class="text-sm text-secondary mt-1">Import from a spreadsheet</p>
+						</div>
+					</div>
 				</button>
 				<button on:click={() => { importChoice = 'skip'; }}
 					class="w-full text-left bg-surface rounded-lg border p-5 transition-colors
 						{importChoice === 'skip' ? 'border-[var(--teal)]' : 'border-custom hover:bg-[var(--surface-hover)]'}">
-					<h3 class="font-semibold text-primary">Start Fresh</h3>
-					<p class="text-sm text-secondary mt-1">Enter data manually later</p>
+					<div class="flex items-center gap-4">
+						<span class="text-3xl">✨</span>
+						<div>
+							<h3 class="font-semibold text-primary">Start Fresh</h3>
+							<p class="text-sm text-secondary mt-1">Enter data manually later</p>
+						</div>
+					</div>
 				</button>
 			</div>
 
-		<!-- Step 4: Invite Team -->
-		{:else if step === 4}
-			<div class="text-center mb-8">
-				<h1 class="text-3xl font-bold text-primary mb-2">Invite Your Team</h1>
-				<p class="text-secondary">Add team members to collaborate</p>
-			</div>
-
-			<div class="bg-surface rounded-lg border border-custom p-6 space-y-4">
-				{#each invites as inv, i}
-					<div class="flex flex-col sm:flex-row gap-2">
-						<input type="email" bind:value={inv.email} placeholder="email@example.com"
-							class="flex-1 px-4 py-2 border input-border rounded-lg focus:ring-2 focus:ring-[var(--teal)] bg-[var(--input-bg)] text-primary" />
-						<select bind:value={inv.role}
-							class="px-3 py-2 border input-border rounded-lg bg-[var(--input-bg)] text-primary">
-							{#each roles as role}
-								<option value={role}>{role}</option>
-							{/each}
-						</select>
-						{#if invites.length > 1}
-							<button on:click={() => removeInvite(i)} class="text-secondary hover:text-red-500 px-2">✕</button>
-						{/if}
-					</div>
-				{/each}
-				<button on:click={addInvite} class="text-sm text-[var(--teal)] hover:underline">+ Add another</button>
-			</div>
+			{#if importChoice === 'pco'}
+				<div class="mt-4 bg-surface rounded-lg border border-custom p-4 text-center">
+					<p class="text-sm text-secondary mb-3">You'll be redirected to Planning Center to authorize the connection.</p>
+					<button
+						on:click={() => goto('/dashboard/settings/import')}
+						class="px-4 py-2 bg-[var(--teal)] text-white rounded-lg text-sm font-medium hover:opacity-90"
+					>
+						Connect Planning Center →
+					</button>
+				</div>
+			{/if}
 
 		<!-- Step 5: Done -->
 		{:else if step === 5}
@@ -281,7 +365,7 @@
 			{/if}
 
 			<div class="flex gap-3">
-				{#if step < 5}
+				{#if step >= 2 && step < 5}
 					<button on:click={skipStep}
 						class="px-6 py-2 text-secondary hover:text-primary">
 						Skip
@@ -292,9 +376,9 @@
 					{#if saving}
 						Saving...
 					{:else if step === 5}
-						Go to Dashboard
-					{:else if step === 3 && importChoice === 'pco'}
-						Connect PCO →
+						Go to Dashboard →
+					{:else if step === 1}
+						Save & Continue →
 					{:else}
 						Continue →
 					{/if}

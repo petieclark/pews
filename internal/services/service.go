@@ -777,7 +777,7 @@ func (s *Service) GetSongUsage(ctx context.Context, tenantID, songID string) ([]
 	}
 
 	rows, err := s.db.Query(ctx, `
-		SELECT si.service_id, s.name, s.service_date, s.service_time, si.song_key, si.position
+		SELECT si.service_id, COALESCE(s.name, ''), s.service_date, COALESCE(s.service_time, ''), COALESCE(si.song_key, ''), si.position
 		FROM service_items si
 		JOIN services s ON s.id = si.service_id
 		WHERE si.song_id = $1
@@ -1104,7 +1104,7 @@ func (s *Service) ListVolunteerTeams(ctx context.Context, tenantID string) ([]Vo
 	}
 
 	rows, err := s.db.Query(ctx, `
-		SELECT vt.id, vt.tenant_id, vt.name, vt.description, vt.color, vt.is_active, 
+		SELECT vt.id, vt.tenant_id, vt.name, COALESCE(vt.description, ''), COALESCE(vt.color, ''), vt.is_active, 
 		       vt.created_at, vt.updated_at,
 		       COUNT(tm.id) as member_count
 		FROM volunteer_teams vt
@@ -1138,7 +1138,7 @@ func (s *Service) GetVolunteerTeamByID(ctx context.Context, tenantID, teamID str
 
 	var team VolunteerTeam
 	err = s.db.QueryRow(ctx, `
-		SELECT id, tenant_id, name, description, color, is_active, created_at, updated_at
+		SELECT id, tenant_id, name, COALESCE(description, ''), COALESCE(color, ''), is_active, created_at, updated_at
 		FROM volunteer_teams WHERE id = $1`, teamID).Scan(
 		&team.ID, &team.TenantID, &team.Name, &team.Description, &team.Color,
 		&team.IsActive, &team.CreatedAt, &team.UpdatedAt,

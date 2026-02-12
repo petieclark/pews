@@ -27,6 +27,7 @@
 
 	let templateName = '';
 	let templateDesc = '';
+	let showPrintView = false;
 
 	let newItem = {
 		item_type: 'song',
@@ -461,6 +462,10 @@
 					<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 5a1 1 0 011-1h14a1 1 0 011 1v2a1 1 0 01-1 1H5a1 1 0 01-1-1V5zM4 13a1 1 0 011-1h6a1 1 0 011 1v6a1 1 0 01-1 1H5a1 1 0 01-1-1v-6zM16 13a1 1 0 011-1h2a1 1 0 011 1v6a1 1 0 01-1 1h-2a1 1 0 01-1-1v-6z"/></svg>
 					Save as Template
 				</button>
+				<button on:click={() => (showPrintView = true)} class="btn-ghost" title="Print View">
+					<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"/></svg>
+					Print
+				</button>
 				<button on:click={openEditModal} class="btn-ghost">
 					<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
 					Edit
@@ -533,7 +538,7 @@
 					<div class="divide-y divide-[var(--border)]">
 						{#each items as item, index}
 							<div
-								class="item-row {dragOverIndex === index ? 'drag-over' : ''}"
+								class="item-row group {dragOverIndex === index ? 'drag-over' : ''}"
 								draggable="true"
 								on:dragstart={() => handleDragStart(index)}
 								on:dragover={(e) => handleDragOver(e, index)}
@@ -1059,6 +1064,97 @@
 	</div>
 {/if}
 
+<!-- Print View -->
+{#if showPrintView && service}
+	<div class="fixed inset-0 z-50 bg-white dark:bg-gray-900 overflow-y-auto print-view">
+		<div class="max-w-3xl mx-auto p-8">
+			<!-- Print header (not shown in UI, just for print) -->
+			<div class="flex items-center justify-between mb-2 no-print">
+				<h2 class="text-lg font-bold text-gray-900 dark:text-gray-100">Print Preview</h2>
+				<div class="flex gap-2">
+					<button on:click={() => window.print()} class="px-4 py-2 bg-[var(--teal)] text-white rounded-lg text-sm font-medium hover:opacity-90">
+						🖨️ Print
+					</button>
+					<button on:click={() => (showPrintView = false)} class="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-sm text-gray-700 dark:text-gray-300">
+						Close
+					</button>
+				</div>
+			</div>
+			<hr class="mb-6 no-print" />
+
+			<!-- Printable content -->
+			<div class="print-content">
+				<div class="text-center mb-6">
+					<h1 class="text-2xl font-bold text-gray-900 dark:text-gray-100">
+						{service.service_type?.name || 'Service'}
+					</h1>
+					<p class="text-gray-600 dark:text-gray-400 mt-1">
+						{formatDate(service.service_date)}{service.service_time ? ` · ${service.service_time}` : ''}
+					</p>
+					{#if service.notes}
+						<p class="text-gray-500 dark:text-gray-500 text-sm mt-2 italic">{service.notes}</p>
+					{/if}
+				</div>
+
+				<table class="w-full border-collapse">
+					<thead>
+						<tr class="border-b-2 border-gray-300 dark:border-gray-600">
+							<th class="text-left py-2 pr-3 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase w-8">#</th>
+							<th class="text-left py-2 pr-3 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase">Item</th>
+							<th class="text-left py-2 pr-3 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase w-20">Key</th>
+							<th class="text-left py-2 pr-3 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase w-16">Time</th>
+							<th class="text-left py-2 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase">Notes</th>
+						</tr>
+					</thead>
+					<tbody>
+						{#each items as item, index}
+							<tr class="border-b border-gray-200 dark:border-gray-700">
+								<td class="py-2 pr-3 text-sm text-gray-500 dark:text-gray-400">{index + 1}</td>
+								<td class="py-2 pr-3">
+									<div class="font-medium text-sm text-gray-900 dark:text-gray-100">{item.title}</div>
+									{#if item.item_type === 'song' && item.song?.artist}
+										<div class="text-xs text-gray-500 dark:text-gray-400">{item.song.artist}</div>
+									{/if}
+									{#if item.assigned_to}
+										<div class="text-xs text-gray-500 dark:text-gray-400">👤 {item.assigned_to}</div>
+									{/if}
+								</td>
+								<td class="py-2 pr-3 text-sm text-gray-700 dark:text-gray-300">{item.song_key || ''}</td>
+								<td class="py-2 pr-3 text-sm text-gray-700 dark:text-gray-300">{item.duration_minutes ? `${item.duration_minutes}m` : ''}</td>
+								<td class="py-2 text-sm text-gray-500 dark:text-gray-400 italic">{item.notes || ''}</td>
+							</tr>
+						{/each}
+					</tbody>
+				</table>
+
+				{#if totalDuration() > 0}
+					<div class="mt-4 text-right text-sm text-gray-500 dark:text-gray-400">
+						Total estimated time: <strong>{totalDuration()} minutes</strong>
+					</div>
+				{/if}
+
+				{#if team.length > 0}
+					<div class="mt-8">
+						<h2 class="text-lg font-bold text-gray-900 dark:text-gray-100 mb-3">Team</h2>
+						<div class="grid grid-cols-2 gap-2">
+							{#each team as member}
+								<div class="text-sm">
+									<span class="font-medium text-gray-900 dark:text-gray-100">{member.person_first_name} {member.person_last_name}</span>
+									<span class="text-gray-500 dark:text-gray-400"> — {member.role}</span>
+								</div>
+							{/each}
+						</div>
+					</div>
+				{/if}
+
+				<div class="mt-8 text-center text-xs text-gray-400 dark:text-gray-500">
+					Generated by Pews · {new Date().toLocaleDateString()}
+				</div>
+			</div>
+		</div>
+	</div>
+{/if}
+
 <style>
 	.card {
 		background: var(--surface);
@@ -1220,5 +1316,21 @@
 		width: 100%;
 		max-height: 90vh;
 		overflow-y: auto;
+	}
+
+	@media print {
+		:global(nav), :global(.no-print) {
+			display: none !important;
+		}
+		.print-view {
+			position: static !important;
+			background: white !important;
+		}
+		.print-content {
+			color: black !important;
+		}
+		.print-content * {
+			color: black !important;
+		}
 	}
 </style>
