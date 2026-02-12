@@ -77,6 +77,44 @@ func (s *Service) ListFollowUps(ctx context.Context, tenantID string, status, ty
 	return items, rows.Err()
 }
 
+func (s *Service) ListByPerson(ctx context.Context, tenantID, personID string) ([]FollowUp, error) {
+	query := `
+		SELECT f.id, f.tenant_id, f.person_id,
+		       COALESCE(p.first_name || ' ' || p.last_name, '') as person_name,
+		       f.assigned_to, COALESCE(u.name, '') as assigned_name,
+		       f.title, f.type, f.priority, f.status,
+		       CASE WHEN f.due_date IS NOT NULL THEN to_char(f.due_date, 'YYYY-MM-DD') ELSE '' END as due_date,
+		       f.completed_at, f.created_at, f.updated_at
+		FROM follow_ups f
+		LEFT JOIN people p ON f.person_id = p.id
+		LEFT JOIN users u ON f.assigned_to = u.id
+		WHERE f.tenant_id = $1 AND f.person_id = $2
+		ORDER BY f.created_at DESC`
+
+	rows, err := s.db.Query(ctx, query, tenantID, personID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to list follow-ups by person: %w", err)
+	}
+	defer rows.Close()
+
+	var items []FollowUp
+	for rows.Next() {
+		var f FollowUp
+		var dueStr string
+		err := rows.Scan(&f.ID, &f.TenantID, &f.PersonID, &f.PersonName,
+			&f.AssignedTo, &f.AssignedName, &f.Title, &f.Type, &f.Priority, &f.Status,
+			&dueStr, &f.CompletedAt, &f.CreatedAt, &f.UpdatedAt)
+		if err != nil {
+			return nil, fmt.Errorf("failed to scan follow-up: %w", err)
+		}
+		if dueStr != "" {
+			f.DueDate = &dueStr
+		}
+		items = append(items, f)
+	}
+	return items, rows.Err()
+}
+
 func (s *Service) GetFollowUp(ctx context.Context, tenantID, id string) (*FollowUp, error) {
 	query := `
 		SELECT f.id, f.tenant_id, f.person_id,
@@ -121,7 +159,7 @@ func (s *Service) CreateFollowUp(ctx context.Context, tenantID, userID string, i
 	}
 
 	// Validate type
-	validTypes := map[string]bool{"first_time_visitor": true, "hospital_visit": true, "counseling": true, "general": true, "membership": true}
+	validTypes := map[string]bool{"first_time_visitor": true, "hospital_visit": true, "counseling": true, "general": true, "membership": true, "visitor_followup": true, "pastoral_care": true, "prayer_response": true}
 	if !validTypes[input.Type] {
 		input.Type = "general"
 	}

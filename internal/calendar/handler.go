@@ -41,6 +41,7 @@ func (h *Handler) ListEvents(w http.ResponseWriter, r *http.Request) {
 	fromDate := r.URL.Query().Get("from")
 	toDate := r.URL.Query().Get("to")
 	eventType := r.URL.Query().Get("type")
+	includeServices := r.URL.Query().Get("include_services") != "false" // default true
 	page, _ := strconv.Atoi(r.URL.Query().Get("page"))
 	limit, _ := strconv.Atoi(r.URL.Query().Get("limit"))
 
@@ -48,6 +49,26 @@ func (h *Handler) ListEvents(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		http.Error(w, "Failed to list events: "+err.Error(), http.StatusInternalServerError)
 		return
+	}
+
+	// Expand recurring events within the date range
+	if fromDate != "" && toDate != "" {
+		from, errF := time.Parse(time.RFC3339, fromDate)
+		to, errT := time.Parse(time.RFC3339, toDate)
+		if errF == nil && errT == nil {
+			events = h.service.GenerateRecurringInstances(events, from, to)
+		}
+	}
+
+	// Enrich with attendance counts
+	events = h.service.GetEventAttendanceCounts(r.Context(), claims.TenantID, events)
+
+	// Include services as calendar events
+	if includeServices && (eventType == "" || eventType == "service") {
+		serviceEvents, err := h.service.GetServicesAsEvents(r.Context(), claims.TenantID, fromDate, toDate)
+		if err == nil && len(serviceEvents) > 0 {
+			events = append(events, serviceEvents...)
+		}
 	}
 
 	w.Header().Set("Content-Type", "application/json")

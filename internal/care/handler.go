@@ -170,6 +170,24 @@ func (h *Handler) ListNotes(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(notes)
 }
 
+func (h *Handler) ListByPerson(w http.ResponseWriter, r *http.Request) {
+	claims, ok := middleware.GetClaims(r.Context())
+	if !ok {
+		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		return
+	}
+
+	personID := chi.URLParam(r, "personId")
+	items, err := h.service.ListByPerson(r.Context(), claims.TenantID, personID)
+	if err != nil {
+		http.Error(w, "Failed to list follow-ups: "+err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]interface{}{"follow_ups": items})
+}
+
 func (h *Handler) GetStats(w http.ResponseWriter, r *http.Request) {
 	claims, ok := middleware.GetClaims(r.Context())
 	if !ok {

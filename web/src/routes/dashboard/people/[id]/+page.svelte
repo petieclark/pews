@@ -18,6 +18,8 @@
 	let addGroupId = '';
 	let addGroupRole = 'member';
 	let activityLog = [];
+	let personFollowUps = [];
+	let personPrayers = [];
 	let givingHistory = [];
 	let activeTab = 'info';
 
@@ -29,6 +31,8 @@
 		loadEngagementScore();
 		loadGroups();
 		loadActivity();
+		loadCareData();
+		loadPrayerData();
 		loadGiving();
 	});
 
@@ -74,6 +78,21 @@
 			showAddGroupModal = false;
 			loadGroups();
 		} catch (e) { alert('Failed to add to group: ' + e.message); }
+	}
+
+	async function loadCareData() {
+		try {
+			const res = await api(`/api/follow-ups/person/${personId}`, { silent: true });
+			personFollowUps = res.follow_ups || [];
+		} catch { personFollowUps = []; }
+	}
+
+	async function loadPrayerData() {
+		// Prayer requests are listed globally; filter client-side by person
+		try {
+			const res = await api(`/api/prayer-requests?limit=200`, { silent: true });
+			personPrayers = (res || []).filter((p: any) => p.person_id === personId);
+		} catch { personPrayers = []; }
 	}
 
 	async function loadActivity() {
@@ -191,6 +210,8 @@
 		{ id: 'info', label: 'Info' },
 		{ id: 'groups', label: 'Groups & Teams' },
 		{ id: 'giving', label: 'Giving' },
+		{ id: 'care', label: 'Care' },
+		{ id: 'prayer', label: 'Prayer' },
 		{ id: 'activity', label: 'Activity' },
 	];
 </script>
@@ -499,6 +520,62 @@
 									<p class="text-xs text-secondary">{formatDate(donation.donation_date)}</p>
 								</div>
 								<p class="text-sm font-semibold text-primary">{formatCurrency(donation.amount_cents)}</p>
+							</div>
+						{/each}
+					</div>
+				{/if}
+			</div>
+		{:else if activeTab === 'care'}
+			<div class="bg-surface rounded-xl shadow-sm border border-custom p-6">
+				<div class="flex items-center justify-between mb-4">
+					<h2 class="text-lg font-semibold text-primary">Care & Follow-Ups</h2>
+					<a href="/dashboard/care" class="text-xs text-[var(--teal)] hover:underline">View All →</a>
+				</div>
+				{#if personFollowUps.length === 0}
+					<div class="text-center py-8">
+						<p class="text-secondary mb-3">No follow-ups for this person yet.</p>
+						<a href="/dashboard/care" class="text-sm text-[var(--teal)] hover:underline">Create a follow-up →</a>
+					</div>
+				{:else}
+					<div class="space-y-3">
+						{#each personFollowUps as fu}
+							<a href="/dashboard/care" class="block p-3 bg-[var(--surface-hover)] rounded-lg hover:border-[var(--teal)] border border-transparent transition-colors">
+								<div class="flex items-center justify-between mb-1">
+									<span class="text-sm font-medium text-primary">{fu.title}</span>
+									<span class="text-xs px-2 py-0.5 rounded-full {fu.status === 'completed' ? 'bg-green-500/10 text-green-500' : fu.status === 'new' ? 'bg-blue-500/10 text-blue-500' : 'bg-yellow-500/10 text-yellow-500'}">{fu.status}</span>
+								</div>
+								<div class="flex items-center gap-3 text-xs text-secondary">
+									<span>{fu.type}</span>
+									{#if fu.due_date}<span>Due: {fu.due_date}</span>{/if}
+									{#if fu.assigned_name}<span>→ {fu.assigned_name}</span>{/if}
+								</div>
+							</a>
+						{/each}
+					</div>
+				{/if}
+			</div>
+		{:else if activeTab === 'prayer'}
+			<div class="bg-surface rounded-xl shadow-sm border border-custom p-6">
+				<div class="flex items-center justify-between mb-4">
+					<h2 class="text-lg font-semibold text-primary">Prayer Requests</h2>
+					<a href="/dashboard/prayer" class="text-xs text-[var(--teal)] hover:underline">View All →</a>
+				</div>
+				{#if personPrayers.length === 0}
+					<div class="text-center py-8">
+						<p class="text-secondary">No prayer requests for this person.</p>
+					</div>
+				{:else}
+					<div class="space-y-3">
+						{#each personPrayers as pr}
+							<div class="p-3 rounded-lg border border-[var(--border)] {pr.status === 'answered' ? 'bg-green-500/5 border-green-500/20' : 'bg-[var(--surface-hover)]'}">
+								<div class="flex items-center justify-between mb-1">
+									<span class="text-xs px-2 py-0.5 rounded-full border {pr.status === 'answered' ? 'bg-green-500/10 text-green-500 border-green-500/20' : 'bg-yellow-500/10 text-yellow-500 border-yellow-500/20'}">{pr.status === 'answered' ? '✨ Answered' : pr.status}</span>
+									<span class="text-xs text-secondary">{formatDate(pr.submitted_at)}</span>
+								</div>
+								<p class="text-sm text-primary mt-1 line-clamp-2">{pr.request_text}</p>
+								{#if pr.notes}
+									<p class="text-xs text-green-600 mt-1">✨ {pr.notes}</p>
+								{/if}
 							</div>
 						{/each}
 					</div>

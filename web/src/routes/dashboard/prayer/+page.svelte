@@ -4,6 +4,7 @@
 
 	interface PrayerRequest {
 		id: string;
+		person_id?: string;
 		name: string;
 		person_name?: string;
 		request_text: string;
@@ -131,6 +132,32 @@
 		loadRequests();
 	}
 
+	async function createFollowUpFromPrayer(req: PrayerRequest) {
+		if (!req.person_name) return;
+		try {
+			// Find the person ID from the request if linked
+			const personId = (req as any).person_id;
+			if (!personId) {
+				// Redirect to care page to create manually
+				window.location.href = '/dashboard/care';
+				return;
+			}
+			await api('/api/follow-ups', {
+				method: 'POST',
+				body: JSON.stringify({
+					person_id: personId,
+					title: `Prayer follow-up: ${req.request_text.substring(0, 60)}...`,
+					type: 'prayer_response',
+					priority: 'medium',
+					notes: `Follow-up from prayer request: "${req.request_text}"`
+				})
+			});
+			showDetailModal = false;
+			// Show success, could navigate to care
+			alert('Follow-up created successfully! View it in Care & Follow-Ups.');
+		} catch (e) { console.error(e); }
+	}
+
 	function formatDate(d: string) {
 		return new Date(d).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
 	}
@@ -149,8 +176,11 @@
 		return { pending: 'Active', praying: 'Praying', answered: 'Answered', archived: 'Archived' }[s] || s;
 	}
 
-	$: activeCount = requests.filter(r => r.status === 'pending' || r.status === 'praying').length;
-	$: answeredCount = requests.filter(r => r.status === 'answered').length;
+	$: activeRequests = requests.filter(r => r.status === 'pending' || r.status === 'praying');
+	$: answeredRequests = requests.filter(r => r.status === 'answered');
+	$: activeCount = activeRequests.length;
+	$: answeredCount = answeredRequests.length;
+	$: displayRequests = statusFilter === 'answered' ? answeredRequests : statusFilter ? requests.filter(r => r.status === statusFilter) : requests;
 </script>
 
 <div class="space-y-6">
@@ -201,8 +231,8 @@
 		</div>
 	{:else}
 		<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-			{#each requests as req}
-				<div class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-5 hover:border-[var(--teal)] transition-colors flex flex-col">
+			{#each displayRequests as req}
+				<div class="rounded-lg p-5 hover:border-[var(--teal)] transition-colors flex flex-col {req.status === 'answered' ? 'bg-green-500/5 border-2 border-green-500/30' : 'bg-[var(--surface)] border border-[var(--border)]'}">
 					<div class="flex items-start justify-between mb-3">
 						<div class="flex-1 min-w-0">
 							<h3 class="font-semibold text-[var(--text-primary)] truncate">{req.name}</h3>
@@ -216,11 +246,16 @@
 						</div>
 					</div>
 
-					<p class="text-sm text-[var(--text-secondary)] mb-4 flex-1 line-clamp-3">{req.request_text}</p>
+					<p class="text-sm text-[var(--text-secondary)] mb-2 flex-1 line-clamp-3">{req.request_text}</p>
+					{#if req.status === 'answered' && req.notes}
+						<div class="text-xs text-green-600 bg-green-500/10 rounded px-2 py-1 mb-2">
+							✨ {req.notes}
+						</div>
+					{/if}
 
 					<div class="flex items-center justify-between pt-3 border-t border-[var(--border)]">
 						<button class="flex items-center gap-1.5 text-sm transition-colors {req.is_following ? 'text-[var(--teal)] font-medium' : 'text-[var(--text-secondary)] hover:text-[var(--teal)]'}" on:click|stopPropagation={() => toggleFollow(req)}>
-							🙏 <span>{req.follower_count || 0} praying</span>
+							🙏 <span>{req.is_following ? 'Praying' : 'I Prayed'} ({req.follower_count || 0})</span>
 						</button>
 
 						<div class="flex items-center gap-1">
@@ -285,6 +320,11 @@
 				{#if selectedRequest.status !== 'answered'}
 					<button on:click={() => openAnsweredModal(selectedRequest)} class="px-3 py-1.5 text-sm bg-green-500/10 text-green-500 rounded-lg hover:bg-green-500/20 transition-colors">
 						✓ Mark as Answered
+					</button>
+				{/if}
+				{#if selectedRequest.person_name}
+					<button on:click={() => createFollowUpFromPrayer(selectedRequest)} class="px-3 py-1.5 text-sm bg-[var(--teal)]/10 text-[var(--teal)] rounded-lg hover:bg-[var(--teal)]/20 transition-colors">
+						🤝 Follow up with this person
 					</button>
 				{/if}
 			</div>

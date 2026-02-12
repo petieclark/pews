@@ -15,6 +15,8 @@
 		color: string;
 		room_id?: string;
 		room_name?: string;
+		service_id?: string;
+		attendance_count?: number;
 	}
 
 	let events: CalendarEvent[] = [];
@@ -31,10 +33,10 @@
 
 	const eventTypes = [
 		{ value: 'service', label: 'Service', color: '#4A8B8C' },
+		{ value: 'event', label: 'Event', color: '#3B82F6' },
 		{ value: 'meeting', label: 'Meeting', color: '#1B3A4B' },
 		{ value: 'class', label: 'Class', color: '#8B5CF6' },
-		{ value: 'social', label: 'Social', color: '#F59E0B' },
-		{ value: 'outreach', label: 'Outreach', color: '#10B981' },
+		{ value: 'rehearsal', label: 'Rehearsal', color: '#F59E0B' },
 		{ value: 'other', label: 'Other', color: '#6B7280' }
 	];
 
@@ -65,12 +67,13 @@
 		const to = lastDay.toISOString();
 
 		try {
-			let url = `/api/events?from=${from}&to=${to}&limit=100`;
+			let url = `/api/events?from=${from}&to=${to}&limit=200`;
 			if (typeFilter) url += `&type=${typeFilter}`;
 			const data = await api(url);
 			events = data.events || [];
 		} catch (error) {
 			console.error('Failed to load events:', error);
+			events = [];
 		}
 	}
 
@@ -125,28 +128,49 @@
 		loadEvents();
 	}
 
-	function openCreateModal() {
+	function openCreateModalForDate(day: number | null) {
+		if (!day) return;
 		editingEvent = null;
-		const now = new Date();
-		const later = new Date(now.getTime() + 3600000);
+		const start = new Date(currentYear, currentMonth, day, 10, 0);
+		const end = new Date(currentYear, currentMonth, day, 11, 0);
 		formData = {
 			title: '', description: '', location: '',
-			start_time: now.toISOString().slice(0, 16),
-			end_time: later.toISOString().slice(0, 16),
+			start_time: toLocalDatetime(start),
+			end_time: toLocalDatetime(end),
 			all_day: false, recurring: 'none', event_type: 'other', color: '', room_id: ''
 		};
 		showCreateModal = true;
 		loadRooms();
 	}
 
+	function openCreateModal() {
+		editingEvent = null;
+		const now = new Date();
+		const later = new Date(now.getTime() + 3600000);
+		formData = {
+			title: '', description: '', location: '',
+			start_time: toLocalDatetime(now),
+			end_time: toLocalDatetime(later),
+			all_day: false, recurring: 'none', event_type: 'other', color: '', room_id: ''
+		};
+		showCreateModal = true;
+		loadRooms();
+	}
+
+	function toLocalDatetime(d: Date): string {
+		const pad = (n: number) => n.toString().padStart(2, '0');
+		return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+	}
+
 	function openEditModal(event: CalendarEvent) {
+		if (event.service_id) return; // Service events are read-only on calendar
 		editingEvent = event;
 		formData = {
 			title: event.title,
 			description: event.description || '',
 			location: event.location || '',
-			start_time: new Date(event.start_time).toISOString().slice(0, 16),
-			end_time: new Date(event.end_time).toISOString().slice(0, 16),
+			start_time: toLocalDatetime(new Date(event.start_time)),
+			end_time: toLocalDatetime(new Date(event.end_time)),
 			all_day: event.all_day,
 			recurring: event.recurring || 'none',
 			event_type: event.event_type || 'other',
@@ -211,6 +235,14 @@
 		}
 	}
 
+	function handleEventClick(event: CalendarEvent) {
+		if (event.service_id) {
+			window.location.href = `/dashboard/services/${event.service_id}`;
+		} else {
+			openDetailModal(event);
+		}
+	}
+
 	function formatTime(dateStr: string) {
 		return new Date(dateStr).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
 	}
@@ -224,7 +256,7 @@
 	}
 
 	function recurringLabel(r: string) {
-		return { weekly: 'Weekly', monthly: 'Monthly', none: 'One-time' }[r] || r;
+		return { weekly: 'Weekly', biweekly: 'Bi-weekly', monthly: 'Monthly', none: 'One-time' }[r] || r;
 	}
 
 	$: days = getDaysInMonth();
@@ -234,9 +266,12 @@
 	<!-- Header -->
 	<div class="flex justify-between items-center">
 		<h1 class="text-3xl font-bold text-[var(--text-primary)]">📅 Calendar</h1>
-		<button on:click={openCreateModal} class="px-4 py-2 bg-[var(--teal)] text-white rounded-lg hover:opacity-90 font-medium">
-			+ New Event
-		</button>
+		<div class="flex gap-2">
+			<a href="/api/events/ical" target="_blank" class="px-4 py-2 border border-[var(--border)] text-[var(--text-secondary)] rounded-lg hover:text-[var(--text-primary)] text-sm">Export iCal</a>
+			<button on:click={openCreateModal} class="px-4 py-2 bg-[var(--teal)] text-white rounded-lg hover:opacity-90 font-medium">
+				+ New Event
+			</button>
+		</div>
 	</div>
 
 	<!-- Toolbar -->
@@ -270,7 +305,7 @@
 		</div>
 
 		<!-- Type legend -->
-		<div class="flex items-center gap-3 text-xs">
+		<div class="flex items-center gap-3 text-xs flex-wrap">
 			{#each eventTypes as t}
 				<span class="flex items-center gap-1">
 					<span class="w-3 h-3 rounded-full inline-block" style="background-color: {t.color}"></span>
@@ -288,13 +323,26 @@
 					<div class="px-3 py-2 text-center text-sm font-semibold text-[var(--text-secondary)] bg-[var(--surface-hover)] border-b border-[var(--border)]">{dayName}</div>
 				{/each}
 
-				{#each days as dayData, i}
-					<div class="min-h-[110px] p-1.5 border-b border-r border-[var(--border)] {!dayData.day ? 'bg-[var(--bg)]' : ''} {dayData.isToday ? 'bg-[var(--teal)]/5' : ''}">
+				{#each days as dayData}
+					<!-- svelte-ignore a11y-click-events-have-key-events -->
+					<div
+						class="min-h-[110px] p-1.5 border-b border-r border-[var(--border)] cursor-pointer hover:bg-[var(--surface-hover)]/50 transition-colors {!dayData.day ? 'bg-[var(--bg)]' : ''} {dayData.isToday ? 'bg-[var(--teal)]/5' : ''}"
+						on:click={() => { if (dayData.day && dayData.events.length === 0) openCreateModalForDate(dayData.day); }}
+					>
 						{#if dayData.day}
-							<div class="text-sm font-medium mb-1 {dayData.isToday ? 'text-[var(--teal)] font-bold' : 'text-[var(--text-primary)]'}">{dayData.day}</div>
+							<div class="flex items-center justify-between mb-1">
+								<span class="text-sm font-medium {dayData.isToday ? 'text-[var(--teal)] font-bold' : 'text-[var(--text-primary)]'}">{dayData.day}</span>
+								{#if dayData.day && dayData.events.length > 0}
+									<button class="text-xs text-[var(--text-secondary)] hover:text-[var(--teal)]" on:click|stopPropagation={() => openCreateModalForDate(dayData.day)} title="Add event">+</button>
+								{/if}
+							</div>
 							{#each dayData.events.slice(0, 3) as event}
-								<button class="block w-full text-left px-1.5 py-0.5 mb-0.5 rounded text-xs text-white truncate cursor-pointer hover:opacity-80 transition-opacity" style="background-color: {event.color || getTypeColor(event.event_type)}" on:click={() => openDetailModal(event)}>
+								<button class="block w-full text-left px-1.5 py-0.5 mb-0.5 rounded text-xs text-white truncate cursor-pointer hover:opacity-80 transition-opacity" style="background-color: {event.color || getTypeColor(event.event_type)}" on:click|stopPropagation={() => handleEventClick(event)}>
+									{#if event.service_id}⛪{/if}
 									{event.title}
+									{#if event.attendance_count}
+										<span class="opacity-75">({event.attendance_count})</span>
+									{/if}
 								</button>
 							{/each}
 							{#if dayData.events.length > 3}
@@ -318,14 +366,18 @@
 				</div>
 			{:else}
 				{#each events as event}
-					<div class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-4 flex gap-4 hover:border-[var(--teal)] transition-colors cursor-pointer" on:click={() => openDetailModal(event)}>
+					<div class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-4 flex gap-4 hover:border-[var(--teal)] transition-colors cursor-pointer" on:click={() => handleEventClick(event)}>
 						<div class="w-1 rounded-full flex-shrink-0" style="background-color: {event.color || getTypeColor(event.event_type)}"></div>
 						<div class="flex-1 min-w-0">
 							<div class="flex items-center gap-2 mb-1">
+								{#if event.service_id}<span class="text-sm">⛪</span>{/if}
 								<h3 class="font-semibold text-[var(--text-primary)] truncate">{event.title}</h3>
 								<span class="px-2 py-0.5 text-xs rounded-full text-white flex-shrink-0" style="background-color: {getTypeColor(event.event_type)}">{getTypeLabel(event.event_type)}</span>
 								{#if event.recurring !== 'none'}
 									<span class="text-xs text-[var(--text-secondary)]">🔄 {recurringLabel(event.recurring)}</span>
+								{/if}
+								{#if event.attendance_count}
+									<span class="text-xs text-[var(--text-secondary)]">👥 {event.attendance_count}</span>
 								{/if}
 							</div>
 							<p class="text-sm text-[var(--text-secondary)]">
@@ -384,6 +436,18 @@
 						<span>{selectedEvent.room_name}</span>
 					</div>
 				{/if}
+				{#if selectedEvent.attendance_count}
+					<div class="flex items-center gap-2 text-[var(--text-secondary)]">
+						<span>👥</span>
+						<span>{selectedEvent.attendance_count} checked in</span>
+					</div>
+				{/if}
+				{#if selectedEvent.service_id}
+					<div class="flex items-center gap-2">
+						<span>⛪</span>
+						<a href="/dashboard/services/{selectedEvent.service_id}" class="text-[var(--teal)] hover:underline text-sm">View Service Details →</a>
+					</div>
+				{/if}
 				{#if selectedEvent.description}
 					<div class="pt-3 border-t border-[var(--border)]">
 						<p class="text-[var(--text-primary)] whitespace-pre-wrap">{selectedEvent.description}</p>
@@ -392,8 +456,12 @@
 			</div>
 
 			<div class="flex gap-2 justify-end mt-6 pt-4 border-t border-[var(--border)]">
-				<button on:click={() => deleteEvent(selectedEvent.id)} class="px-4 py-2 text-sm text-red-500 hover:bg-red-500/10 rounded-lg transition-colors">Delete</button>
-				<button on:click={() => openEditModal(selectedEvent)} class="px-4 py-2 text-sm bg-[var(--teal)] text-white rounded-lg hover:opacity-90">Edit</button>
+				{#if !selectedEvent.service_id}
+					<button on:click={() => deleteEvent(selectedEvent.id)} class="px-4 py-2 text-sm text-red-500 hover:bg-red-500/10 rounded-lg transition-colors">Delete</button>
+					<button on:click={() => openEditModal(selectedEvent)} class="px-4 py-2 text-sm bg-[var(--teal)] text-white rounded-lg hover:opacity-90">Edit</button>
+				{:else}
+					<a href="/dashboard/services/{selectedEvent.service_id}" class="px-4 py-2 text-sm bg-[var(--teal)] text-white rounded-lg hover:opacity-90">View Service</a>
+				{/if}
 			</div>
 		</div>
 	</div>
@@ -453,6 +521,7 @@
 						<select bind:value={formData.recurring} class="w-full px-3 py-2 rounded-lg border border-[var(--border)] bg-[var(--bg)] text-[var(--text-primary)]">
 							<option value="none">None</option>
 							<option value="weekly">Weekly</option>
+							<option value="biweekly">Bi-weekly</option>
 							<option value="monthly">Monthly</option>
 						</select>
 					</div>

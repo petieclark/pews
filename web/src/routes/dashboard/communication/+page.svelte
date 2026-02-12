@@ -121,7 +121,7 @@
 								<div class="text-sm" style="color: var(--text-secondary)">
 									{campaign.channel === 'email' ? '📧' : '💬'} {campaign.recipient_count} recipients
 									{#if campaign.channel === 'email'}
-										• {((campaign.opened_count / campaign.recipient_count) * 100).toFixed(0)}% opened
+										• {campaign.recipient_count > 0 ? ((campaign.opened_count / campaign.recipient_count) * 100).toFixed(0) : 0}% opened
 									{/if}
 								</div>
 							</div>

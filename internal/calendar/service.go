@@ -31,6 +31,147 @@ func scanEvent(scan func(dest ...interface{}) error) (Event, error) {
 	return e, err
 }
 
+// GetServicesAsEvents returns services within a date range as calendar events
+func (s *Service) GetServicesAsEvents(ctx context.Context, tenantID, fromDate, toDate string) ([]Event, error) {
+	query := `
+		SELECT s.id, s.tenant_id, COALESCE(s.name, st.name) as title,
+		       COALESCE(s.notes, '') as description, '' as location,
+		       (s.service_date + COALESCE(s.service_time::time, '10:00'::time)) as start_time,
+		       (s.service_date + COALESCE(s.service_time::time, '10:00'::time) + INTERVAL '1 hour') as end_time,
+		       s.service_date, s.id as service_id,
+		       COALESCE(st.color, '#4A8B8C') as color,
+		       (SELECT COUNT(*) FROM checkins cr
+		        JOIN checkin_events ce ON cr.event_id = ce.id
+		        WHERE ce.service_id = s.id) as attendance_count
+		FROM services s
+		LEFT JOIN service_types st ON s.service_type_id = st.id
+		WHERE s.tenant_id = $1`
+
+	args := []interface{}{tenantID}
+	argN := 1
+
+	if fromDate != "" {
+		argN++
+		query += fmt.Sprintf(" AND s.service_date >= $%d::date", argN)
+		args = append(args, fromDate)
+	}
+	if toDate != "" {
+		argN++
+		query += fmt.Sprintf(" AND s.service_date <= $%d::date", argN)
+		args = append(args, toDate)
+	}
+
+	query += " ORDER BY s.service_date ASC"
+
+	rows, err := s.db.Query(ctx, query, args...)
+	if err != nil {
+		return nil, fmt.Errorf("failed to query services as events: %w", err)
+	}
+	defer rows.Close()
+
+	var events []Event
+	for rows.Next() {
+		var e Event
+		var serviceDate time.Time
+		var serviceID string
+		var attendCount int
+		err := rows.Scan(&e.ID, &e.TenantID, &e.Title, &e.Description, &e.Location,
+			&e.StartTime, &e.EndTime, &serviceDate, &serviceID, &e.Color, &attendCount)
+		if err != nil {
+			return nil, fmt.Errorf("failed to scan service event: %w", err)
+		}
+		e.EventType = "service"
+		e.Recurring = "none"
+		e.ServiceID = &serviceID
+		if attendCount > 0 {
+			e.AttendanceCount = &attendCount
+		}
+		events = append(events, e)
+	}
+
+	return events, rows.Err()
+}
+
+// GetEventAttendanceCounts enriches events with check-in attendance counts
+func (s *Service) GetEventAttendanceCounts(ctx context.Context, tenantID string, events []Event) []Event {
+	for i := range events {
+		var count int
+		err := s.db.QueryRow(ctx, `
+			SELECT COUNT(*) FROM checkins cr
+			JOIN checkin_events ce ON cr.event_id = ce.id
+			WHERE ce.tenant_id = $1 AND ce.name = $2
+			AND ce.event_date = $3::date`,
+			tenantID, events[i].Title, events[i].StartTime).Scan(&count)
+		if err == nil && count > 0 {
+			events[i].AttendanceCount = &count
+		}
+	}
+	return events
+}
+
+// GenerateRecurringInstances expands recurring events into individual instances for a date range
+func (s *Service) GenerateRecurringInstances(events []Event, from, to time.Time) []Event {
+	var result []Event
+	for _, e := range events {
+		if e.Recurring == "none" || e.Recurring == "" {
+			result = append(result, e)
+			continue
+		}
+
+		// Add original
+		if !e.StartTime.Before(from) && !e.StartTime.After(to) {
+			result = append(result, e)
+		}
+
+		var interval time.Duration
+		switch e.Recurring {
+		case "weekly":
+			interval = 7 * 24 * time.Hour
+		case "biweekly":
+			interval = 14 * 24 * time.Hour
+		case "monthly":
+			// Handle monthly separately
+			duration := e.EndTime.Sub(e.StartTime)
+			current := e.StartTime
+			for {
+				current = current.AddDate(0, 1, 0)
+				if current.After(to) {
+					break
+				}
+				if current.Before(from) {
+					continue
+				}
+				instance := e
+				instance.StartTime = current
+				instance.EndTime = current.Add(duration)
+				result = append(result, instance)
+			}
+			continue
+		default:
+			result = append(result, e)
+			continue
+		}
+
+		// Weekly/biweekly
+		duration := e.EndTime.Sub(e.StartTime)
+		current := e.StartTime
+		for {
+			current = current.Add(interval)
+			if current.After(to) {
+				break
+			}
+			if current.Before(from) {
+				continue
+			}
+			instance := e
+			instance.StartTime = current
+			instance.EndTime = current.Add(duration)
+			result = append(result, instance)
+		}
+	}
+	return result
+}
+
 // ListEvents returns events within an optional date range
 func (s *Service) ListEvents(ctx context.Context, tenantID, fromDate, toDate, eventType string, page, limit int) ([]Event, int, error) {
 	if page < 1 {
@@ -249,6 +390,8 @@ func (s *Service) GenerateICal(ctx context.Context, tenantID string) (string, er
 
 		if event.Recurring == "weekly" {
 			ical.WriteString("RRULE:FREQ=WEEKLY\r\n")
+		} else if event.Recurring == "biweekly" {
+			ical.WriteString("RRULE:FREQ=WEEKLY;INTERVAL=2\r\n")
 		} else if event.Recurring == "monthly" {
 			ical.WriteString("RRULE:FREQ=MONTHLY\r\n")
 		}

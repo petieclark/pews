@@ -486,6 +486,7 @@ func New(
 		r.Get("/api/follow-ups", careHandler.ListFollowUps)
 		r.Post("/api/follow-ups", careHandler.CreateFollowUp)
 		r.Get("/api/follow-ups/stats", careHandler.GetStats)
+		r.Get("/api/follow-ups/person/{personId}", careHandler.ListByPerson)
 		r.Get("/api/follow-ups/{id}", careHandler.GetFollowUp)
 		r.Put("/api/follow-ups/{id}", careHandler.UpdateFollowUp)
 		r.Delete("/api/follow-ups/{id}", careHandler.DeleteFollowUp)

@@ -48,8 +48,11 @@
 
 	const types = [
 		{ value: 'first_time_visitor', label: 'First-Time Visitor', icon: '👋' },
+		{ value: 'visitor_followup', label: 'Visitor Follow-up', icon: '🏠' },
+		{ value: 'pastoral_care', label: 'Pastoral Care', icon: '❤️' },
 		{ value: 'hospital_visit', label: 'Hospital Visit', icon: '🏥' },
 		{ value: 'counseling', label: 'Counseling', icon: '💬' },
+		{ value: 'prayer_response', label: 'Prayer Response', icon: '🙏' },
 		{ value: 'general', label: 'General', icon: '📋' },
 		{ value: 'membership', label: 'Membership', icon: '🤝' }
 	];
@@ -171,6 +174,10 @@
 		return new Date(d).toLocaleDateString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
 	}
 
+	function daysSince(dateStr: string): number {
+		return Math.floor((Date.now() - new Date(dateStr).getTime()) / 86400000);
+	}
+
 	function getColumnItems(status: string) {
 		return followUps.filter(f => f.status === status);
 	}
@@ -237,11 +244,14 @@
 								{#if item.assigned_name}
 									<div class="text-xs text-[var(--text-secondary)] mt-0.5">→ {item.assigned_name}</div>
 								{/if}
-								{#if item.due_date}
-									<div class="text-xs mt-1 {isOverdue(item) ? 'text-red-500 font-semibold' : 'text-[var(--text-secondary)]'}">
-										{isOverdue(item) ? '⚠️ Overdue: ' : 'Due: '}{formatDate(item.due_date)}
-									</div>
-								{/if}
+								<div class="flex items-center gap-2 mt-1">
+									{#if item.due_date}
+										<span class="text-xs {isOverdue(item) ? 'text-red-500 font-semibold' : 'text-[var(--text-secondary)]'}">
+											{isOverdue(item) ? '⚠️ Overdue: ' : 'Due: '}{formatDate(item.due_date)}
+										</span>
+									{/if}
+									<span class="text-xs text-[var(--text-secondary)] ml-auto">{daysSince(item.created_at)}d ago</span>
+								</div>
 							</button>
 						{/each}
 						{#if items.length === 0}
@@ -273,7 +283,7 @@
 
 			<div class="space-y-3 text-sm mb-4">
 				<div class="flex items-center gap-2 text-[var(--text-secondary)]">
-					<span>👤</span><span>{selectedItem.person_name}</span>
+					<span>👤</span><a href="/dashboard/people/{selectedItem.person_id}" class="text-[var(--teal)] hover:underline">{selectedItem.person_name}</a>
 				</div>
 				{#if selectedItem.assigned_name}
 					<div class="flex items-center gap-2 text-[var(--text-secondary)]">

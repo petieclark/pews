@@ -20,7 +20,7 @@ func NewService(db *pgxpool.Pool) *Service {
 }
 
 func (s *Service) ListRooms(ctx context.Context, tenantID string, activeOnly bool) ([]Room, error) {
-	query := `SELECT id, tenant_id, name, capacity, description, color, amenities, is_active, created_at, updated_at 
+	query := `SELECT id, tenant_id, name, capacity, COALESCE(description, ''), COALESCE(color, '#4A8B8C'), amenities, is_active, created_at, updated_at 
 		      FROM rooms WHERE tenant_id = $1`
 	if activeOnly {
 		query += " AND is_active = TRUE"
@@ -56,7 +56,7 @@ func (s *Service) GetRoom(ctx context.Context, tenantID, roomID string) (*Room, 
 	var r Room
 	var amenitiesJSON []byte
 	err := s.db.QueryRow(ctx,
-		`SELECT id, tenant_id, name, capacity, description, color, amenities, is_active, created_at, updated_at 
+		`SELECT id, tenant_id, name, capacity, COALESCE(description, ''), COALESCE(color, '#4A8B8C'), amenities, is_active, created_at, updated_at 
 		 FROM rooms WHERE id = $1 AND tenant_id = $2`,
 		roomID, tenantID,
 	).Scan(&r.ID, &r.TenantID, &r.Name, &r.Capacity, &r.Description, 
