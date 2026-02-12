@@ -28,6 +28,7 @@
 			name: 'Ministry',
 			items: [
 				{ href: '/dashboard/services', label: 'Services', icon: 'services', module: 'services' },
+				{ href: '/dashboard/services/teams', label: 'Teams', icon: 'groups', module: 'services' },
 				{ href: '/dashboard/calendar', label: 'Calendar', icon: 'calendar', module: 'calendar' },
 				{ href: '/dashboard/checkins', label: 'Check-Ins', icon: 'checkins', module: 'checkins' },
 				{ href: '/dashboard/care', label: 'Care', icon: 'care', module: 'care' },
@@ -58,7 +59,8 @@
 				{ href: '/dashboard/settings/users', label: 'Users & Roles', icon: 'users', module: null },
 				{ href: '/dashboard/settings/billing', label: 'Billing', icon: 'billing', module: null },
 				{ href: '/dashboard/settings/import', label: 'Import', icon: 'import', module: null },
-				{ href: '/dashboard/settings/qr', label: 'QR Codes', icon: 'qr', module: null }
+				{ href: '/dashboard/settings/qr', label: 'QR Codes', icon: 'qr', module: null },
+				{ href: '/dashboard/settings/ccli', label: 'CCLI', icon: 'ccli', module: null }
 			]
 		}
 	];

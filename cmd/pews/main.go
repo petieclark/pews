@@ -16,6 +16,8 @@ import (
 	"github.com/petieclark/pews/internal/billing"
 	"github.com/petieclark/pews/internal/calendar"
 	"github.com/petieclark/pews/internal/care"
+	"github.com/petieclark/pews/internal/ccli"
+	"github.com/petieclark/pews/internal/public"
 	"github.com/petieclark/pews/internal/checkins"
 	"github.com/petieclark/pews/internal/communication"
 	"github.com/petieclark/pews/internal/config"
@@ -142,6 +144,13 @@ func run() error {
 	teamsService := teams.NewService(db.Pool)
 	teamsHandler := teams.NewHandler(teamsService)
 
+	// CCLI
+	ccliService := ccli.NewService(db.Pool)
+	ccliHandler := ccli.NewHandler(ccliService)
+
+	// Public pages
+	publicHandler := public.NewHandler(db.Pool)
+
 	// Setup router
 	r := router.New(
 		authHandler,
@@ -171,6 +180,8 @@ func run() error {
 		importHandler,
 		teamsHandler,
 		careHandler,
+		ccliHandler,
+		publicHandler,
 		cfg.StripeWebhookSecret,
 		cfg.StripeWebhookSecret, // Use same webhook secret for giving
 		cfg.FrontendURL,

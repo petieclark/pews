@@ -9,6 +9,7 @@ import (
 	"github.com/petieclark/pews/internal/billing"
 	"github.com/petieclark/pews/internal/calendar"
 	"github.com/petieclark/pews/internal/care"
+	"github.com/petieclark/pews/internal/ccli"
 	"github.com/petieclark/pews/internal/checkins"
 	"github.com/petieclark/pews/internal/communication"
 	"github.com/petieclark/pews/internal/drip"
@@ -29,6 +30,7 @@ import (
 	"github.com/petieclark/pews/internal/sermons"
 	"github.com/petieclark/pews/internal/sms"
 	"github.com/petieclark/pews/internal/streaming"
+	"github.com/petieclark/pews/internal/public"
 	"github.com/petieclark/pews/internal/teams"
 	"github.com/petieclark/pews/internal/tenant"
 	"github.com/petieclark/pews/internal/website"
@@ -66,6 +68,8 @@ func New(
 	importHandler *importpkg.Handler,
 	teamsHandler *teams.Handler,
 	careHandler *care.Handler,
+	ccliHandler *ccli.Handler,
+	publicHandler *public.Handler,
 	webhookSecret string,
 	givingWebhookSecret string,
 	frontendURL string,
@@ -120,6 +124,14 @@ func New(
 	// Public i18n routes (no auth required)
 	r.Get("/api/i18n/{locale}", i18nHandler.GetTranslations)
 	r.Get("/api/i18n/locales", i18nHandler.GetSupportedLocales)
+
+	// Public pages API (no auth required, rate limited)
+	r.Route("/api/public", func(r chi.Router) {
+		r.Get("/church", publicHandler.GetChurchInfo)
+		r.Get("/events", publicHandler.GetEvents)
+		r.Get("/groups", publicHandler.GetPublicGroups)
+		r.Post("/groups/{id}/signup", publicHandler.GroupSignup)
+	})
 
 	// Health check
 	r.Get("/api/health", func(w http.ResponseWriter, r *http.Request) {
@@ -482,7 +494,25 @@ func New(
 		r.Delete("/api/teams/{id}/positions/{positionId}", teamsHandler.DeletePosition)
 		r.Post("/api/teams/{id}/members", teamsHandler.AddMember)
 		r.Put("/api/teams/{id}/members/{memberId}", teamsHandler.UpdateMember)
+		r.Patch("/api/teams/{id}/members/{memberId}/status", teamsHandler.UpdateMemberStatus)
 		r.Delete("/api/teams/{id}/members/{memberId}", teamsHandler.DeleteMember)
+		r.Put("/api/teams/{id}/positions/{positionId}", teamsHandler.UpdatePosition)
+
+		// Service Team Assignments (volunteer scheduling)
+		r.Get("/api/services/{id}/team-assignments", teamsHandler.GetServiceAssignments)
+		r.Post("/api/services/{id}/team-assignments", teamsHandler.SaveServiceAssignments)
+		r.Post("/api/services/{id}/team-assignments/copy-from/{sourceId}", teamsHandler.CopyServiceAssignments)
+		r.Patch("/api/services/{id}/team-assignments/{assignmentId}/status", teamsHandler.UpdateAssignmentStatus)
+
+		// Person schedule
+		r.Get("/api/people/{personId}/schedule", teamsHandler.GetPersonSchedule)
+
+		// CCLI Reporting
+		r.Get("/api/ccli/report", ccliHandler.GetReport)
+		r.Get("/api/ccli/report/download", ccliHandler.DownloadReport)
+		r.Get("/api/ccli/stats", ccliHandler.GetStats)
+		r.Get("/api/ccli/settings", ccliHandler.GetSettings)
+		r.Post("/api/ccli/settings", ccliHandler.SaveSettings)
 
 		// Dashboard
 		r.Get("/api/dashboard/kpis", engagementHandler.GetDashboardKPIs)
