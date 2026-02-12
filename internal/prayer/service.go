@@ -315,7 +315,7 @@ func (s *Service) ListFollowers(ctx context.Context, tenantID, requestID string)
 	}
 	defer rows.Close()
 
-	var followers []PrayerFollower
+	followers := []PrayerFollower{}
 	for rows.Next() {
 		var pf PrayerFollower
 		if err := rows.Scan(&pf.ID, &pf.PrayerRequestID, &pf.UserID, &pf.UserName, &pf.FollowedAt); err != nil {

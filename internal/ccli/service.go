@@ -48,7 +48,7 @@ func (s *Service) GenerateCCLIReport(ctx context.Context, tenantID string, start
 	}
 	defer rows.Close()
 
-	var songs []CCLISongUsage
+	songs := []CCLISongUsage{}
 	totalUses := 0
 
 	for rows.Next() {
@@ -118,7 +118,7 @@ func (s *Service) GetStats(ctx context.Context, tenantID string) (*CCLIStats, er
 	}
 	defer rows.Close()
 
-	var topSongs []CCLISongUsage
+	topSongs := []CCLISongUsage{}
 	songsUsed := 0
 	totalUses := 0
 

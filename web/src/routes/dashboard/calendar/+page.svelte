@@ -85,7 +85,7 @@
 		return eventTypes.find(t => t.value === type)?.label || 'Other';
 	}
 
-	function getDaysInMonth() {
+	function getDaysInMonth(_events: CalendarEvent[], _year: number, _month: number) {
 		const firstDay = new Date(currentYear, currentMonth, 1);
 		const lastDay = new Date(currentYear, currentMonth + 1, 0);
 		const daysInMonth = lastDay.getDate();
@@ -259,7 +259,7 @@
 		return { weekly: 'Weekly', biweekly: 'Bi-weekly', monthly: 'Monthly', none: 'One-time' }[r] || r;
 	}
 
-	$: days = getDaysInMonth();
+	$: days = getDaysInMonth(events, currentYear, currentMonth);
 </script>
 
 <div class="space-y-6">

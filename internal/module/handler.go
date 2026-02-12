@@ -41,7 +41,7 @@ func (h *Handler) ListModules(w http.ResponseWriter, r *http.Request) {
 		moduleMap[tm.ModuleName] = tm
 	}
 
-	var response []ModuleResponse
+	response := []ModuleResponse{}
 	for _, m := range AvailableModules {
 		resp := ModuleResponse{
 			Module: m,

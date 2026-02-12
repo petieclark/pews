@@ -26,7 +26,7 @@ func NewService(db *pgxpool.Pool) *Service {
 // GetSettings retrieves digest settings for a tenant
 func (s *Service) GetSettings(ctx context.Context, tenantID string) (*DigestSettings, error) {
 	var settings DigestSettings
-	var recipients []string
+	recipients := []string{}
 
 	err := s.db.QueryRow(ctx, `
 		SELECT id, tenant_id, enabled, send_day, recipients, created_at, updated_at
@@ -57,7 +57,7 @@ func (s *Service) GetSettings(ctx context.Context, tenantID string) (*DigestSett
 // CreateSettings creates default digest settings for a tenant
 func (s *Service) CreateSettings(ctx context.Context, tenantID string) (*DigestSettings, error) {
 	var settings DigestSettings
-	var recipients []string
+	recipients := []string{}
 
 	err := s.db.QueryRow(ctx, `
 		INSERT INTO digest_settings (tenant_id, enabled, send_day, recipients)
@@ -84,7 +84,7 @@ func (s *Service) CreateSettings(ctx context.Context, tenantID string) (*DigestS
 // UpdateSettings updates digest settings
 func (s *Service) UpdateSettings(ctx context.Context, tenantID string, enabled bool, sendDay string, recipients []string) (*DigestSettings, error) {
 	var settings DigestSettings
-	var recipientsArray []string
+	recipientsArray := []string{}
 
 	err := s.db.QueryRow(ctx, `
 		UPDATE digest_settings
@@ -296,7 +296,7 @@ func (s *Service) getUpcomingServices(ctx context.Context, tenantID string) ([]U
 	}
 	defer rows.Close()
 
-	var services []UpcomingService
+	services := []UpcomingService{}
 	for rows.Next() {
 		var svc UpcomingService
 		var serviceTime *string
@@ -335,7 +335,7 @@ func (s *Service) getNewPrayerRequests(ctx context.Context, tenantID string, wee
 	}
 	defer rows.Close()
 
-	var requests []PrayerRequest
+	requests := []PrayerRequest{}
 	for rows.Next() {
 		var req PrayerRequest
 		err := rows.Scan(&req.PersonName, &req.Request, &req.CreatedAt)
@@ -371,7 +371,7 @@ func (s *Service) getVolunteerSchedule(ctx context.Context, tenantID string) ([]
 	}
 	defer rows.Close()
 
-	var volunteers []VolunteerSchedule
+	volunteers := []VolunteerSchedule{}
 	for rows.Next() {
 		var vol VolunteerSchedule
 		err := rows.Scan(&vol.ServiceName, &vol.ServiceDate, &vol.PersonName, &vol.Role)

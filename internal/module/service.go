@@ -27,7 +27,7 @@ func (s *Service) GetTenantModules(ctx context.Context, tenantID string) ([]Tena
 	}
 	defer rows.Close()
 
-	var modules []TenantModule
+	modules := []TenantModule{}
 	for rows.Next() {
 		var m TenantModule
 		err := rows.Scan(&m.ID, &m.TenantID, &m.ModuleName, &m.Enabled, &m.EnabledAt, &m.CreatedAt, &m.UpdatedAt)

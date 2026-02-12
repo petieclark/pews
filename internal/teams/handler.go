@@ -320,7 +320,7 @@ func (h *Handler) SaveServiceAssignments(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
-	var assignments []ServiceTeamAssignment
+	assignments := []ServiceTeamAssignment{}
 	for _, a := range req.Assignments {
 		status := a.Status
 		if status == "" {

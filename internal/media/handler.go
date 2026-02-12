@@ -48,7 +48,7 @@ func (h *Handler) UploadFile(w http.ResponseWriter, r *http.Request) {
 
 	folder := r.FormValue("folder")
 	tagsStr := r.FormValue("tags")
-	var tags []string
+	tags := []string{}
 	if tagsStr != "" {
 		tags = strings.Split(tagsStr, ",")
 		// Trim whitespace from tags
@@ -86,7 +86,7 @@ func (h *Handler) ListFiles(w http.ResponseWriter, r *http.Request) {
 		folder = &folderParam
 	}
 
-	var tags []string
+	tags := []string{}
 	if tagsParam := r.URL.Query().Get("tags"); tagsParam != "" {
 		tags = strings.Split(tagsParam, ",")
 		for i := range tags {

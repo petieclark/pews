@@ -88,7 +88,7 @@ func (s *Service) GetUpcomingEvents(ctx context.Context, tenantID string, limit 
 	}
 	defer rows.Close()
 
-	var events []Event
+	events := []Event{}
 	for rows.Next() {
 		var event Event
 		var startTime, endTime time.Time
@@ -119,7 +119,7 @@ func (s *Service) GetLatestSermons(ctx context.Context, tenantID string, limit i
 	}
 	defer rows.Close()
 
-	var sermons []Sermon
+	sermons := []Sermon{}
 	for rows.Next() {
 		var sermon Sermon
 		var date time.Time

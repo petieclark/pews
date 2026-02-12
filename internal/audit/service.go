@@ -59,7 +59,7 @@ func (s *Service) Log(ctx context.Context, tenantID, userID *string, ipAddress, 
 
 // GetLogs retrieves paginated audit logs with optional filters
 func (s *Service) GetLogs(ctx context.Context, tenantID string, userID *string, action *string, entityType *string, limit, offset int) ([]AuditLog, int, error) {
-	var logs []AuditLog
+	logs := []AuditLog{}
 	var totalCount int
 
 	// Build WHERE clause dynamically

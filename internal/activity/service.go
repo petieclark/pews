@@ -126,7 +126,7 @@ func (s *Service) ListActivity(ctx context.Context, params ListActivityParams) (
 	}
 	defer rows.Close()
 
-	var logs []ActivityLog
+	logs := []ActivityLog{}
 	for rows.Next() {
 		var log ActivityLog
 		err := rows.Scan(

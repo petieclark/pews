@@ -68,8 +68,8 @@ func (s *Service) GetAttendanceReport(ctx context.Context, tenantID uuid.UUID, r
 	}
 	defer rows.Close()
 
-	var labels []string
-	var data []float64
+	labels := []string{}
+	data := []float64{}
 	var total float64
 	var peak float64
 	for rows.Next() {
@@ -113,9 +113,9 @@ func (s *Service) GetAttendanceReport(ctx context.Context, tenantID uuid.UUID, r
 	}
 	defer rows2.Close()
 
-	var stLabels []string
-	var stData []float64
-	var stColors []string
+	stLabels := []string{}
+	stData := []float64{}
+	stColors := []string{}
 	i := 0
 	for rows2.Next() {
 		var name string
@@ -188,8 +188,8 @@ func (s *Service) GetGivingReport(ctx context.Context, tenantID uuid.UUID, range
 	}
 	defer rows.Close()
 
-	var mLabels []string
-	var mData []float64
+	mLabels := []string{}
+	mData := []float64{}
 	for rows.Next() {
 		var month string
 		var cents int64
@@ -222,9 +222,9 @@ func (s *Service) GetGivingReport(ctx context.Context, tenantID uuid.UUID, range
 	}
 	defer rows2.Close()
 
-	var fLabels []string
-	var fData []float64
-	var fColors []string
+	fLabels := []string{}
+	fData := []float64{}
+	fColors := []string{}
 	i := 0
 	for rows2.Next() {
 		var name string
@@ -258,8 +258,8 @@ func (s *Service) GetGivingReport(ctx context.Context, tenantID uuid.UUID, range
 	}
 	defer rows3.Close()
 
-	var dLabels []string
-	var dData []float64
+	dLabels := []string{}
+	dData := []float64{}
 	for rows3.Next() {
 		var month string
 		var cnt int
@@ -344,8 +344,8 @@ func (s *Service) GetGrowthReport(ctx context.Context, tenantID uuid.UUID, range
 	}
 	defer rows.Close()
 
-	var gLabels []string
-	var gData []float64
+	gLabels := []string{}
+	gData := []float64{}
 	for rows.Next() {
 		var month string
 		var cnt int
@@ -378,8 +378,8 @@ func (s *Service) GetGrowthReport(ctx context.Context, tenantID uuid.UUID, range
 	}
 	defer rows2.Close()
 
-	var nLabels []string
-	var nData []float64
+	nLabels := []string{}
+	nData := []float64{}
 	for rows2.Next() {
 		var month string
 		var cnt int
@@ -463,8 +463,8 @@ func (s *Service) GetSongsReport(ctx context.Context, tenantID uuid.UUID) (*Song
 	}
 	defer rows.Close()
 
-	var tLabels []string
-	var tData []float64
+	tLabels := []string{}
+	tData := []float64{}
 	for rows.Next() {
 		var title string
 		var cnt int
@@ -495,9 +495,9 @@ func (s *Service) GetSongsReport(ctx context.Context, tenantID uuid.UUID) (*Song
 	}
 	defer rows2.Close()
 
-	var kLabels []string
-	var kData []float64
-	var kColors []string
+	kLabels := []string{}
+	kData := []float64{}
+	kColors := []string{}
 	i := 0
 	for rows2.Next() {
 		var key string
@@ -538,7 +538,7 @@ func (s *Service) GetSongsReport(ctx context.Context, tenantID uuid.UUID) (*Song
 	}
 	defer rows3.Close()
 
-	var unused []UnusedSong
+	unused := []UnusedSong{}
 	for rows3.Next() {
 		var u UnusedSong
 		if err := rows3.Scan(&u.ID, &u.Title, &u.Artist, &u.LastUsed); err != nil {
@@ -610,8 +610,8 @@ func (s *Service) GetEngagementReport(ctx context.Context, tenantID uuid.UUID) (
 		totalPeople += cnt
 	}
 
-	var distLabels []string
-	var distData []float64
+	distLabels := []string{}
+	distData := []float64{}
 	distColors := []string{"#1B3A4B", "#4A8B8C", "#8FBCB0", "#6BA3A4", "#B5D9CE"}
 	for _, t := range tierOrder {
 		distLabels = append(distLabels, t)
@@ -638,8 +638,8 @@ func (s *Service) GetEngagementReport(ctx context.Context, tenantID uuid.UUID) (
 	}
 	defer rows2.Close()
 
-	var eLabels []string
-	var eData []float64
+	eLabels := []string{}
+	eData := []float64{}
 	for rows2.Next() {
 		var month string
 		var avg float64

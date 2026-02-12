@@ -620,7 +620,7 @@ func (s *Service) GetImportHistory(ctx context.Context, tenantID string) ([]Impo
 	}
 	defer rows.Close()
 
-	var history []ImportHistoryRecord
+	history := []ImportHistoryRecord{}
 	for rows.Next() {
 		var record ImportHistoryRecord
 		err := rows.Scan(

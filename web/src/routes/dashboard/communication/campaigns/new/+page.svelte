@@ -70,6 +70,7 @@
 	function nextStep() {
 		error = '';
 		if (step === 1 && !targetType) { error = 'Select an audience'; return; }
+		if (step === 1 && (targetType === 'group' || targetType === 'tag') && !targetId) { error = 'Please select a specific ' + targetType; return; }
 		if (step === 2 && (!name || !body)) { error = 'Name and body are required'; return; }
 		if (step === 2 && channel === 'email' && !subject) { error = 'Subject is required for email'; return; }
 		step = Math.min(step + 1, 4);

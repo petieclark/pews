@@ -174,7 +174,7 @@ func (h *Handler) GetChurchInfo(w http.ResponseWriter, r *http.Request) {
 		log.Printf("GetChurchInfo service_types error: %v", err)
 	}
 
-	var serviceTimes []serviceTime
+	serviceTimes := []serviceTime{}
 	if rows != nil {
 		defer rows.Close()
 		for rows.Next() {

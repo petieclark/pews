@@ -42,7 +42,7 @@ func (s *Service) ListCampaigns(ctx context.Context, tenantID string) ([]Campaig
 	}
 	defer rows.Close()
 
-	var campaigns []Campaign
+	campaigns := []Campaign{}
 	for rows.Next() {
 		var c Campaign
 		err := rows.Scan(
@@ -190,7 +190,7 @@ func (s *Service) ListSteps(ctx context.Context, tenantID, campaignID string) ([
 	}
 	defer rows.Close()
 
-	var steps []Step
+	steps := []Step{}
 	for rows.Next() {
 		var st Step
 		err := rows.Scan(
@@ -430,7 +430,7 @@ func (s *Service) ListEnrollments(ctx context.Context, tenantID, campaignID stri
 	}
 	defer rows.Close()
 
-	var enrollments []Enrollment
+	enrollments := []Enrollment{}
 	for rows.Next() {
 		var e Enrollment
 		err := rows.Scan(

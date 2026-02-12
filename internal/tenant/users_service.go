@@ -19,7 +19,7 @@ func (s *Service) ListUsers(ctx context.Context, tenantID string) ([]UserRespons
 	}
 	defer rows.Close()
 
-	var users []UserResponse
+	users := []UserResponse{}
 	for rows.Next() {
 		var u UserResponse
 		if err := rows.Scan(&u.ID, &u.Email, &u.Role); err != nil {

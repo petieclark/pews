@@ -148,7 +148,7 @@ func (s *Service) ListFiles(ctx context.Context, tenantID string, mediaType Medi
 	}
 	defer rows.Close()
 
-	var files []MediaFile
+	files := []MediaFile{}
 	for rows.Next() {
 		var file MediaFile
 		err := rows.Scan(
@@ -293,7 +293,7 @@ func (s *Service) ListFolders(ctx context.Context, tenantID string) ([]string, e
 	}
 	defer rows.Close()
 
-	var folders []string
+	folders := []string{}
 	for rows.Next() {
 		var folder string
 		if err := rows.Scan(&folder); err != nil {

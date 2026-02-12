@@ -80,7 +80,7 @@ func (s *Service) CreateBackup(ctx context.Context, tenantID, tenantSlug string)
 			return nil, fmt.Errorf("failed to get columns for table %s: %w", table, err)
 		}
 		
-		var columns []string
+		columns := []string{}
 		for rows.Next() {
 			var col string
 			if err := rows.Scan(&col); err != nil {
@@ -191,7 +191,7 @@ func (s *Service) ListBackups(ctx context.Context, tenantSlug string) ([]Backup,
 		return nil, fmt.Errorf("failed to read backup directory: %w", err)
 	}
 
-	var backups []Backup
+	backups := []Backup{}
 	prefix := tenantSlug + "_"
 
 	for _, entry := range entries {
@@ -376,7 +376,7 @@ func (s *Service) getTenantTables(ctx context.Context) ([]string, error) {
 	}
 	defer rows.Close()
 
-	var tables []string
+	tables := []string{}
 	for rows.Next() {
 		var table string
 		if err := rows.Scan(&table); err != nil {

@@ -33,7 +33,7 @@ func (s *Service) ListRooms(ctx context.Context, tenantID string, activeOnly boo
 	}
 	defer rows.Close()
 
-	var rooms []Room
+	rooms := []Room{}
 	for rows.Next() {
 		var r Room
 		var amenitiesJSON []byte
@@ -133,7 +133,7 @@ func (s *Service) ListBookings(ctx context.Context, tenantID string, roomID *str
 	}
 	defer rows.Close()
 
-	var bookings []RoomBooking
+	bookings := []RoomBooking{}
 	for rows.Next() {
 		var b RoomBooking
 		var roomName, bookedByName sql.NullString
@@ -192,7 +192,7 @@ func (s *Service) CheckConflict(ctx context.Context, tenantID, roomID string, st
 		return nil, err
 	}
 	defer rows.Close()
-	var conflicts []RoomBooking
+	conflicts := []RoomBooking{}
 	for rows.Next() {
 		var b RoomBooking
 		rows.Scan(&b.ID, &b.TenantID, &b.RoomID, &b.EventName, &b.BookedBy, &b.StartTime, &b.EndTime,
@@ -268,7 +268,7 @@ func (s *Service) GetRoomAvailability(ctx context.Context, tenantID string, star
 		return nil, err
 	}
 	defer rows.Close()
-	var availability []RoomAvailability
+	availability := []RoomAvailability{}
 	for rows.Next() {
 		var a RoomAvailability
 		rows.Scan(&a.RoomID, &a.RoomName, &a.Capacity, &a.Color, &a.Available)

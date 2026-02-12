@@ -111,7 +111,7 @@ func (s *Service) GetEventAttendanceCounts(ctx context.Context, tenantID string,
 
 // GenerateRecurringInstances expands recurring events into individual instances for a date range
 func (s *Service) GenerateRecurringInstances(events []Event, from, to time.Time) []Event {
-	var result []Event
+	result := []Event{}
 	for _, e := range events {
 		if e.Recurring == "none" || e.Recurring == "" {
 			result = append(result, e)
@@ -446,7 +446,7 @@ func (s *Service) ListAvailableRooms(ctx context.Context, tenantID, startTime, e
 	}
 	defer rows.Close()
 
-	var rooms []map[string]interface{}
+	rooms := []map{}[string]interface{}
 	for rows.Next() {
 		var id, name, desc string
 		var capacity *int

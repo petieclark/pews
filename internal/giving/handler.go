@@ -465,7 +465,7 @@ func (h *Handler) GenerateBatchStatementsPDF(w http.ResponseWriter, r *http.Requ
 	}
 	defer rows.Close()
 
-	var donorIDs []string
+	donorIDs := []string{}
 	for rows.Next() {
 		var personID string
 		if err := rows.Scan(&personID); err != nil {
@@ -839,7 +839,7 @@ func (h *Handler) GetPublicKioskConfig(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Filter to active funds only
-	var activeFunds []Fund
+	activeFunds := []Fund{}
 	for _, f := range funds {
 		if f.IsActive {
 			activeFunds = append(activeFunds, f)

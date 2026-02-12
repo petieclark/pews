@@ -20,9 +20,10 @@ func NewHandler(service *Service) *Handler {
 }
 
 type UpdateTenantRequest struct {
-	Name          string `json:"name"`
-	Domain        string `json:"domain"`
-	DefaultLocale string `json:"default_locale,omitempty"`
+	Name                string `json:"name"`
+	Domain              string `json:"domain"`
+	DefaultLocale       string `json:"default_locale,omitempty"`
+	OnboardingCompleted *bool  `json:"onboarding_completed,omitempty"`
 }
 
 func (h *Handler) GetTenant(w http.ResponseWriter, r *http.Request) {
@@ -64,6 +65,14 @@ func (h *Handler) UpdateTenant(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		http.Error(w, "Failed to update tenant: "+err.Error(), http.StatusInternalServerError)
 		return
+	}
+
+	if req.OnboardingCompleted != nil {
+		if err := h.service.SetOnboardingCompleted(r.Context(), claims.TenantID, *req.OnboardingCompleted); err != nil {
+			http.Error(w, "Failed to update onboarding status: "+err.Error(), http.StatusInternalServerError)
+			return
+		}
+		tenant, _ = h.service.GetTenantByID(r.Context(), claims.TenantID)
 	}
 
 	w.Header().Set("Content-Type", "application/json")

@@ -30,7 +30,7 @@ func (s *Service) ListPlans(ctx context.Context, tenantID string) ([]ServicePlan
 	}
 	defer rows.Close()
 
-	var plans []ServicePlan
+	plans := []ServicePlan{}
 	for rows.Next() {
 		var plan ServicePlan
 		err := rows.Scan(
@@ -188,7 +188,7 @@ func (s *Service) GetPlanItems(ctx context.Context, tenantID, planID string) ([]
 	}
 	defer rows.Close()
 
-	var items []ServicePlanItem
+	items := []ServicePlanItem{}
 	for rows.Next() {
 		var item ServicePlanItem
 		err := rows.Scan(

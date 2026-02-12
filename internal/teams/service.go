@@ -32,7 +32,7 @@ func (s *Service) ListTeams(ctx context.Context, tenantID string) ([]Team, error
 	}
 	defer rows.Close()
 
-	var teams []Team
+	teams := []Team{}
 	for rows.Next() {
 		var t Team
 		if err := rows.Scan(&t.ID, &t.TenantID, &t.Name, &t.Description, &t.Color, &t.IsActive,
@@ -256,7 +256,7 @@ func (s *Service) GetServiceAssignments(ctx context.Context, tenantID, serviceID
 	}
 	defer rows.Close()
 
-	var assignments []ServiceTeamAssignment
+	assignments := []ServiceTeamAssignment{}
 	for rows.Next() {
 		var a ServiceTeamAssignment
 		if err := rows.Scan(&a.ID, &a.TenantID, &a.ServiceID, &a.TeamID, &a.PositionID, &a.PersonID,
@@ -341,7 +341,7 @@ func (s *Service) GetPersonSchedule(ctx context.Context, tenantID, personID stri
 	}
 	defer rows.Close()
 
-	var assignments []ServiceTeamAssignment
+	assignments := []ServiceTeamAssignment{}
 	for rows.Next() {
 		var a ServiceTeamAssignment
 		if err := rows.Scan(&a.ID, &a.TenantID, &a.ServiceID, &a.TeamID, &a.PositionID, &a.PersonID,

@@ -56,7 +56,7 @@ func (s *Service) CreateForAllAdmins(ctx context.Context, tenantID, title, messa
 	}
 	defer rows.Close()
 
-	var adminIDs []string
+	adminIDs := []string{}
 	for rows.Next() {
 		var id string
 		if err := rows.Scan(&id); err != nil {
@@ -124,7 +124,7 @@ func (s *Service) List(ctx context.Context, tenantID, userID string, params List
 	}
 	defer rows.Close()
 
-	var notifications []Notification
+	notifications := []Notification{}
 	for rows.Next() {
 		var n Notification
 		if err := rows.Scan(&n.ID, &n.TenantID, &n.UserID, &n.Title, &n.Message, &n.Type, &n.Read, &n.Link, &n.CreatedAt); err != nil {
