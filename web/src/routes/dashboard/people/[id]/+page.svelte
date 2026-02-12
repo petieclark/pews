@@ -13,6 +13,10 @@
 	let selectedTagId = '';
 	let engagementScore = null;
 	let groups = [];
+	let allGroups = [];
+	let showAddGroupModal = false;
+	let addGroupId = '';
+	let addGroupRole = 'member';
 	let activityLog = [];
 	let givingHistory = [];
 	let activeTab = 'info';
@@ -51,6 +55,25 @@
 
 	async function loadGroups() {
 		try { groups = await api(`/api/groups/person/${personId}`, { silent: true }); } catch (e) { groups = []; }
+	}
+
+	async function openAddGroupModal() {
+		try {
+			const res = await api('/api/groups?limit=200');
+			allGroups = (res.groups || []).filter(g => !groups.some(pg => pg.id === g.id));
+		} catch { allGroups = []; }
+		addGroupId = '';
+		addGroupRole = 'member';
+		showAddGroupModal = true;
+	}
+
+	async function addToGroup() {
+		if (!addGroupId) return;
+		try {
+			await api(`/api/groups/${addGroupId}/members`, { method: 'POST', body: JSON.stringify({ person_id: personId, role: addGroupRole }) });
+			showAddGroupModal = false;
+			loadGroups();
+		} catch (e) { alert('Failed to add to group: ' + e.message); }
 	}
 
 	async function loadActivity() {
@@ -428,7 +451,10 @@
 			</div>
 		{:else if activeTab === 'groups'}
 			<div class="bg-surface rounded-xl shadow-sm border border-custom p-6">
-				<h2 class="text-lg font-semibold text-primary mb-4">Groups & Teams</h2>
+				<div class="flex justify-between items-center mb-4">
+					<h2 class="text-lg font-semibold text-primary">Groups & Teams</h2>
+					<button on:click={openAddGroupModal} class="px-3 py-1.5 text-sm bg-[var(--teal)] text-white rounded-md hover:bg-opacity-90">+ Add to Group</button>
+				</div>
 				{#if groups.length === 0}
 					<div class="text-center py-8">
 						<svg class="w-12 h-12 mx-auto mb-2 text-secondary opacity-40" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -503,5 +529,37 @@
 				{/if}
 			</div>
 		{/if}
+	</div>
+{/if}
+
+<!-- Add to Group Modal -->
+{#if showAddGroupModal}
+	<div class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+		<div class="bg-surface rounded-lg shadow-xl max-w-md w-full mx-4 p-6">
+			<h2 class="text-xl font-bold text-primary mb-4">Add to Group</h2>
+			<form on:submit|preventDefault={addToGroup} class="space-y-4">
+				<div>
+					<label class="block text-sm font-medium text-secondary mb-1">Group</label>
+					<select bind:value={addGroupId} required class="w-full px-3 py-2 border border-custom rounded-md bg-surface text-primary">
+						<option value="">Select a group...</option>
+						{#each allGroups as g}
+							<option value={g.id}>{g.name} ({g.group_type})</option>
+						{/each}
+					</select>
+				</div>
+				<div>
+					<label class="block text-sm font-medium text-secondary mb-1">Role</label>
+					<select bind:value={addGroupRole} class="w-full px-3 py-2 border border-custom rounded-md bg-surface text-primary">
+						<option value="member">Member</option>
+						<option value="leader">Leader</option>
+						<option value="co_leader">Co-Leader</option>
+					</select>
+				</div>
+				<div class="flex justify-end gap-3 pt-2">
+					<button type="button" on:click={() => showAddGroupModal = false} class="px-4 py-2 border border-custom rounded-md text-secondary">Cancel</button>
+					<button type="submit" class="px-4 py-2 bg-[var(--teal)] text-white rounded-md hover:bg-opacity-90">Add</button>
+				</div>
+			</form>
+		</div>
 	</div>
 {/if}

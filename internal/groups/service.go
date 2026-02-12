@@ -316,12 +316,12 @@ func (s *Service) RemoveMemberFromGroup(ctx context.Context, tenantID, memberID 
 	return nil
 }
 
-func (s *Service) GetPersonGroups(ctx context.Context, tenantID, personID string) ([]Group, error) {
+func (s *Service) GetPersonGroups(ctx context.Context, tenantID, personID string) (interface{}, error) {
 	rows, err := s.db.Query(ctx, `
 		SELECT g.id, g.tenant_id, g.name, COALESCE(g.description, ''), g.group_type, 
 		       COALESCE(g.meeting_day, ''), COALESCE(g.meeting_time, ''), COALESCE(g.meeting_location, ''), 
 		       g.is_public, g.max_members, g.is_active, COALESCE(g.photo_url, ''), 
-		       g.created_at, g.updated_at
+		       g.created_at, g.updated_at, gm.role
 		FROM groups g
 		JOIN group_members gm ON gm.group_id = g.id
 		WHERE gm.person_id = $1 AND g.tenant_id = $2
@@ -331,19 +331,29 @@ func (s *Service) GetPersonGroups(ctx context.Context, tenantID, personID string
 	}
 	defer rows.Close()
 
-	groups := []Group{}
+	groups := []map[string]interface{}{}
 	for rows.Next() {
 		var g Group
+		var role string
 		err := rows.Scan(
 			&g.ID, &g.TenantID, &g.Name, &g.Description, &g.GroupType,
 			&g.MeetingDay, &g.MeetingTime, &g.MeetingLocation,
 			&g.IsPublic, &g.MaxMembers, &g.IsActive, &g.PhotoURL,
-			&g.CreatedAt, &g.UpdatedAt,
+			&g.CreatedAt, &g.UpdatedAt, &role,
 		)
 		if err != nil {
 			return nil, fmt.Errorf("failed to scan group: %w", err)
 		}
-		groups = append(groups, g)
+		m := map[string]interface{}{
+			"id": g.ID, "tenant_id": g.TenantID, "name": g.Name,
+			"description": g.Description, "group_type": g.GroupType,
+			"meeting_day": g.MeetingDay, "meeting_time": g.MeetingTime,
+			"meeting_location": g.MeetingLocation, "is_public": g.IsPublic,
+			"max_members": g.MaxMembers, "is_active": g.IsActive,
+			"photo_url": g.PhotoURL, "created_at": g.CreatedAt,
+			"updated_at": g.UpdatedAt, "role": role,
+		}
+		groups = append(groups, m)
 	}
 
 	return groups, nil

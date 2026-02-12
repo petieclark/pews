@@ -29,7 +29,7 @@ func (s *Service) ListStations(ctx context.Context, tenantID string) ([]Station,
 	if err := s.setTenant(ctx, tenantID); err != nil {
 		return nil, err
 	}
-	rows, err := s.db.Query(ctx, `SELECT id, tenant_id, name, location, is_active, created_at, updated_at FROM checkin_stations ORDER BY name`)
+	rows, err := s.db.Query(ctx, `SELECT id, tenant_id, name, COALESCE(location, ''), is_active, created_at, updated_at FROM checkin_stations WHERE tenant_id = $1 ORDER BY name`, tenantID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to list stations: %w", err)
 	}
@@ -63,8 +63,8 @@ func (s *Service) UpdateStation(ctx context.Context, tenantID, stationID string,
 	if err := s.setTenant(ctx, tenantID); err != nil {
 		return nil, err
 	}
-	err := s.db.QueryRow(ctx, `UPDATE checkin_stations SET name = $1, location = $2, is_active = $3 WHERE id = $4 RETURNING created_at, updated_at`,
-		st.Name, st.Location, st.IsActive, stationID).Scan(&st.CreatedAt, &st.UpdatedAt)
+	err := s.db.QueryRow(ctx, `UPDATE checkin_stations SET name = $1, location = $2, is_active = $3 WHERE id = $4 AND tenant_id = $5 RETURNING created_at, updated_at`,
+		st.Name, st.Location, st.IsActive, stationID, tenantID).Scan(&st.CreatedAt, &st.UpdatedAt)
 	if err != nil {
 		if err == pgx.ErrNoRows {
 			return nil, fmt.Errorf("station not found")
@@ -82,7 +82,7 @@ func (s *Service) ListEvents(ctx context.Context, tenantID string) ([]Event, err
 	if err := s.setTenant(ctx, tenantID); err != nil {
 		return nil, err
 	}
-	rows, err := s.db.Query(ctx, `SELECT e.id, e.tenant_id, e.name, e.event_date, e.service_id, e.station_id, e.is_active, e.created_at, e.updated_at, COUNT(c.id) as checkin_count FROM checkin_events e LEFT JOIN checkins c ON c.event_id = e.id GROUP BY e.id ORDER BY e.event_date DESC, e.created_at DESC`)
+	rows, err := s.db.Query(ctx, `SELECT e.id, e.tenant_id, e.name, e.event_date, e.service_id, e.station_id, e.is_active, e.created_at, e.updated_at, COUNT(c.id) as checkin_count FROM checkin_events e LEFT JOIN checkins c ON c.event_id = e.id WHERE e.tenant_id = $1 GROUP BY e.id ORDER BY e.event_date DESC, e.created_at DESC`, tenantID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to list events: %w", err)
 	}
@@ -116,8 +116,8 @@ func (s *Service) UpdateEvent(ctx context.Context, tenantID, eventID string, ev 
 	if err := s.setTenant(ctx, tenantID); err != nil {
 		return nil, err
 	}
-	err := s.db.QueryRow(ctx, `UPDATE checkin_events SET name = $1, event_date = $2, service_id = $3, station_id = $4, is_active = $5 WHERE id = $6 RETURNING created_at, updated_at`,
-		ev.Name, ev.EventDate, ev.ServiceID, ev.StationID, ev.IsActive, eventID).Scan(&ev.CreatedAt, &ev.UpdatedAt)
+	err := s.db.QueryRow(ctx, `UPDATE checkin_events SET name = $1, event_date = $2, service_id = $3, station_id = $4, is_active = $5 WHERE id = $6 AND tenant_id = $7 RETURNING created_at, updated_at`,
+		ev.Name, ev.EventDate, ev.ServiceID, ev.StationID, ev.IsActive, eventID, tenantID).Scan(&ev.CreatedAt, &ev.UpdatedAt)
 	if err != nil {
 		if err == pgx.ErrNoRows {
 			return nil, fmt.Errorf("event not found")
@@ -134,7 +134,7 @@ func (s *Service) GetEvent(ctx context.Context, tenantID, eventID string) (*Even
 		return nil, err
 	}
 	var ev Event
-	err := s.db.QueryRow(ctx, `SELECT e.id, e.tenant_id, e.name, e.event_date, e.service_id, e.station_id, e.is_active, e.created_at, e.updated_at, COUNT(c.id) as checkin_count FROM checkin_events e LEFT JOIN checkins c ON c.event_id = e.id WHERE e.id = $1 GROUP BY e.id`, eventID).Scan(
+	err := s.db.QueryRow(ctx, `SELECT e.id, e.tenant_id, e.name, e.event_date, e.service_id, e.station_id, e.is_active, e.created_at, e.updated_at, COUNT(c.id) as checkin_count FROM checkin_events e LEFT JOIN checkins c ON c.event_id = e.id WHERE e.id = $1 AND e.tenant_id = $2 GROUP BY e.id`, eventID, tenantID).Scan(
 		&ev.ID, &ev.TenantID, &ev.Name, &ev.EventDate, &ev.ServiceID, &ev.StationID, &ev.IsActive, &ev.CreatedAt, &ev.UpdatedAt, &ev.CheckinCount)
 	if err != nil {
 		if err == pgx.ErrNoRows {
@@ -152,7 +152,7 @@ func (s *Service) CheckIn(ctx context.Context, tenantID, eventID, personID strin
 		return nil, err
 	}
 	var previousCount int
-	err := s.db.QueryRow(ctx, `SELECT COUNT(*) FROM checkins WHERE person_id = $1`, personID).Scan(&previousCount)
+	err := s.db.QueryRow(ctx, `SELECT COUNT(*) FROM checkins WHERE tenant_id = $1 AND person_id = $2`, tenantID, personID).Scan(&previousCount)
 	if err != nil {
 		return nil, fmt.Errorf("failed to check history: %w", err)
 	}
@@ -177,7 +177,7 @@ func (s *Service) CheckOut(ctx context.Context, tenantID, eventID, personID stri
 		return err
 	}
 	now := time.Now()
-	result, err := s.db.Exec(ctx, `UPDATE checkins SET checked_out_at = $1 WHERE event_id = $2 AND person_id = $3 AND checked_out_at IS NULL`, now, eventID, personID)
+	result, err := s.db.Exec(ctx, `UPDATE checkins SET checked_out_at = $1 WHERE tenant_id = $2 AND event_id = $3 AND person_id = $4 AND checked_out_at IS NULL`, now, tenantID, eventID, personID)
 	if err != nil {
 		return fmt.Errorf("failed to check out: %w", err)
 	}
@@ -191,7 +191,7 @@ func (s *Service) GetAttendees(ctx context.Context, tenantID, eventID string) ([
 	if err := s.setTenant(ctx, tenantID); err != nil {
 		return nil, err
 	}
-	rows, err := s.db.Query(ctx, `SELECT c.id, c.tenant_id, c.event_id, c.person_id, c.station_id, c.first_time, c.checked_in_at, c.checked_out_at, c.notes, c.created_at, COALESCE(p.first_name || ' ' || p.last_name, '') as person_name, COALESCE(p.email, '') as person_email, COALESCE(cs.name, '') as station_name FROM checkins c JOIN people p ON p.id = c.person_id LEFT JOIN checkin_stations cs ON cs.id = c.station_id WHERE c.event_id = $1 ORDER BY c.checked_in_at DESC`, eventID)
+	rows, err := s.db.Query(ctx, `SELECT c.id, c.tenant_id, c.event_id, c.person_id, c.station_id, c.first_time, c.checked_in_at, c.checked_out_at, COALESCE(c.notes, ''), c.created_at, COALESCE(p.first_name || ' ' || p.last_name, '') as person_name, COALESCE(p.email, '') as person_email, COALESCE(cs.name, '') as station_name FROM checkins c JOIN people p ON p.id = c.person_id LEFT JOIN checkin_stations cs ON cs.id = c.station_id WHERE c.event_id = $1 AND c.tenant_id = $2 ORDER BY c.checked_in_at DESC`, eventID, tenantID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get attendees: %w", err)
 	}
@@ -211,7 +211,7 @@ func (s *Service) GetPersonHistory(ctx context.Context, tenantID, personID strin
 	if err := s.setTenant(ctx, tenantID); err != nil {
 		return nil, err
 	}
-	rows, err := s.db.Query(ctx, `SELECT c.id, c.tenant_id, c.event_id, c.person_id, c.station_id, c.first_time, c.checked_in_at, c.checked_out_at, c.notes, c.created_at, '' as person_name, '' as person_email, COALESCE(cs.name, '') as station_name FROM checkins c LEFT JOIN checkin_stations cs ON cs.id = c.station_id WHERE c.person_id = $1 ORDER BY c.checked_in_at DESC LIMIT 100`, personID)
+	rows, err := s.db.Query(ctx, `SELECT c.id, c.tenant_id, c.event_id, c.person_id, c.station_id, c.first_time, c.checked_in_at, c.checked_out_at, COALESCE(c.notes, ''), c.created_at, COALESCE(e.name, '') as person_name, '' as person_email, COALESCE(cs.name, '') as station_name FROM checkins c LEFT JOIN checkin_stations cs ON cs.id = c.station_id LEFT JOIN checkin_events e ON e.id = c.event_id WHERE c.person_id = $1 AND c.tenant_id = $2 ORDER BY c.checked_in_at DESC LIMIT 100`, personID, tenantID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get person history: %w", err)
 	}
@@ -233,7 +233,7 @@ func (s *Service) GetAlerts(ctx context.Context, tenantID, personID string) ([]M
 	if err := s.setTenant(ctx, tenantID); err != nil {
 		return nil, err
 	}
-	rows, err := s.db.Query(ctx, `SELECT id, tenant_id, person_id, alert_type, severity, description, created_at, updated_at FROM medical_alerts WHERE person_id = $1 ORDER BY severity DESC, created_at DESC`, personID)
+	rows, err := s.db.Query(ctx, `SELECT id, tenant_id, person_id, alert_type, severity, description, created_at, updated_at FROM medical_alerts WHERE tenant_id = $1 AND person_id = $2 ORDER BY severity DESC, created_at DESC`, tenantID, personID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get alerts: %w", err)
 	}
@@ -267,7 +267,7 @@ func (s *Service) DeleteAlert(ctx context.Context, tenantID, alertID string) err
 	if err := s.setTenant(ctx, tenantID); err != nil {
 		return err
 	}
-	result, err := s.db.Exec(ctx, "DELETE FROM medical_alerts WHERE id = $1", alertID)
+	result, err := s.db.Exec(ctx, "DELETE FROM medical_alerts WHERE id = $1 AND tenant_id = $2", alertID, tenantID)
 	if err != nil {
 		return fmt.Errorf("failed to delete alert: %w", err)
 	}
@@ -283,7 +283,7 @@ func (s *Service) GetPickups(ctx context.Context, tenantID, childID string) ([]A
 	if err := s.setTenant(ctx, tenantID); err != nil {
 		return nil, err
 	}
-	rows, err := s.db.Query(ctx, `SELECT ap.id, ap.tenant_id, ap.child_id, ap.pickup_person_id, ap.relationship, ap.is_active, ap.created_at, ap.updated_at, COALESCE(p.first_name || ' ' || p.last_name, '') as pickup_person_name FROM authorized_pickups ap JOIN people p ON p.id = ap.pickup_person_id WHERE ap.child_id = $1 ORDER BY ap.relationship, p.last_name`, childID)
+	rows, err := s.db.Query(ctx, `SELECT ap.id, ap.tenant_id, ap.child_id, ap.pickup_person_id, ap.relationship, ap.is_active, ap.created_at, ap.updated_at, COALESCE(p.first_name || ' ' || p.last_name, '') as pickup_person_name FROM authorized_pickups ap JOIN people p ON p.id = ap.pickup_person_id WHERE ap.tenant_id = $1 AND ap.child_id = $2 ORDER BY ap.relationship, p.last_name`, tenantID, childID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get pickups: %w", err)
 	}
@@ -317,7 +317,7 @@ func (s *Service) DeletePickup(ctx context.Context, tenantID, pickupID string) e
 	if err := s.setTenant(ctx, tenantID); err != nil {
 		return err
 	}
-	result, err := s.db.Exec(ctx, "DELETE FROM authorized_pickups WHERE id = $1", pickupID)
+	result, err := s.db.Exec(ctx, "DELETE FROM authorized_pickups WHERE id = $1 AND tenant_id = $2", pickupID, tenantID)
 	if err != nil {
 		return fmt.Errorf("failed to delete pickup: %w", err)
 	}
@@ -335,11 +335,11 @@ func (s *Service) GetTodayStats(ctx context.Context, tenantID string) (*Stats, e
 	}
 	today := time.Now().Format("2006-01-02")
 	stats := &Stats{}
-	err := s.db.QueryRow(ctx, `SELECT COUNT(*), COALESCE(SUM(CASE WHEN first_time THEN 1 ELSE 0 END), 0) FROM checkins c JOIN checkin_events e ON e.id = c.event_id WHERE e.event_date = $1`, today).Scan(&stats.TotalCheckins, &stats.FirstTimers)
+	err := s.db.QueryRow(ctx, `SELECT COUNT(*), COALESCE(SUM(CASE WHEN first_time THEN 1 ELSE 0 END), 0) FROM checkins c JOIN checkin_events e ON e.id = c.event_id WHERE c.tenant_id = $1 AND e.event_date = $2`, tenantID, today).Scan(&stats.TotalCheckins, &stats.FirstTimers)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get stats: %w", err)
 	}
-	rows, err := s.db.Query(ctx, `SELECT COALESCE(c.station_id::text, 'unassigned'), COALESCE(cs.name, 'Unassigned'), COUNT(*) FROM checkins c JOIN checkin_events e ON e.id = c.event_id LEFT JOIN checkin_stations cs ON cs.id = c.station_id WHERE e.event_date = $1 GROUP BY c.station_id, cs.name ORDER BY COUNT(*) DESC`, today)
+	rows, err := s.db.Query(ctx, `SELECT COALESCE(c.station_id::text, 'unassigned'), COALESCE(cs.name, 'Unassigned'), COUNT(*) FROM checkins c JOIN checkin_events e ON e.id = c.event_id LEFT JOIN checkin_stations cs ON cs.id = c.station_id WHERE c.tenant_id = $1 AND e.event_date = $2 GROUP BY c.station_id, cs.name ORDER BY COUNT(*) DESC`, tenantID, today)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get station stats: %w", err)
 	}
@@ -361,7 +361,7 @@ func (s *Service) SearchPeople(ctx context.Context, tenantID, query string) ([]P
 	if err := s.setTenant(ctx, tenantID); err != nil {
 		return nil, err
 	}
-	rows, err := s.db.Query(ctx, `SELECT id, first_name, last_name, COALESCE(email, ''), COALESCE(phone, ''), COALESCE(photo_url, '') FROM people WHERE (first_name ILIKE $1 OR last_name ILIKE $1 OR email ILIKE $1 OR phone ILIKE $1 OR (first_name || ' ' || last_name) ILIKE $1) ORDER BY last_name, first_name LIMIT 20`, "%"+query+"%")
+	rows, err := s.db.Query(ctx, `SELECT id, first_name, last_name, COALESCE(email, ''), COALESCE(phone, ''), COALESCE(photo_url, '') FROM people WHERE tenant_id = $1 AND (first_name ILIKE $2 OR last_name ILIKE $2 OR email ILIKE $2 OR phone ILIKE $2 OR (first_name || ' ' || last_name) ILIKE $2) ORDER BY last_name, first_name LIMIT 20`, tenantID, "%"+query+"%")
 	if err != nil {
 		return nil, fmt.Errorf("failed to search people: %w", err)
 	}
@@ -391,23 +391,23 @@ func (s *Service) GetAttendanceTrends(ctx context.Context, tenantID, period stri
 			COUNT(c.id) as count
 		FROM checkin_events e
 		LEFT JOIN checkins c ON c.event_id = e.id
-		WHERE e.event_date >= CURRENT_DATE - INTERVAL '12 weeks'
+		WHERE e.tenant_id = $1 AND e.event_date >= CURRENT_DATE - INTERVAL '12 weeks'
 		GROUP BY period
 		ORDER BY period DESC
-		LIMIT $1`
+		LIMIT $2`
 	} else {
 		query = `SELECT 
 			to_char(e.event_date::date, 'YYYY-MM') as period,
 			COUNT(c.id) as count
 		FROM checkin_events e
 		LEFT JOIN checkins c ON c.event_id = e.id
-		WHERE e.event_date >= CURRENT_DATE - INTERVAL '12 months'
+		WHERE e.tenant_id = $1 AND e.event_date >= CURRENT_DATE - INTERVAL '12 months'
 		GROUP BY period
 		ORDER BY period DESC
-		LIMIT $1`
+		LIMIT $2`
 	}
 	
-	rows, err := s.db.Query(ctx, query, limit)
+	rows, err := s.db.Query(ctx, query, tenantID, limit)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get attendance trends: %w", err)
 	}
@@ -431,13 +431,13 @@ func (s *Service) GetPersonAttendance(ctx context.Context, tenantID, personID st
 	
 	attendance := &PersonAttendance{}
 	
-	err := s.db.QueryRow(ctx, `SELECT COUNT(*) FROM checkins WHERE person_id = $1`, personID).Scan(&attendance.TotalCount)
+	err := s.db.QueryRow(ctx, `SELECT COUNT(*) FROM checkins WHERE tenant_id = $1 AND person_id = $2`, tenantID, personID).Scan(&attendance.TotalCount)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get total count: %w", err)
 	}
 	
 	var lastAttended *time.Time
-	err = s.db.QueryRow(ctx, `SELECT MAX(checked_in_at) FROM checkins WHERE person_id = $1`, personID).Scan(&lastAttended)
+	err = s.db.QueryRow(ctx, `SELECT MAX(checked_in_at) FROM checkins WHERE tenant_id = $1 AND person_id = $2`, tenantID, personID).Scan(&lastAttended)
 	if err != nil && err != pgx.ErrNoRows {
 		return nil, fmt.Errorf("failed to get last attended: %w", err)
 	}
@@ -446,18 +446,18 @@ func (s *Service) GetPersonAttendance(ctx context.Context, tenantID, personID st
 		attendance.LastAttended = &formatted
 	}
 	
-	attendance.Streak = s.calculateStreak(ctx, personID)
+	attendance.Streak = s.calculateStreak(ctx, tenantID, personID)
 	
 	rows, err := s.db.Query(ctx, `
 		SELECT 
 			DATE(c.checked_in_at) as date,
 			COUNT(*) as count
 		FROM checkins c
-		WHERE c.person_id = $1 
+		WHERE c.tenant_id = $1 AND c.person_id = $2 
 		AND c.checked_in_at >= CURRENT_DATE - INTERVAL '365 days'
 		GROUP BY DATE(c.checked_in_at)
 		ORDER BY date DESC
-	`, personID)
+	`, tenantID, personID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get attendance data: %w", err)
 	}
@@ -483,13 +483,13 @@ func (s *Service) GetPersonAttendance(ctx context.Context, tenantID, personID st
 	return attendance, nil
 }
 
-func (s *Service) calculateStreak(ctx context.Context, personID string) int {
+func (s *Service) calculateStreak(ctx context.Context, tenantID, personID string) int {
 	rows, err := s.db.Query(ctx, `
 		SELECT DISTINCT DATE(checked_in_at) as date
 		FROM checkins
-		WHERE person_id = $1
+		WHERE tenant_id = $1 AND person_id = $2
 		ORDER BY date DESC
-	`, personID)
+	`, tenantID, personID)
 	if err != nil {
 		return 0
 	}
@@ -532,8 +532,8 @@ func (s *Service) GetServiceAttendance(ctx context.Context, tenantID, serviceID 
 		SELECT COUNT(c.id)
 		FROM checkins c
 		JOIN checkin_events e ON e.id = c.event_id
-		WHERE e.service_id = $1
-	`, serviceID).Scan(&sa.AttendanceCount)
+		WHERE c.tenant_id = $1 AND e.service_id = $2
+	`, tenantID, serviceID).Scan(&sa.AttendanceCount)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get attendance count: %w", err)
 	}
@@ -544,10 +544,10 @@ func (s *Service) GetServiceAttendance(ctx context.Context, tenantID, serviceID 
 			SELECT e.id, COUNT(c.id) as event_count
 			FROM checkin_events e
 			LEFT JOIN checkins c ON c.event_id = e.id
-			WHERE e.service_id IS NOT NULL
+			WHERE e.tenant_id = $1 AND e.service_id = $2
 			GROUP BY e.id
 		) subq
-	`).Scan(&sa.AverageCount)
+	`, tenantID, serviceID).Scan(&sa.AverageCount)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get average: %w", err)
 	}
@@ -555,7 +555,7 @@ func (s *Service) GetServiceAttendance(ctx context.Context, tenantID, serviceID 
 	rows, err := s.db.Query(ctx, `
 		SELECT DISTINCT ON (c.person_id)
 			c.id, c.tenant_id, c.event_id, c.person_id, c.station_id, 
-			c.first_time, c.checked_in_at, c.checked_out_at, c.notes, c.created_at,
+			c.first_time, c.checked_in_at, c.checked_out_at, COALESCE(c.notes, ''), c.created_at,
 			COALESCE(p.first_name || ' ' || p.last_name, '') as person_name,
 			COALESCE(p.email, '') as person_email,
 			COALESCE(cs.name, '') as station_name
@@ -563,9 +563,9 @@ func (s *Service) GetServiceAttendance(ctx context.Context, tenantID, serviceID 
 		JOIN checkin_events e ON e.id = c.event_id
 		JOIN people p ON p.id = c.person_id
 		LEFT JOIN checkin_stations cs ON cs.id = c.station_id
-		WHERE e.service_id = $1
+		WHERE c.tenant_id = $1 AND e.service_id = $2
 		ORDER BY c.person_id, c.checked_in_at DESC
-	`, serviceID)
+	`, tenantID, serviceID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get attendees: %w", err)
 	}
@@ -600,10 +600,10 @@ func (s *Service) GetFirstTimersThisWeek(ctx context.Context, tenantID string) (
 		FROM checkins c
 		JOIN people p ON p.id = c.person_id
 		JOIN checkin_events e ON e.id = c.event_id
-		WHERE c.first_time = true
+		WHERE c.tenant_id = $1 AND c.first_time = true
 		AND c.checked_in_at >= date_trunc('week', CURRENT_DATE)
 		ORDER BY c.checked_in_at DESC
-	`)
+	`, tenantID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get first timers: %w", err)
 	}

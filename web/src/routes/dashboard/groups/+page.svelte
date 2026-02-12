@@ -25,6 +25,11 @@
 		photo_url: ''
 	};
 
+	let leaderSearch = '';
+	let leaderResults = [];
+	let selectedLeader = null;
+	let leaderSearchTimeout;
+
 	const groupTypes = [
 		{ value: 'small_group', label: 'Small Group' },
 		{ value: 'ministry_team', label: 'Ministry Team' },
@@ -77,11 +82,32 @@
 	function handleFilter() { page = 1; loadGroups(); }
 	function viewGroup(id) { goto(`/dashboard/groups/${id}`); }
 
+	function handleLeaderSearch() {
+		clearTimeout(leaderSearchTimeout);
+		if (leaderSearch.length < 2) { leaderResults = []; return; }
+		leaderSearchTimeout = setTimeout(async () => {
+			try {
+				leaderResults = await api(`/api/checkins/search?q=${encodeURIComponent(leaderSearch)}`);
+			} catch { leaderResults = []; }
+		}, 300);
+	}
+
+	function selectLeader(person) {
+		selectedLeader = person;
+		leaderSearch = `${person.first_name} ${person.last_name}`;
+		leaderResults = [];
+	}
+
 	async function createGroup() {
 		try {
 			const payload = { ...newGroup };
 			if (!payload.max_members) payload.max_members = null;
-			await api('/api/groups', { method: 'POST', body: JSON.stringify(payload) });
+			const created = await api('/api/groups', { method: 'POST', body: JSON.stringify(payload) });
+			if (selectedLeader && created.id) {
+				try {
+					await api(`/api/groups/${created.id}/members`, { method: 'POST', body: JSON.stringify({ person_id: selectedLeader.id, role: 'leader' }) });
+				} catch (e) { console.error('Failed to add leader:', e); }
+			}
 			showCreateModal = false;
 			resetNewGroup();
 			loadGroups();
@@ -90,6 +116,9 @@
 
 	function resetNewGroup() {
 		newGroup = { name: '', description: '', group_type: 'small_group', meeting_day: '', meeting_time: '', meeting_location: '', is_public: true, is_active: true, max_members: null, photo_url: '' };
+		leaderSearch = '';
+		leaderResults = [];
+		selectedLeader = null;
 	}
 
 	function getGroupTypeLabel(type) {
@@ -246,6 +275,24 @@
 						<div>
 							<label class="block text-sm font-medium text-secondary mb-1">Max Members</label>
 							<input type="number" bind:value={newGroup.max_members} min="1" class="w-full px-3 py-2 border border-custom rounded-md bg-surface text-primary" placeholder="Optional" />
+						</div>
+						<div class="col-span-2 relative">
+							<label class="block text-sm font-medium text-secondary mb-1">Leader</label>
+							<input type="text" bind:value={leaderSearch} on:input={handleLeaderSearch} class="w-full px-3 py-2 border border-custom rounded-md bg-surface text-primary" placeholder="Search for a leader..." />
+							{#if selectedLeader}
+								<div class="mt-1 text-sm text-[var(--teal)]">✓ {selectedLeader.first_name} {selectedLeader.last_name}
+									<button type="button" on:click={() => { selectedLeader = null; leaderSearch = ''; }} class="ml-2 text-red-500 text-xs">clear</button>
+								</div>
+							{/if}
+							{#if leaderResults.length > 0 && !selectedLeader}
+								<div class="absolute z-10 w-full mt-1 bg-surface border border-custom rounded-md shadow-lg max-h-40 overflow-y-auto">
+									{#each leaderResults as person}
+										<button type="button" class="w-full px-3 py-2 text-left hover:bg-[var(--surface-hover)] text-sm" on:click={() => selectLeader(person)}>
+											{person.first_name} {person.last_name} {person.email ? `(${person.email})` : ''}
+										</button>
+									{/each}
+								</div>
+							{/if}
 						</div>
 						<div>
 							<label class="block text-sm font-medium text-secondary mb-1">Meeting Day</label>
