@@ -29,6 +29,12 @@ func (s *Service) ListSermons(ctx context.Context, tenantID string, filters Serm
 	args := []interface{}{tenantID}
 	argCount := 1
 
+	if filters.Query != "" {
+		argCount++
+		query += fmt.Sprintf(" AND (title ILIKE $%d OR speaker ILIKE $%d OR scripture_reference ILIKE $%d OR series_name ILIKE $%d)", argCount, argCount, argCount, argCount)
+		args = append(args, "%"+filters.Query+"%")
+	}
+
 	if filters.Series != "" {
 		argCount++
 		query += fmt.Sprintf(" AND series_name = $%d", argCount)
@@ -233,6 +239,17 @@ func (s *Service) DeleteSermon(ctx context.Context, tenantID, sermonID string) e
 		return fmt.Errorf("sermon not found")
 	}
 
+	return nil
+}
+
+func (s *Service) SetPublished(ctx context.Context, tenantID, sermonID string, published bool) error {
+	result, err := s.db.Exec(ctx, `UPDATE sermon_notes SET published = $1 WHERE id = $2 AND tenant_id = $3`, published, sermonID, tenantID)
+	if err != nil {
+		return err
+	}
+	if result.RowsAffected() == 0 {
+		return fmt.Errorf("sermon not found")
+	}
 	return nil
 }
 

@@ -42,26 +42,26 @@
 	}
 
 	async function loadAvailableTags() {
-		try { availableTags = await api('/api/tags'); } catch (e) { }
+		try { availableTags = await api('/api/tags', { silent: true }); } catch (e) { }
 	}
 
 	async function loadEngagementScore() {
-		try { engagementScore = await api(`/api/engagement/scores/${personId}`); } catch (e) { engagementScore = null; }
+		try { engagementScore = await api(`/api/engagement/scores/${personId}`, { silent: true }); } catch (e) { engagementScore = null; }
 	}
 
 	async function loadGroups() {
-		try { groups = await api(`/api/groups/person/${personId}`); } catch (e) { groups = []; }
+		try { groups = await api(`/api/groups/person/${personId}`, { silent: true }); } catch (e) { groups = []; }
 	}
 
 	async function loadActivity() {
 		try {
-			const res = await api(`/api/activity?entity_type=people&limit=10`);
+			const res = await api(`/api/activity?entity_type=people&limit=10`, { silent: true });
 			activityLog = (res.data || []).filter(a => a.entity_id === personId);
 		} catch (e) { activityLog = []; }
 	}
 
 	async function loadGiving() {
-		try { givingHistory = await api(`/api/giving/person/${personId}`); } catch (e) { givingHistory = []; }
+		try { givingHistory = await api(`/api/giving/person/${personId}`, { silent: true }); } catch (e) { givingHistory = []; }
 	}
 
 	async function recalculateEngagement() {

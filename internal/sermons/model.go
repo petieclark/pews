@@ -21,6 +21,7 @@ type Sermon struct {
 }
 
 type SermonFilters struct {
+	Query       string
 	Series      string
 	Speaker     string
 	DateFrom    string

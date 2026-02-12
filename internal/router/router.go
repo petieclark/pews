@@ -279,6 +279,7 @@ func New(
 		r.Get("/api/sermons/{id}", sermonsHandler.GetSermon)
 		r.Put("/api/sermons/{id}", sermonsHandler.UpdateSermon)
 		r.Delete("/api/sermons/{id}", sermonsHandler.DeleteSermon)
+		r.Put("/api/sermons/{id}/publish", sermonsHandler.PublishSermon)
 		// Giving - Funds
 		r.Get("/api/giving/funds", givingHandler.ListFunds)
 		r.Post("/api/giving/funds", givingHandler.CreateFund)

@@ -40,6 +40,7 @@ func (h *Handler) ListSermons(w http.ResponseWriter, r *http.Request) {
 	}
 
 	filters := SermonFilters{
+		Query:    r.URL.Query().Get("q"),
 		Series:   r.URL.Query().Get("series"),
 		Speaker:  r.URL.Query().Get("speaker"),
 		DateFrom: r.URL.Query().Get("date_from"),
@@ -198,6 +199,32 @@ func (h *Handler) DeleteSermon(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.WriteHeader(http.StatusNoContent)
+}
+
+func (h *Handler) PublishSermon(w http.ResponseWriter, r *http.Request) {
+	claims, ok := middleware.GetClaims(r.Context())
+	if !ok {
+		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		return
+	}
+
+	sermonID := chi.URLParam(r, "id")
+
+	var req struct {
+		Published bool `json:"published"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		// Default to toggling to published
+		req.Published = true
+	}
+
+	if err := h.service.SetPublished(r.Context(), claims.TenantID, sermonID, req.Published); err != nil {
+		http.Error(w, "Failed to update publish status: "+err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]interface{}{"published": req.Published})
 }
 
 func (h *Handler) GetPublicSermons(w http.ResponseWriter, r *http.Request) {
