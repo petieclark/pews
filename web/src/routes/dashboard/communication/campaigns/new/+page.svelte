@@ -17,21 +17,41 @@
 	let groups = [];
 	let loading = false;
 	let error = '';
+	let people = [];
+	let recipientCount = 0;
 
 	onMount(async () => {
 		try {
-			const [templatesData, tagsData, groupsData] = await Promise.all([
+			const [templatesData, tagsData, groupsData, peopleData] = await Promise.all([
 				api('/api/communication/templates'),
 				api('/api/tags'),
-				api('/api/groups')
+				api('/api/groups'),
+				api('/api/people')
 			]);
 			templates = templatesData;
 			tags = tagsData;
 			groups = groupsData;
+			people = peopleData || [];
+			updateRecipientCount();
 		} catch (err) {
 			error = err.message;
 		}
 	});
+
+	function updateRecipientCount() {
+		if (targetType === 'all') {
+			recipientCount = people.length;
+		} else if (targetType === 'group' && targetId) {
+			const g = groups.find(g => g.id === targetId);
+			recipientCount = g?.member_count || 0;
+		} else if (targetType === 'tag' && targetId) {
+			recipientCount = 0; // Will be resolved server-side
+		} else {
+			recipientCount = 0;
+		}
+	}
+
+	$: { targetType; targetId; updateRecipientCount(); }
 
 	function loadTemplate() {
 		if (!templateId) return;
@@ -142,6 +162,11 @@
 		<!-- Step 1: Audience -->
 		{#if step === 1}
 			<h2 class="text-xl font-semibold mb-4" style="color: var(--text-primary)">Choose Your Audience</h2>
+			{#if recipientCount > 0}
+				<div class="mb-4 px-4 py-3 rounded-lg" style="background: rgba(74,139,140,0.1); color: var(--teal)">
+					📬 Estimated <strong>{recipientCount}</strong> recipient{recipientCount !== 1 ? 's' : ''}
+				</div>
+			{/if}
 			<div class="space-y-3">
 				<button on:click={() => { targetType = 'all'; targetId = ''; }}
 					class="w-full p-4 rounded-lg border text-left transition"
