@@ -390,6 +390,8 @@ func New(
 		r.Delete("/api/communication/journeys/{id}/steps/{stepId}", communicationHandler.DeleteJourneyStep)
 		r.Post("/api/communication/journeys/{id}/enroll", communicationHandler.EnrollInJourney)
 		r.Get("/api/communication/journeys/{id}/enrollments", communicationHandler.GetJourneyEnrollments)
+		r.Put("/api/communication/journeys/{id}/activate", communicationHandler.ToggleJourneyActive)
+		r.Post("/api/communication/journeys/process", communicationHandler.ProcessJourneySteps)
 
 		// Communication - Connection Cards (authenticated endpoints)
 		r.Get("/api/communication/cards", communicationHandler.ListConnectionCards)

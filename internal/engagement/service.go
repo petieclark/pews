@@ -316,7 +316,7 @@ func (s *Service) GetAllScores(ctx context.Context, tenantID string) ([]Engageme
 			es.id, es.tenant_id, es.person_id, es.score,
 			es.attendance_score, es.giving_score, es.group_score,
 			es.volunteer_score, es.connection_score, es.calculated_at,
-			p.first_name || ' ' || p.last_name as person_name,
+			COALESCE(p.first_name, '') || ' ' || COALESCE(p.last_name, '') as person_name,
 			p.email as person_email
 		FROM engagement_scores es
 		JOIN people p ON p.id = es.person_id
@@ -360,7 +360,7 @@ func (s *Service) GetPersonScore(ctx context.Context, tenantID, personID string)
 			es.id, es.tenant_id, es.person_id, es.score,
 			es.attendance_score, es.giving_score, es.group_score,
 			es.volunteer_score, es.connection_score, es.calculated_at,
-			p.first_name || ' ' || p.last_name as person_name,
+			COALESCE(p.first_name, '') || ' ' || COALESCE(p.last_name, '') as person_name,
 			p.email as person_email
 		FROM engagement_scores es
 		JOIN people p ON p.id = es.person_id
@@ -407,7 +407,7 @@ func (s *Service) GetAtRiskPeople(ctx context.Context, tenantID string) ([]AtRis
 		)
 		SELECT 
 			cs.person_id,
-			p.first_name || ' ' || p.last_name as person_name,
+			COALESCE(p.first_name, '') || ' ' || COALESCE(p.last_name, '') as person_name,
 			p.email,
 			cs.score as current_score,
 			COALESCE(ps.score, cs.score) as previous_score,

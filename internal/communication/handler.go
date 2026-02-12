@@ -580,6 +580,43 @@ func (h *Handler) GetJourneyEnrollments(w http.ResponseWriter, r *http.Request) 
 	json.NewEncoder(w).Encode(enrollments)
 }
 
+// ===== JOURNEY ACTIVATION =====
+
+func (h *Handler) ToggleJourneyActive(w http.ResponseWriter, r *http.Request) {
+	claims, ok := middleware.GetClaims(r.Context())
+	if !ok {
+		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		return
+	}
+
+	journeyID := chi.URLParam(r, "id")
+
+	journey, err := h.service.ToggleJourneyActive(r.Context(), claims.TenantID, journeyID)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(journey)
+}
+
+// ===== JOURNEY PROCESSING =====
+
+func (h *Handler) ProcessJourneySteps(w http.ResponseWriter, r *http.Request) {
+	processed, err := h.service.ProcessDueSteps(r.Context())
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]interface{}{
+		"processed": processed,
+		"status":    "ok",
+	})
+}
+
 // ===== CONNECTION CARDS =====
 
 type SubmitConnectionCardRequest struct {
@@ -627,6 +664,22 @@ func (h *Handler) SubmitConnectionCard(w http.ResponseWriter, r *http.Request) {
 
 	// Send welcome email (async, best-effort)
 	go h.service.GetSender().SendWelcomeEmail(context.Background(), tenantID, created)
+
+	// Auto-enroll in connection_card journeys (best-effort, async)
+	// First, create or find person for this card
+	go func() {
+		bgCtx := context.Background()
+		// Try to find person by email, then enroll
+		if created.Email != "" {
+			var personID string
+			err := h.service.GetDB().QueryRow(bgCtx,
+				`SELECT id FROM people WHERE tenant_id = $1 AND email = $2 LIMIT 1`,
+				tenantID, created.Email).Scan(&personID)
+			if err == nil && personID != "" {
+				h.service.AutoEnrollByTrigger(bgCtx, tenantID, "connection_card", personID)
+			}
+		}
+	}()
 
 	// Create notification for all admins
 	notifTitle := "New Connection Card"

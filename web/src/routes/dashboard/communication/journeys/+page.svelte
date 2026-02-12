@@ -89,7 +89,11 @@
 					<div class="text-sm space-y-2 mb-4" style="color: var(--text-secondary)">
 						<div>
 							<span class="font-medium">Trigger:</span>
-							<span class="capitalize">{journey.trigger_type.replace('_', ' ')}</span>
+							<span class="capitalize">{journey.trigger_type.replace(/_/g, ' ')}</span>
+						</div>
+						<div>
+							<span class="font-medium">Steps:</span>
+							<span>{journey.steps ? journey.steps.length : '—'}</span>
 						</div>
 						<div>
 							<span class="font-medium">Enrolled:</span>

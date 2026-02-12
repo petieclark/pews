@@ -64,7 +64,7 @@ func (s *Service) Search(ctx context.Context, tenantID string, query string) (*S
 
 	// Search People (name, email)
 	peopleRows, err := s.db.Query(ctx, `
-		SELECT id, first_name || ' ' || last_name as name, email
+		SELECT id, COALESCE(first_name, '') || ' ' || COALESCE(last_name, '') as name, COALESCE(email, '')
 		FROM people
 		WHERE first_name ILIKE $1 
 		   OR last_name ILIKE $1 
@@ -126,8 +126,8 @@ func (s *Service) Search(ctx context.Context, tenantID string, query string) (*S
 	// Search Services (notes)
 	serviceRows, err := s.db.Query(ctx, `
 		SELECT s.id, 
-		       COALESCE(s.name, st.name) as name,
-		       s.notes,
+		       COALESCE(s.name, st.name, '') as name,
+		       COALESCE(s.notes, ''),
 		       TO_CHAR(s.service_date, 'YYYY-MM-DD') as date
 		FROM church_services s
 		LEFT JOIN service_types st ON st.id = s.service_type_id

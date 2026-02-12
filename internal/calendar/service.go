@@ -446,7 +446,7 @@ func (s *Service) ListAvailableRooms(ctx context.Context, tenantID, startTime, e
 	}
 	defer rows.Close()
 
-	rooms := []map{}[string]interface{}
+	rooms := []map[string]interface{}{}
 	for rows.Next() {
 		var id, name, desc string
 		var capacity *int

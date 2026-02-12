@@ -18,7 +18,7 @@ func NewService(db *pgxpool.Pool) *Service {
 // ListPlans returns all service plans for the tenant
 func (s *Service) ListPlans(ctx context.Context, tenantID string) ([]ServicePlan, error) {
 	query := `
-		SELECT id, tenant_id, service_id, created_by, notes, status, created_at, updated_at
+		SELECT id, tenant_id, service_id, created_by, COALESCE(notes, ''), status, created_at, updated_at
 		FROM service_plans
 		WHERE tenant_id = $1
 		ORDER BY created_at DESC
@@ -55,7 +55,7 @@ func (s *Service) ListPlans(ctx context.Context, tenantID string) ([]ServicePlan
 // GetPlan returns a service plan with its items
 func (s *Service) GetPlan(ctx context.Context, tenantID, planID string) (*ServicePlan, error) {
 	query := `
-		SELECT id, tenant_id, service_id, created_by, notes, status, created_at, updated_at
+		SELECT id, tenant_id, service_id, created_by, COALESCE(notes, ''), status, created_at, updated_at
 		FROM service_plans
 		WHERE tenant_id = $1 AND id = $2
 	`
@@ -169,11 +169,11 @@ func (s *Service) PublishPlan(ctx context.Context, tenantID, planID string) (*Se
 func (s *Service) GetPlanItems(ctx context.Context, tenantID, planID string) ([]ServicePlanItem, error) {
 	query := `
 		SELECT 
-			spi.id, spi.plan_id, spi.item_order, spi.item_type, spi.title,
-			spi.duration_minutes, spi.notes, spi.song_id, spi.assigned_to,
+			spi.id, spi.plan_id, spi.item_order, spi.item_type, COALESCE(spi.title, ''),
+			spi.duration_minutes, COALESCE(spi.notes, ''), spi.song_id, spi.assigned_to,
 			spi.created_at, spi.updated_at,
-			songs.title as song_title,
-			users.email as assigned_to_name
+			COALESCE(songs.title, '') as song_title,
+			COALESCE(users.email, '') as assigned_to_name
 		FROM service_plan_items spi
 		INNER JOIN service_plans sp ON spi.plan_id = sp.id
 		LEFT JOIN songs ON spi.song_id = songs.id

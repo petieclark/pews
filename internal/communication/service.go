@@ -2,7 +2,9 @@ package communication
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
+	"log"
 	"time"
 
 	"github.com/google/uuid"
@@ -639,6 +641,213 @@ func (s *Service) GetJourneyEnrollments(ctx context.Context, tenantID, journeyID
 	}
 
 	return enrollments, nil
+}
+
+// ===== JOURNEY ACTIVATION =====
+
+func (s *Service) ToggleJourneyActive(ctx context.Context, tenantID, journeyID string) (*Journey, error) {
+	if err := s.setTenantContext(ctx, tenantID); err != nil {
+		return nil, err
+	}
+
+	query := `
+		UPDATE journeys SET is_active = NOT is_active, updated_at = NOW()
+		WHERE id = $1
+		RETURNING id, tenant_id, name, COALESCE(description,''), trigger_type, COALESCE(trigger_value,''), is_active, created_at, updated_at`
+
+	var j Journey
+	err := s.db.QueryRow(ctx, query, journeyID).Scan(
+		&j.ID, &j.TenantID, &j.Name, &j.Description, &j.TriggerType, &j.TriggerValue, &j.IsActive, &j.CreatedAt, &j.UpdatedAt,
+	)
+	if err != nil {
+		return nil, fmt.Errorf("journey not found: %w", err)
+	}
+	return &j, nil
+}
+
+// ===== JOURNEY PROCESSING ENGINE =====
+
+// ProcessDueSteps finds all enrollments where the next step is due and executes them.
+// Called via POST /api/journeys/process (cron endpoint).
+func (s *Service) ProcessDueSteps(ctx context.Context) (int, error) {
+	// Find all active enrollments where next_step_at <= now
+	query := `
+		SELECT je.id, je.journey_id, je.person_id, je.current_step,
+		       j.tenant_id
+		FROM journey_enrollments je
+		JOIN journeys j ON j.id = je.journey_id
+		WHERE je.status = 'active'
+		  AND j.is_active = true
+		  AND je.next_step_at IS NOT NULL
+		  AND je.next_step_at <= NOW()
+		ORDER BY je.next_step_at ASC`
+
+	rows, err := s.db.Query(ctx, query)
+	if err != nil {
+		return 0, fmt.Errorf("failed to query due enrollments: %w", err)
+	}
+	defer rows.Close()
+
+	type dueEnrollment struct {
+		ID          string
+		JourneyID   string
+		PersonID    string
+		CurrentStep int
+		TenantID    string
+	}
+
+	var due []dueEnrollment
+	for rows.Next() {
+		var d dueEnrollment
+		if err := rows.Scan(&d.ID, &d.JourneyID, &d.PersonID, &d.CurrentStep, &d.TenantID); err != nil {
+			continue
+		}
+		due = append(due, d)
+	}
+	rows.Close()
+
+	processed := 0
+	for _, d := range due {
+		if err := s.setTenantContext(ctx, d.TenantID); err != nil {
+			log.Printf("[journeys] failed to set tenant context for %s: %v", d.TenantID, err)
+			continue
+		}
+
+		err := s.executeJourneyStep(ctx, d.TenantID, d.JourneyID, d.ID, d.PersonID, d.CurrentStep)
+		if err != nil {
+			log.Printf("[journeys] failed to execute step for enrollment %s: %v", d.ID, err)
+			continue
+		}
+		processed++
+	}
+
+	return processed, nil
+}
+
+func (s *Service) executeJourneyStep(ctx context.Context, tenantID, journeyID, enrollmentID, personID string, currentStep int) error {
+	// Get the step at the current position
+	var step JourneyStep
+	err := s.db.QueryRow(ctx, `
+		SELECT id, journey_id, position, step_type, delay_days, delay_hours, template_id, config
+		FROM journey_steps
+		WHERE journey_id = $1 AND position = $2`, journeyID, currentStep+1,
+	).Scan(&step.ID, &step.JourneyID, &step.Position, &step.StepType, &step.DelayDays, &step.DelayHours, &step.TemplateID, &step.Config)
+	if err != nil {
+		// No more steps — mark enrollment complete
+		_, _ = s.db.Exec(ctx, `
+			UPDATE journey_enrollments SET status = 'completed', completed_at = NOW(), next_step_at = NULL
+			WHERE id = $1`, enrollmentID)
+		return nil
+	}
+
+	// Get person info for merge tags
+	var recipient RecipientInfo
+	_ = s.db.QueryRow(ctx,
+		`SELECT id, first_name, COALESCE(last_name,''), COALESCE(email,''), COALESCE(phone,'') FROM people WHERE id = $1`,
+		personID,
+	).Scan(&recipient.PersonID, &recipient.FirstName, &recipient.LastName, &recipient.Email, &recipient.Phone)
+
+	churchName := s.sender.getTenantName(ctx, tenantID)
+
+	// Resolve subject and body from config or template
+	var subject, body string
+	if step.Config != nil && len(step.Config) > 2 {
+		var cfg map[string]interface{}
+		if json.Unmarshal(step.Config, &cfg) == nil {
+			if s, ok := cfg["subject"].(string); ok {
+				subject = s
+			}
+			if b, ok := cfg["body"].(string); ok {
+				body = b
+			}
+		}
+	}
+
+	// Fall back to template if no inline content
+	if body == "" && step.TemplateID != nil {
+		_ = s.db.QueryRow(ctx,
+			`SELECT COALESCE(subject,''), body FROM message_templates WHERE id = $1`, *step.TemplateID,
+		).Scan(&subject, &body)
+	}
+
+	// Apply merge tags
+	subject = MergeTags(subject, recipient, churchName)
+	body = MergeTags(body, recipient, churchName)
+
+	// Execute based on step type
+	switch step.StepType {
+	case "send_email":
+		if s.sender.mailgun.IsConfigured() && recipient.Email != "" {
+			if err := s.sender.mailgun.SendEmail(recipient.Email, subject, body, "", churchName); err != nil {
+				log.Printf("[journeys] email send failed for enrollment %s step %d: %v", enrollmentID, step.Position, err)
+			} else {
+				log.Printf("[journeys] sent email to %s for enrollment %s step %d", recipient.Email, enrollmentID, step.Position)
+			}
+		}
+	case "send_sms":
+		if s.sender.twilio.IsConfigured() && recipient.Phone != "" {
+			if err := s.sender.twilio.SendSMS(recipient.Phone, body); err != nil {
+				log.Printf("[journeys] SMS send failed for enrollment %s step %d: %v", enrollmentID, step.Position, err)
+			} else {
+				log.Printf("[journeys] sent SMS to %s for enrollment %s step %d", recipient.Phone, enrollmentID, step.Position)
+			}
+		}
+	}
+
+	// Advance to next step
+	nextStep := currentStep + 1
+
+	// Check if there's another step after this one
+	var nextPosition int
+	var nextDelayDays, nextDelayHours int
+	err = s.db.QueryRow(ctx, `
+		SELECT position, delay_days, delay_hours FROM journey_steps
+		WHERE journey_id = $1 AND position = $2`, journeyID, nextStep+1,
+	).Scan(&nextPosition, &nextDelayDays, &nextDelayHours)
+
+	if err != nil {
+		// No more steps — complete
+		_, _ = s.db.Exec(ctx, `
+			UPDATE journey_enrollments SET current_step = $1, status = 'completed', completed_at = NOW(), next_step_at = NULL
+			WHERE id = $2`, nextStep, enrollmentID)
+	} else {
+		// Schedule next step
+		nextStepAt := time.Now().AddDate(0, 0, nextDelayDays).Add(time.Duration(nextDelayHours) * time.Hour)
+		_, _ = s.db.Exec(ctx, `
+			UPDATE journey_enrollments SET current_step = $1, next_step_at = $2
+			WHERE id = $3`, nextStep, nextStepAt, enrollmentID)
+	}
+
+	return nil
+}
+
+// AutoEnrollByTrigger enrolls a person in all active journeys matching the given trigger type.
+func (s *Service) AutoEnrollByTrigger(ctx context.Context, tenantID, triggerType, personID string) {
+	if err := s.setTenantContext(ctx, tenantID); err != nil {
+		return
+	}
+
+	rows, err := s.db.Query(ctx, `
+		SELECT id FROM journeys WHERE tenant_id = $1 AND is_active = true AND trigger_type = $2`,
+		tenantID, triggerType)
+	if err != nil {
+		log.Printf("[journeys] auto-enroll query failed: %v", err)
+		return
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		var journeyID string
+		if err := rows.Scan(&journeyID); err != nil {
+			continue
+		}
+		enrollment, err := s.EnrollInJourney(ctx, tenantID, journeyID, personID)
+		if err != nil {
+			log.Printf("[journeys] auto-enroll person %s in journey %s failed: %v", personID, journeyID, err)
+		} else {
+			log.Printf("[journeys] auto-enrolled person %s in journey %s (enrollment %s)", personID, journeyID, enrollment.ID)
+		}
+	}
 }
 
 // ===== CONNECTION CARDS =====

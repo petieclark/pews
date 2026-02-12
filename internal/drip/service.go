@@ -416,8 +416,8 @@ func (s *Service) ListEnrollments(ctx context.Context, tenantID, campaignID stri
 	query := `
 		SELECT 
 			e.id, e.campaign_id, e.person_id, e.status, e.enrolled_at, e.completed_at,
-			p.first_name || ' ' || p.last_name as person_name,
-			p.email as person_email
+			COALESCE(p.first_name, '') || ' ' || COALESCE(p.last_name, '') as person_name,
+			COALESCE(p.email, '') as person_email
 		FROM drip_enrollments e
 		JOIN people p ON p.id = e.person_id
 		WHERE e.campaign_id = $1
