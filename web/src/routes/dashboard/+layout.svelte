@@ -6,6 +6,7 @@
 	import ThemeToggle from '$lib/ThemeToggle.svelte';
 	import GlobalSearch from '$lib/GlobalSearch.svelte';
 	import NotificationBell from '$lib/NotificationBell.svelte';
+	import { enabledModules as enabledModulesStore, refreshModules } from '$lib/stores/modules';
 
 	let email = '';
 	let churchName = 'Pews';
@@ -67,6 +68,9 @@
 		}
 	];
 
+	// Subscribe to module store
+	$: enabledModules = $enabledModulesStore;
+
 	// Filter nav based on enabled modules
 	$: filteredNavSections = navSections.map(section => ({
 		...section,
@@ -83,13 +87,12 @@
 		email = localStorage.getItem('email') || '';
 		
 		try {
-			const [tenant, modules] = await Promise.all([
+			const [tenant] = await Promise.all([
 				api('/api/tenant/profile'),
-				api('/api/tenant/modules').catch(() => [])
+				refreshModules()
 			]);
 			churchName = tenant.name || 'Pews';
 			churchLogo = tenant.logo || '';
-			enabledModules = (modules || []).filter(m => m.enabled).map(m => m.name);
 		} catch (err) {
 			console.error('Failed to load tenant profile:', err);
 		}

@@ -1,6 +1,7 @@
 <script>
 	import { onMount } from 'svelte';
 	import { api } from '$lib/api';
+	import { refreshModules } from '$lib/stores/modules';
 
 	let modules = [];
 	let loading = true;
@@ -25,6 +26,7 @@
 		try {
 			await api(`/api/tenant/modules/${mod.name}/${action}`, { method: 'POST' });
 			modules = modules.map(m => m.name === mod.name ? { ...m, enabled: newState } : m);
+			await refreshModules();
 		} catch (err) {
 			error = err.message;
 		} finally {

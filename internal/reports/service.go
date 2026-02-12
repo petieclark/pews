@@ -453,7 +453,7 @@ func (s *Service) GetSongsReport(ctx context.Context, tenantID uuid.UUID) (*Song
 	rows, err := s.db.Query(ctx, `
 		SELECT s.title, COUNT(si.id) as usage_count
 		FROM songs s
-		LEFT JOIN service_items si ON si.song_id = s.id AND si.tenant_id = s.tenant_id
+		LEFT JOIN service_items si ON si.song_id = s.id
 		WHERE s.tenant_id = $1
 		GROUP BY s.id, s.title
 		ORDER BY usage_count DESC
@@ -526,8 +526,8 @@ func (s *Service) GetSongsReport(ctx context.Context, tenantID uuid.UUID) (*Song
 		SELECT s.id, s.title, COALESCE(s.artist, '') as artist,
 			COALESCE(MAX(sv.service_date)::TEXT, 'Never')
 		FROM songs s
-		LEFT JOIN service_items si ON si.song_id = s.id AND si.tenant_id = s.tenant_id
-		LEFT JOIN services sv ON sv.id = si.service_id AND sv.tenant_id = s.tenant_id
+		LEFT JOIN service_items si ON si.song_id = s.id
+		LEFT JOIN services sv ON sv.id = si.service_id
 		WHERE s.tenant_id = $1
 		GROUP BY s.id, s.title, s.artist
 		HAVING MAX(sv.service_date) IS NULL OR MAX(sv.service_date) < NOW() - INTERVAL '6 months'
@@ -551,11 +551,12 @@ func (s *Service) GetSongsReport(ctx context.Context, tenantID uuid.UUID) (*Song
 	var totalSongs, uniqueUsed int
 	var avgPerService float64
 	s.db.QueryRow(ctx, `SELECT COUNT(*) FROM songs WHERE tenant_id=$1`, tenantID).Scan(&totalSongs)
-	s.db.QueryRow(ctx, `SELECT COUNT(DISTINCT song_id) FROM service_items WHERE tenant_id=$1 AND song_id IS NOT NULL`, tenantID).Scan(&uniqueUsed)
+	s.db.QueryRow(ctx, `SELECT COUNT(DISTINCT si.song_id) FROM service_items si JOIN services sv ON sv.id = si.service_id WHERE sv.tenant_id=$1 AND si.song_id IS NOT NULL`, tenantID).Scan(&uniqueUsed)
 	s.db.QueryRow(ctx, `
 		SELECT COALESCE(AVG(cnt), 0) FROM (
-			SELECT service_id, COUNT(*) as cnt FROM service_items
-			WHERE tenant_id=$1 AND song_id IS NOT NULL GROUP BY service_id
+			SELECT si.service_id, COUNT(*) as cnt FROM service_items si
+			JOIN services sv ON sv.id = si.service_id
+			WHERE sv.tenant_id=$1 AND si.song_id IS NOT NULL GROUP BY si.service_id
 		) sub`, tenantID).Scan(&avgPerService)
 
 	return &SongsReport{

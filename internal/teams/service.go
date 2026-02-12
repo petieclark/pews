@@ -110,6 +110,12 @@ func (s *Service) GetTeam(ctx context.Context, tenantID, teamID string) (*Team, 
 		t.Members = append(t.Members, m)
 	}
 
+	if t.Positions == nil {
+		t.Positions = []Position{}
+	}
+	if t.Members == nil {
+		t.Members = []Member{}
+	}
 	t.MemberCount = len(t.Members)
 	return &t, nil
 }

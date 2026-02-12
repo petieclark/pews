@@ -19,8 +19,8 @@ func NewService(db *pgxpool.Pool) *Service {
 }
 
 func (s *Service) setTenant(ctx context.Context, tenantID string) error {
-	// RLS removed - no longer needed
-	return nil
+	_, err := s.db.Exec(ctx, "SELECT set_config('app.current_tenant_id', $1, TRUE)", tenantID)
+	return err
 }
 
 // ========== Stations ==========
