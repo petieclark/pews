@@ -2,6 +2,7 @@
 	import { onMount } from 'svelte';
 	import { goto } from '$app/navigation';
 	import { api } from '$lib/api';
+	import { CheckCircle, CreditCard, Building2, FileText, Sparkles, PartyPopper } from 'lucide-svelte';
 
 	let step = 1;
 	const totalSteps = 5;
@@ -167,7 +168,7 @@
 		<!-- Step 1: Church Profile -->
 		{#if step === 1}
 			<div class="text-center mb-8">
-				<h1 class="text-3xl font-bold text-primary mb-2">Welcome to Pews! 🎉</h1>
+				<h1 class="text-3xl font-bold text-primary mb-2">Welcome to Pews!</h1>
 				<p class="text-secondary">Let's set up your church profile</p>
 			</div>
 
@@ -264,13 +265,13 @@
 
 			<div class="bg-surface rounded-lg border border-custom p-8 text-center space-y-6">
 				{#if stripeConnected}
-					<div class="text-5xl">✅</div>
+					<div><CheckCircle size={48} /></div>
 					<div>
 						<h3 class="font-semibold text-primary text-lg">Stripe Connected!</h3>
 						<p class="text-sm text-secondary mt-1">Your account is ready to accept donations.</p>
 					</div>
 				{:else}
-					<div class="text-5xl">💳</div>
+					<div><CreditCard size={48} /></div>
 					<div>
 						<h3 class="font-semibold text-primary text-lg">Connect Stripe</h3>
 						<p class="text-sm text-secondary mt-1">Set up Stripe to enable online giving. You can always do this later in Settings → Billing.</p>
@@ -297,7 +298,7 @@
 					class="w-full text-left bg-surface rounded-lg border p-5 transition-colors
 						{importChoice === 'pco' ? 'border-[var(--teal)]' : 'border-custom hover:bg-[var(--surface-hover)]'}">
 					<div class="flex items-center gap-4">
-						<span class="text-3xl">⛪</span>
+						<Building2 size={32} />
 						<div>
 							<h3 class="font-semibold text-primary">Import from Planning Center</h3>
 							<p class="text-sm text-secondary mt-1">Automatically sync people, groups, and giving data</p>
@@ -308,7 +309,7 @@
 					class="w-full text-left bg-surface rounded-lg border p-5 transition-colors
 						{importChoice === 'csv' ? 'border-[var(--teal)]' : 'border-custom hover:bg-[var(--surface-hover)]'}">
 					<div class="flex items-center gap-4">
-						<span class="text-3xl">📄</span>
+						<FileText size={32} />
 						<div>
 							<h3 class="font-semibold text-primary">Upload CSV</h3>
 							<p class="text-sm text-secondary mt-1">Import from a spreadsheet</p>
@@ -319,7 +320,7 @@
 					class="w-full text-left bg-surface rounded-lg border p-5 transition-colors
 						{importChoice === 'skip' ? 'border-[var(--teal)]' : 'border-custom hover:bg-[var(--surface-hover)]'}">
 					<div class="flex items-center gap-4">
-						<span class="text-3xl">✨</span>
+						<Sparkles size={32} />
 						<div>
 							<h3 class="font-semibold text-primary">Start Fresh</h3>
 							<p class="text-sm text-secondary mt-1">Enter data manually later</p>
@@ -343,7 +344,7 @@
 		<!-- Step 5: Done -->
 		{:else if step === 5}
 			<div class="text-center py-12">
-				<div class="text-6xl mb-4">🎉</div>
+				<div class="mb-4"><PartyPopper size={64} /></div>
 				<h1 class="text-3xl font-bold text-primary mb-2">You're All Set!</h1>
 				<p class="text-secondary mb-8">Your church is ready to go. Let's dive into the dashboard.</p>
 			</div>

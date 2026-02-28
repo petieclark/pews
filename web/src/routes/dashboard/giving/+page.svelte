@@ -2,6 +2,7 @@
 	import { onMount } from 'svelte';
 	import { api } from '$lib/api';
 	import { Chart, registerables } from 'chart.js';
+	import { AlertTriangle, DollarSign } from 'lucide-svelte';
 	Chart.register(...registerables);
 
 	let stats = {
@@ -127,7 +128,7 @@
 			<div class="warning-banner mb-6 rounded-lg shadow border border-custom">
 				<div class="flex items-center justify-between">
 					<div class="flex items-center gap-3">
-						<span class="text-2xl">⚠️</span>
+						<AlertTriangle size={24} />
 						<div>
 							<p class="font-semibold warning-text">Online giving is not set up yet.</p>
 							<p class="text-sm warning-subtext">Connect with Stripe to start accepting online donations.</p>
@@ -143,7 +144,7 @@
 		<!-- Empty State -->
 		{#if stats.total_all_time === 0 && recentDonations.length === 0}
 			<div class="bg-surface rounded-lg shadow border border-custom p-12 text-center mb-8">
-				<div class="text-6xl mb-4">💰</div>
+				<div class="mb-4 flex justify-center"><DollarSign size={64} /></div>
 				<h2 class="text-2xl font-bold text-primary mb-2">Welcome to Giving</h2>
 				<p class="text-secondary mb-6 max-w-md mx-auto">
 					Start tracking your church's donations. Record cash and check gifts, manage funds, and generate tax statements.

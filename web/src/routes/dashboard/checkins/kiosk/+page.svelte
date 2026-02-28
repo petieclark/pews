@@ -1,5 +1,6 @@
 <script>
 	import { onMount } from 'svelte';
+	import { CheckCircle, PartyPopper, AlertTriangle } from 'lucide-svelte';
 	import { api } from '$lib/api';
 
 	let events = [];
@@ -128,11 +129,11 @@
 		{#if lastCheckin}
 			<div class="mb-8 p-6 rounded-xl text-center {lastCheckin.firstTime ? 'bg-yellow-100 dark:bg-yellow-900 border-2 border-yellow-400' : 'bg-green-100 dark:bg-green-900 border-2 border-green-400'}" style="min-width: 400px;">
 				{#if lastCheckin.firstTime}
-					<div class="text-4xl mb-2">🎉</div>
+					<div class="mb-2"><PartyPopper size={48} /></div>
 					<div class="text-2xl font-bold text-yellow-800 dark:text-yellow-100">Welcome, {lastCheckin.name}!</div>
 					<div class="text-lg text-yellow-700 dark:text-yellow-200">First-time visitor</div>
 				{:else}
-					<div class="text-4xl mb-2">✅</div>
+					<div class="mb-2"><CheckCircle size={48} /></div>
 					<div class="text-2xl font-bold text-green-800 dark:text-green-100">{lastCheckin.name}</div>
 					<div class="text-lg text-green-700 dark:text-green-200">Checked in at {lastCheckin.time}</div>
 				{/if}
@@ -187,7 +188,7 @@
 {#if showAlerts}
 	<div class="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-50">
 		<div class="bg-surface dark:bg-gray-800 rounded-xl shadow-2xl max-w-lg w-full mx-4 p-8">
-			<h2 class="text-2xl font-bold text-red-600 mb-4">⚠️ Medical Alerts</h2>
+			<h2 class="text-2xl font-bold text-red-600 mb-4"><AlertTriangle size={24} class="inline" /> Medical Alerts</h2>
 			<div class="space-y-4">
 				{#each currentAlerts as alert}
 					<div class="p-4 rounded-lg {alert.severity === 'critical' ? 'bg-red-100 dark:bg-red-900 border-2 border-red-400' : alert.severity === 'high' ? 'bg-orange-100 dark:bg-orange-900 border-2 border-orange-400' : 'bg-yellow-100 dark:bg-yellow-900 border border-yellow-400'}">

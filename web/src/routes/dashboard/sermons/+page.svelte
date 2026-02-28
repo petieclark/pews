@@ -2,6 +2,7 @@
 	import { onMount } from 'svelte';
 	import { goto } from '$app/navigation';
 	import { api } from '$lib/api';
+	import { Music } from 'lucide-svelte';
 
 	let sermons = [];
 	let loading = true;
@@ -173,7 +174,7 @@
 									<p class="text-xs text-[var(--teal)] mt-2 font-medium">{sermon.scripture_reference}</p>
 								{/if}
 								<div class="flex items-center gap-2 mt-3 text-xs text-secondary">
-									{#if sermon.audio_url}<span>🎵 Audio</span>{/if}
+									{#if sermon.audio_url}<span><Music size={14} class="inline" /> Audio</span>{/if}
 									{#if sermon.video_url}<span>🎥 Video</span>{/if}
 								</div>
 							</button>
@@ -204,7 +205,7 @@
 									<p class="text-xs text-[var(--teal)] mt-2 font-medium">{sermon.scripture_reference}</p>
 								{/if}
 								<div class="flex items-center gap-2 mt-3 text-xs text-secondary">
-									{#if sermon.audio_url}<span>🎵 Audio</span>{/if}
+									{#if sermon.audio_url}<span><Music size={14} class="inline" /> Audio</span>{/if}
 									{#if sermon.video_url}<span>🎥 Video</span>{/if}
 								</div>
 							</button>
@@ -247,7 +248,7 @@
 									{/if}
 								</td>
 								<td class="px-6 py-4 whitespace-nowrap text-sm text-[var(--text-primary)]">
-									{#if sermon.audio_url}🎵{/if}
+									{#if sermon.audio_url}<Music size={14} class="inline" />{/if}
 									{#if sermon.video_url}🎥{/if}
 								</td>
 								<td class="px-6 py-4 whitespace-nowrap text-sm">

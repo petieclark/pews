@@ -1,12 +1,13 @@
 <script lang="ts">
 	import { page } from '$app/stores';
+	import { BarChart3, Banknote, FolderOpen, FileText, Settings } from 'lucide-svelte';
 	
 	const tabs = [
-		{ href: '/dashboard/giving', label: 'Dashboard', icon: '📊' },
-		{ href: '/dashboard/giving/donations', label: 'Donations', icon: '💵' },
-		{ href: '/dashboard/giving/funds', label: 'Funds', icon: '🗂️' },
-		{ href: '/dashboard/giving/statements', label: 'Statements', icon: '📄' },
-		{ href: '/dashboard/giving/settings', label: 'Settings', icon: '⚙️' }
+		{ href: '/dashboard/giving', label: 'Dashboard', icon: BarChart3 },
+		{ href: '/dashboard/giving/donations', label: 'Donations', icon: Banknote },
+		{ href: '/dashboard/giving/funds', label: 'Funds', icon: FolderOpen },
+		{ href: '/dashboard/giving/statements', label: 'Statements', icon: FileText },
+		{ href: '/dashboard/giving/settings', label: 'Settings', icon: Settings }
 	];
 	
 	$: currentPath = $page.url.pathname;
@@ -30,7 +31,7 @@
 						: 'border-transparent text-secondary hover:text-primary hover:border-gray-300'
 				}"
 			>
-				<span class="mr-2">{tab.icon}</span>
+				<span class="mr-2 inline-flex"><svelte:component this={tab.icon} size={16} /></span>
 				{tab.label}
 			</a>
 		{/each}

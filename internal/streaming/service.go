@@ -151,7 +151,7 @@ func (s *Service) CreateStream(ctx context.Context, tenantID string, stream *Str
 	_, err := s.db.Exec(ctx, `
 		INSERT INTO streams (
 			id, tenant_id, title, description, service_id, status, 
-			scheduled_start, stream_type, COALESCE(stream_url, ''::text), COALESCE(stream_key, ''::text), embed_url,
+			scheduled_start, stream_type, stream_url, stream_key, embed_url,
 			chat_enabled, giving_enabled, connection_card_enabled
 		) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)
 	`, stream.ID, stream.TenantID, stream.Title, stream.Description, stream.ServiceID,

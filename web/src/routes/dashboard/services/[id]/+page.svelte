@@ -3,6 +3,7 @@
 	import { page } from '$app/stores';
 	import { goto } from '$app/navigation';
 	import { api } from '$lib/api';
+	import { FileEdit, ClipboardList, Music, CheckCircle, Flag, Heart, BookOpen, Megaphone, MessageSquare, User, Timer, AlertTriangle } from 'lucide-svelte';
 
 	$: serviceId = $page.params.id;
 
@@ -63,21 +64,21 @@
 	let songSearch = '';
 
 	const statusFlow = [
-		{ value: 'draft', label: 'Draft', icon: '📝', next: 'planning' },
-		{ value: 'planning', label: 'Planning', icon: '📋', next: 'rehearsal' },
-		{ value: 'rehearsal', label: 'Rehearsal', icon: '🎵', next: 'ready' },
-		{ value: 'ready', label: 'Ready', icon: '✅', next: 'completed' },
-		{ value: 'completed', label: 'Completed', icon: '🏁', next: null }
+		{ value: 'draft', label: 'Draft', icon: FileEdit, next: 'planning' },
+		{ value: 'planning', label: 'Planning', icon: ClipboardList, next: 'rehearsal' },
+		{ value: 'rehearsal', label: 'Rehearsal', icon: Music, next: 'ready' },
+		{ value: 'ready', label: 'Ready', icon: CheckCircle, next: 'completed' },
+		{ value: 'completed', label: 'Completed', icon: Flag, next: null }
 	];
 
 	const itemTypeConfig = {
-		song: { icon: '🎵', label: 'Song', color: '#4A8B8C' },
-		prayer: { icon: '🙏', label: 'Prayer', color: '#8FBCB0' },
-		reading: { icon: '📖', label: 'Scripture', color: '#D4A574' },
-		sermon: { icon: '📢', label: 'Sermon', color: '#1B3A4B' },
-		announcement: { icon: '📣', label: 'Announcement', color: '#6B7280' },
-		transition: { icon: '↔️', label: 'Transition', color: '#9CA3AF' },
-		other: { icon: '•', label: 'Other', color: '#6B7280' }
+		song: { icon: Music, label: 'Song', color: '#4A8B8C' },
+		prayer: { icon: Heart, label: 'Prayer', color: '#8FBCB0' },
+		reading: { icon: BookOpen, label: 'Scripture', color: '#D4A574' },
+		sermon: { icon: Megaphone, label: 'Sermon', color: '#1B3A4B' },
+		announcement: { icon: MessageSquare, label: 'Announcement', color: '#6B7280' },
+		transition: { icon: null, label: 'Transition', color: '#9CA3AF' },
+		other: { icon: null, label: 'Other', color: '#6B7280' }
 	};
 
 	const roles = ['Worship Leader', 'Vocalist', 'Guitarist', 'Bassist', 'Drummer', 'Keys', 'Sound Tech', 'Media/Slides', 'Camera', 'Usher', 'Greeter'];
@@ -504,7 +505,7 @@
 						class="status-step {service.status === step.value ? 'active' : ''} {i <= currentStep ? 'passed' : ''}"
 						disabled={saving}
 					>
-						<span class="text-sm">{step.icon}</span>
+						<span class="text-sm">{#if step.icon}<svelte:component this={step.icon} size={16} />{:else}•{/if}</span>
 						<span class="text-xs font-medium">{step.label}</span>
 					</button>
 					{#if i < statusFlow.length - 1}
@@ -558,7 +559,7 @@
 
 									<!-- Type Icon -->
 									<span class="text-lg flex-shrink-0" title={itemTypeConfig[item.item_type]?.label || item.item_type}>
-										{itemTypeConfig[item.item_type]?.icon || '•'}
+										{#if itemTypeConfig[item.item_type]?.icon}<svelte:component this={itemTypeConfig[item.item_type].icon} size={20} />{:else}•{/if}
 									</span>
 
 									<!-- Content -->
@@ -623,10 +624,10 @@
 											</div>
 										{/if}
 										{#if item.assigned_to}
-											<p class="text-xs text-[var(--text-secondary)] mt-0.5">👤 {item.assigned_to}</p>
+											<p class="text-xs text-[var(--text-secondary)] mt-0.5"><User size={12} class="inline" /> {item.assigned_to}</p>
 										{/if}
 										{#if item.duration_minutes}
-											<p class="text-xs text-[var(--text-secondary)] mt-0.5">⏱ {item.duration_minutes} min</p>
+											<p class="text-xs text-[var(--text-secondary)] mt-0.5"><Timer size={12} class="inline" /> {item.duration_minutes} min</p>
 										{/if}
 
 										<!-- Notes -->
@@ -647,7 +648,7 @@
 												on:click={() => { editingItemId = item.id; editingItemNotes = item.notes; }}
 												class="text-xs text-[var(--text-secondary)] mt-1 hover:text-[var(--text-primary)] italic"
 											>
-												📝 {item.notes}
+												<FileEdit size={12} class="inline" /> {item.notes}
 											</button>
 										{:else}
 											<button
@@ -715,7 +716,7 @@
 					<div class="flex items-center justify-between p-4 border-b border-[var(--border)]">
 						<h2 class="font-semibold text-[var(--text-primary)]">Volunteer Teams</h2>
 						<button on:click={() => { showCopyModal = true; loadAllServices(); }} class="text-xs text-[var(--teal)] hover:opacity-80">
-							📋 Copy from...
+							<ClipboardList size={14} class="inline" /> Copy from...
 						</button>
 					</div>
 
@@ -748,7 +749,7 @@
 												</select>
 												{#if assignment}
 													<span class="text-sm shrink-0" title={assignment.status}>
-														{assignment.status === 'confirmed' ? '✅' : assignment.status === 'declined' ? '❌' : '⏳'}
+														{#if assignment.status === 'confirmed'}<CheckCircle size={14} />{:else if assignment.status === 'declined'}❌{:else}⏳{/if}
 													</span>
 													<select
 														value={assignment.status}
@@ -842,7 +843,7 @@
 						on:click={() => { newItem.item_type = key; if (key !== 'song') { newItem.song_id = null; newItem.song_key = ''; } }}
 						class="type-select-btn {newItem.item_type === key ? 'active' : ''}"
 					>
-						<span class="text-lg">{config.icon}</span>
+						<span class="text-lg">{#if config.icon}<svelte:component this={config.icon} size={20} />{:else}•{/if}</span>
 						<span class="text-xs">{config.label}</span>
 					</button>
 				{/each}
@@ -1030,7 +1031,7 @@
 {#if showDeleteConfirm}
 	<div class="modal-overlay" on:click|self={() => (showDeleteConfirm = false)}>
 		<div class="modal-content max-w-sm text-center">
-			<div class="text-4xl mb-3">⚠️</div>
+			<div class="mb-3"><AlertTriangle size={48} /></div>
 			<h2 class="text-lg font-bold text-[var(--text-primary)] mb-2">Delete Service?</h2>
 			<p class="text-sm text-[var(--text-secondary)] mb-5">This will permanently delete this service and all its items. This cannot be undone.</p>
 			<div class="flex gap-3">
@@ -1116,7 +1117,7 @@
 										<div class="text-xs text-gray-500 dark:text-gray-400">{item.song.artist}</div>
 									{/if}
 									{#if item.assigned_to}
-										<div class="text-xs text-gray-500 dark:text-gray-400">👤 {item.assigned_to}</div>
+										<div class="text-xs text-gray-500 dark:text-gray-400"><User size={12} class="inline" /> {item.assigned_to}</div>
 									{/if}
 								</td>
 								<td class="py-2 pr-3 text-sm text-gray-700 dark:text-gray-300">{item.song_key || ''}</td>

@@ -1,5 +1,6 @@
 <script>
 	import { onMount } from 'svelte';
+	import { Mail, MessageSquare } from 'lucide-svelte';
 	import { api } from '$lib/api';
 	import { goto } from '$app/navigation';
 
@@ -85,7 +86,7 @@
 		</div>
 	{:else if filteredCampaigns.length === 0}
 		<div class="rounded-lg shadow border p-12 text-center" style="background: var(--surface); border-color: var(--border)">
-			<div class="text-5xl mb-4">📣</div>
+			<div class="mb-4"><MessageSquare size={48} /></div>
 			<h2 class="text-xl font-semibold mb-2" style="color: var(--text-primary)">No campaigns yet</h2>
 			<p class="mb-6" style="color: var(--text-secondary)">Create your first campaign to reach your members</p>
 			<button
@@ -120,7 +121,7 @@
 								<div class="font-medium" style="color: var(--text-primary)">{campaign.name}</div>
 							</td>
 							<td class="px-6 py-4">
-								<span class="text-lg">{campaign.channel === 'email' ? '📧' : '💬'}</span>
+								{#if campaign.channel === 'email'}<Mail size={20} />{:else}<span class="text-lg">💬</span>{/if}
 							</td>
 							<td class="px-6 py-4">
 								{#if campaign.status}

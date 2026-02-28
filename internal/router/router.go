@@ -30,10 +30,12 @@ import (
 	"github.com/petieclark/pews/internal/sermons"
 	"github.com/petieclark/pews/internal/sms"
 	"github.com/petieclark/pews/internal/streaming"
+	"github.com/petieclark/pews/internal/media"
 	"github.com/petieclark/pews/internal/public"
 	"github.com/petieclark/pews/internal/teams"
 	"github.com/petieclark/pews/internal/tenant"
 	"github.com/petieclark/pews/internal/website"
+	"github.com/petieclark/pews/internal/worship"
 )
 
 type Router struct {
@@ -70,6 +72,8 @@ func New(
 	careHandler *care.Handler,
 	ccliHandler *ccli.Handler,
 	publicHandler *public.Handler,
+	mediaHandler *media.Handler,
+	worshipHandler *worship.Handler,  // NEW: worship handler for service planning
 	webhookSecret string,
 	givingWebhookSecret string,
 	frontendURL string,
@@ -80,6 +84,9 @@ func New(
 	r.Use(middleware.Logging)
 	r.Use(middleware.CORS(frontendURL))
 	r.Use(middleware.TenantExtractor)
+
+	// Public routes (no auth required) - Worship service plan sharing
+	r.Get("/api/worship/plans/shared/{token}", worshipHandler.GetSharedPlan)
 
 	// Public routes
 	r.Post("/api/auth/register", authHandler.Register)
@@ -136,6 +143,9 @@ func New(
 		r.Get("/groups", publicHandler.GetPublicGroups)
 		r.Post("/groups/{id}/signup", publicHandler.GroupSignup)
 	})
+
+	// Public volunteer assignment response (no auth required, token-based)
+	r.Get("/respond/{token}", publicHandler.Respond)
 
 	// Health check
 	r.Get("/api/health", func(w http.ResponseWriter, r *http.Request) {
@@ -291,6 +301,11 @@ func New(
 		r.Get("/api/services/scheduling/conflicts", servicesHandler.GetSchedulingConflicts)
 		r.Get("/api/services/volunteer-teams/{id}/available", servicesHandler.GetAvailableVolunteers)
 		r.Put("/api/services/service-teams/{id}/status", servicesHandler.UpdateServiceTeamStatus)
+
+		// Services - Scheduling Needs (Unfilled Positions)
+		r.Get("/api/scheduling/needs", servicesHandler.GetSchedulingNeeds)
+		r.Get("/api/people/search", servicesHandler.SearchPeople)
+		r.Put("/api/services/service-teams/{id}/assign", servicesHandler.AssignPersonToRole)
 
 		// Worship - Service Plans (TODO: wire up worship handler)
 		// r.Get("/api/worship/plans", worshipHandler.ListPlans)
@@ -548,6 +563,12 @@ func New(
 		// Person schedule
 		r.Get("/api/people/{personId}/schedule", teamsHandler.GetPersonSchedule)
 
+		// Volunteer Blockouts
+		r.Get("/api/teams/members/{personId}/blockouts", teamsHandler.GetPersonBlockouts)
+		r.Post("/api/teams/members/{personId}/blockouts", teamsHandler.CreateBlockout)
+		r.Put("/api/teams/members/blockouts/{blockoutId}", teamsHandler.UpdateBlockout)
+		r.Delete("/api/teams/members/blockouts/{blockoutId}", teamsHandler.DeleteBlockout)
+
 		// CCLI Reporting
 		r.Get("/api/ccli/report", ccliHandler.GetReport)
 		r.Get("/api/ccli/report/download", ccliHandler.DownloadReport)
@@ -570,6 +591,20 @@ func New(
 		r.Get("/api/notifications/unread-count", notificationHandler.GetUnreadCount)
 		r.Put("/api/notifications/{id}/read", notificationHandler.MarkAsRead)
 		r.Put("/api/notifications/read-all", notificationHandler.MarkAllAsRead)
+
+		// Media Library
+		r.Post("/api/media/upload", mediaHandler.UploadFile)
+		r.Get("/api/media", mediaHandler.ListFiles)
+		r.Get("/api/media/{id}", mediaHandler.GetFile)
+		r.Put("/api/media/{id}", mediaHandler.UpdateFile)
+		r.Delete("/api/media/{id}", mediaHandler.DeleteFile)
+		r.Get("/api/media/folders", mediaHandler.ListFolders)
+
+		// Health check (at the end as a fallback)
+		r.Get("/health", func(w http.ResponseWriter, r *http.Request) {
+			w.WriteHeader(http.StatusOK)
+			w.Write([]byte(`{"status":"healthy"}`))
+		})
 	})
 
 	return &Router{r}

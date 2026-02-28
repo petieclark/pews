@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import { page } from '$app/stores';
+	import { DollarSign, CheckCircle, XCircle } from 'lucide-svelte';
 
 	let connectStatus = {
 		connected: false,
@@ -144,7 +145,7 @@
 				<!-- Not Connected -->
 				<div class="text-center">
 					<div class="mb-6">
-						<div class="inline-block text-6xl mb-4">💰</div>
+						<div class="inline-block mb-4"><DollarSign size={64} /></div>
 						<h2 class="text-2xl font-bold text-primary mb-2">Accept Online Donations</h2>
 					</div>
 
@@ -222,18 +223,18 @@
 				<!-- Fully Connected -->
 				<div class="text-center">
 					<div class="mb-6">
-						<div class="inline-block text-6xl mb-4">✅</div>
+						<div class="inline-block mb-4"><CheckCircle size={64} /></div>
 						<h2 class="text-2xl font-bold text-primary mb-2">Online Giving Active</h2>
 					</div>
 
 					<div class="max-w-md mx-auto mb-8">
 						<div class="grid grid-cols-2 gap-4 text-left">
 							<div class="flex items-center gap-2 p-3 bg-[var(--surface-hover)] rounded-lg">
-								<span class="text-2xl">{connectStatus.charges_enabled ? '✅' : '❌'}</span>
+								<span>{connectStatus.charges_enabled ? '' : ''}</span>{#if connectStatus.charges_enabled}<CheckCircle size={24} />{:else}<XCircle size={24} />{/if}
 								<span class="text-sm text-primary">Charges enabled</span>
 							</div>
 							<div class="flex items-center gap-2 p-3 bg-[var(--surface-hover)] rounded-lg">
-								<span class="text-2xl">{connectStatus.payouts_enabled ? '✅' : '❌'}</span>
+								<span>{connectStatus.payouts_enabled ? '' : ''}</span>{#if connectStatus.payouts_enabled}<CheckCircle size={24} />{:else}<XCircle size={24} />{/if}
 								<span class="text-sm text-primary">Payouts enabled</span>
 							</div>
 						</div>

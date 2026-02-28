@@ -117,12 +117,14 @@
 		}
 	}
 
+	import { Image, FileText, FileEdit, Music, Paperclip } from 'lucide-svelte';
+
 	function getFileIcon(contentType) {
-		if (contentType.startsWith('image/')) return '🖼️';
-		if (contentType === 'application/pdf') return '📄';
-		if (contentType.includes('word')) return '📝';
-		if (contentType.startsWith('audio/')) return '🎵';
-		return '📎';
+		if (contentType.startsWith('image/')) return Image;
+		if (contentType === 'application/pdf') return FileText;
+		if (contentType.includes('word')) return FileEdit;
+		if (contentType.startsWith('audio/')) return Music;
+		return Paperclip;
 	}
 
 	function formatFileSize(bytes) {
@@ -143,7 +145,7 @@
 				{#if value.content_type.startsWith('image/')}
 					<img src={`${import.meta.env.VITE_API_URL}${value.url}`} alt={value.original_name} />
 				{:else}
-					<div class="file-icon">{getFileIcon(value.content_type)}</div>
+					<div class="file-icon"><svelte:component this={getFileIcon(value.content_type)} size={32} /></div>
 				{/if}
 			</div>
 			<div class="file-info">
@@ -203,7 +205,7 @@
 								{#if file.content_type.startsWith('image/')}
 									<img src={`${import.meta.env.VITE_API_URL}${file.url}`} alt={file.original_name} />
 								{:else}
-									<div class="file-icon-small">{getFileIcon(file.content_type)}</div>
+									<div class="file-icon-small"><svelte:component this={getFileIcon(file.content_type)} size={24} /></div>
 								{/if}
 							</div>
 							<div class="file-info">

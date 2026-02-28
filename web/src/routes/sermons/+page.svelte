@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
+	import { Music } from 'lucide-svelte';
 
 	let sermons = [];
 	let loading = true;
@@ -129,7 +130,7 @@
 												target="_blank"
 												class="flex-1 bg-teal-600 text-white text-center py-2 rounded hover:bg-teal-700 transition text-sm"
 											>
-												🎵 Listen
+												<Music size={14} class="inline" /> Listen
 											</a>
 										{/if}
 										{#if sermon.video_url}

@@ -1,5 +1,6 @@
 <script>
 	import { api } from '$lib/api';
+	import { Mail } from 'lucide-svelte';
 	import { goto } from '$app/navigation';
 
 	let name = '';
@@ -158,7 +159,7 @@
 				<div class="flex items-center gap-2">
 					<div class="px-3 py-2 rounded-lg border text-center min-w-[80px]" style="background: var(--surface); border-color: var(--teal); border-width: 2px">
 						<div class="text-xs font-medium" style="color: var(--text-secondary)">Day {computeDay(i)}</div>
-						<div class="text-sm font-bold" style="color: var(--text-primary)">{step.step_type === 'send_email' ? '📧' : step.step_type === 'send_sms' ? '💬' : '⏳'}</div>
+						<div class="text-sm font-bold" style="color: var(--text-primary)">{#if step.step_type === 'send_email'}<Mail size={16} />{:else if step.step_type === 'send_sms'}💬{:else}⏳{/if}</div>
 					</div>
 					{#if i < steps.length - 1}
 						<div class="text-xs font-medium px-1" style="color: var(--text-secondary)">→</div>
@@ -187,8 +188,8 @@
 						<div>
 							<label class="block text-xs font-medium mb-1" style="color: var(--text-secondary)">Channel</label>
 							<select bind:value={step.step_type} class="w-full px-3 py-2 rounded-lg border text-sm" style="background: var(--bg); border-color: var(--border); color: var(--text-primary)">
-								<option value="send_email">📧 Email</option>
-								<option value="send_sms">💬 SMS</option>
+								<option value="send_email">Email</option>
+								<option value="send_sms">SMS</option>
 							</select>
 						</div>
 						<div>

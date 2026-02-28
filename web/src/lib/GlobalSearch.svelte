@@ -1,6 +1,7 @@
 <script>
 	import { goto } from '$app/navigation';
 	import { api } from '$lib/api';
+	import { User, Music, Building2, Users, ClipboardList } from 'lucide-svelte';
 
 	let query = '';
 	let results = null;
@@ -62,8 +63,8 @@
 	}
 
 	function getTypeIcon(type) {
-		const icons = { person: '👤', song: '🎵', service: '⛪', group: '👥' };
-		return icons[type] || '📋';
+		const icons = { person: User, song: Music, service: Building2, group: Users };
+		return icons[type] || ClipboardList;
 	}
 
 	function getTypeLabel(type) {
@@ -131,7 +132,7 @@
 									{globalIndex === selectedIndex ? 'bg-[var(--surface-hover)]' : ''}"
 								on:mousedown|preventDefault={() => navigateTo(item.href)}
 							>
-								<span class="text-base flex-shrink-0">{getTypeIcon(type)}</span>
+								<span class="flex-shrink-0"><svelte:component this={getTypeIcon(type)} size={16} /></span>
 								<div class="min-w-0 flex-1">
 									<p class="text-sm font-medium text-primary truncate">{getResultLabel(item)}</p>
 									{#if getResultSub(item)}

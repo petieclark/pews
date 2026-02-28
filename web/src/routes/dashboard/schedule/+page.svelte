@@ -2,6 +2,7 @@
 	import { onMount } from 'svelte';
 	import { api } from '$lib/api';
 	import { toast } from '$lib/stores/toast';
+	import { CalendarDays, CheckCircle } from 'lucide-svelte';
 
 	let people = [];
 	let selectedPersonId = '';
@@ -92,7 +93,7 @@
 		</div>
 	{:else if selectedPersonId && assignments.length === 0}
 		<div class="text-center py-12">
-			<div class="text-4xl mb-3">📅</div>
+			<div class="mb-3"><CalendarDays size={40} /></div>
 			<h2 class="text-lg font-semibold text-[var(--text-primary)] mb-1">No upcoming assignments</h2>
 			<p class="text-secondary text-sm">This person isn't scheduled for any upcoming services.</p>
 		</div>
@@ -116,7 +117,7 @@
 					</div>
 					<div class="flex items-center gap-2 shrink-0">
 						{#if a.status === 'confirmed'}
-							<span class="px-2 py-1 rounded-full text-xs font-medium bg-green-500/20 text-green-400">✅ Confirmed</span>
+							<span class="px-2 py-1 rounded-full text-xs font-medium bg-green-500/20 text-green-400 inline-flex items-center gap-1"><CheckCircle size={12} /> Confirmed</span>
 						{:else if a.status === 'declined'}
 							<span class="px-2 py-1 rounded-full text-xs font-medium bg-red-500/20 text-red-400">❌ Declined</span>
 						{:else}

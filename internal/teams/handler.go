@@ -335,13 +335,17 @@ func (h *Handler) SaveServiceAssignments(w http.ResponseWriter, r *http.Request)
 		})
 	}
 
-	if err := h.service.SaveServiceAssignments(r.Context(), claims.TenantID, serviceID, assignments); err != nil {
+	savedAssignments, err := h.service.SaveServiceAssignments(r.Context(), claims.TenantID, serviceID, assignments)
+	if err != nil {
 		http.Error(w, "Failed to save assignments: "+err.Error(), http.StatusInternalServerError)
 		return
 	}
 
-	// Return updated assignments
-	h.GetServiceAssignments(w, r)
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]interface{}{
+		"success": true,
+		"assignments": savedAssignments,
+	})
 }
 
 func (h *Handler) CopyServiceAssignments(w http.ResponseWriter, r *http.Request) {
@@ -406,4 +410,134 @@ func (h *Handler) GetPersonSchedule(w http.ResponseWriter, r *http.Request) {
 	}
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(map[string]interface{}{"assignments": assignments})
+}
+
+// ---- Volunteer Blockouts Handlers ----
+
+func (h *Handler) GetPersonBlockouts(w http.ResponseWriter, r *http.Request) {
+	claims, ok := middleware.GetClaims(r.Context())
+	if !ok {
+		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		return
+	}
+	personID := chi.URLParam(r, "personId")
+
+	blockouts, err := h.service.GetPersonBlockouts(r.Context(), claims.TenantID, personID)
+	if err != nil {
+		http.Error(w, "Failed to get blockouts: "+err.Error(), http.StatusInternalServerError)
+		return
+	}
+	if blockouts == nil {
+		blockouts = []VolunteerBlockout{}
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]interface{}{"blockouts": blockouts})
+}
+
+type createBlockoutRequest struct {
+	PersonID    string  `json:"person_id"`
+	StartDate   string  `json:"start_date"`
+	EndDate     string  `json:"end_date"`
+	Reason      *string `json:"reason,omitempty"`
+	IsRecurring bool    `json:"is_recurring"`
+	DayOfWeek   *int    `json:"day_of_week,omitempty"` // 0=Sun..6=Sat
+}
+
+func (h *Handler) CreateBlockout(w http.ResponseWriter, r *http.Request) {
+	claims, ok := middleware.GetClaims(r.Context())
+	if !ok {
+		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		return
+	}
+
+	var req createBlockoutRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, "Invalid request body", http.StatusBadRequest)
+		return
+	}
+
+	// Validate dates
+	if req.StartDate == "" || req.EndDate == "" {
+		http.Error(w, "start_date and end_date are required", http.StatusBadRequest)
+		return
+	}
+
+	var dayOfWeek *int
+	if req.IsRecurring && req.DayOfWeek != nil {
+		dow := *req.DayOfWeek
+		if dow < 0 || dow > 6 {
+			http.Error(w, "day_of_week must be between 0 (Sunday) and 6 (Saturday)", http.StatusBadRequest)
+			return
+		}
+		dayOfWeek = &dow
+	}
+
+	blockout, err := h.service.CreateBlockout(r.Context(), claims.TenantID, req.PersonID, req.StartDate, req.EndDate, *req.Reason, req.IsRecurring, dayOfWeek)
+	if err != nil {
+		http.Error(w, "Failed to create blockout: "+err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusCreated)
+	json.NewEncoder(w).Encode(blockout)
+}
+
+type updateBlockoutRequest struct {
+	StartDate   string  `json:"start_date"`
+	EndDate     string  `json:"end_date"`
+	Reason      *string `json:"reason,omitempty"`
+	IsRecurring bool    `json:"is_recurring"`
+	DayOfWeek   *int    `json:"day_of_week,omitempty"`
+}
+
+func (h *Handler) UpdateBlockout(w http.ResponseWriter, r *http.Request) {
+	claims, ok := middleware.GetClaims(r.Context())
+	if !ok {
+		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		return
+	}
+	blockoutID := chi.URLParam(r, "blockoutId")
+
+	var req updateBlockoutRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, "Invalid request body", http.StatusBadRequest)
+		return
+	}
+
+	var dayOfWeek *int
+	if req.IsRecurring && req.DayOfWeek != nil {
+		dow := *req.DayOfWeek
+		if dow < 0 || dow > 6 {
+			http.Error(w, "day_of_week must be between 0 (Sunday) and 6 (Saturday)", http.StatusBadRequest)
+			return
+		}
+		dayOfWeek = &dow
+	}
+
+	blockout, err := h.service.UpdateBlockout(r.Context(), claims.TenantID, blockoutID, req.StartDate, req.EndDate, *req.Reason, req.IsRecurring, dayOfWeek)
+	if err != nil {
+		http.Error(w, "Failed to update blockout: "+err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(blockout)
+}
+
+func (h *Handler) DeleteBlockout(w http.ResponseWriter, r *http.Request) {
+	claims, ok := middleware.GetClaims(r.Context())
+	if !ok {
+		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		return
+	}
+	blockoutID := chi.URLParam(r, "blockoutId")
+
+	if err := h.service.DeleteBlockout(r.Context(), claims.TenantID, blockoutID); err != nil {
+		http.Error(w, "Failed to delete blockout: "+err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	w.WriteHeader(http.StatusNoContent)
 }

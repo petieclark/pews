@@ -40,6 +40,7 @@ import (
 	"github.com/petieclark/pews/internal/sermons"
 	"github.com/petieclark/pews/internal/sms"
 	"github.com/petieclark/pews/internal/streaming"
+	"github.com/petieclark/pews/internal/media"
 	"github.com/petieclark/pews/internal/teams"
 	"github.com/petieclark/pews/internal/tenant"
 	"github.com/petieclark/pews/internal/website"
@@ -96,7 +97,7 @@ func run() error {
 	careService := care.NewService(db.Pool)
 	prayerService := prayer.NewService(db.Pool)
 	searchService := search.NewService(db.Pool)
-	notificationService := notification.NewService(db.Pool)
+	notificationHandler := notification.NewHandler(notification.NewInAppService(db.Pool))
 	websiteService := website.NewService(db.Pool)
 	qrService := qr.NewService(cfg.FrontendURL)
 	smsService := sms.NewService(db.Pool)
@@ -122,7 +123,7 @@ func run() error {
 	careHandler := care.NewHandler(careService)
 	prayerHandler := prayer.NewHandler(prayerService)
 	searchHandler := search.NewHandler(searchService)
-	notificationHandler := notification.NewHandler(notificationService)
+	notificationHandler := notification.NewHandler(notification.NewInAppService(db.Pool))
 	websiteHandler := website.NewHandler(websiteService)
 	qrHandler := qr.NewHandler(qrService)
 	
@@ -141,15 +142,19 @@ func run() error {
 	importHandler := importpkg.NewHandler(importService)
 
 	// Teams
-	teamsService := teams.NewService(db.Pool)
+	teamsService := teams.NewService(db.Pool, cfg.JWTSecret)
 	teamsHandler := teams.NewHandler(teamsService)
 
 	// CCLI
 	ccliService := ccli.NewService(db.Pool)
 	ccliHandler := ccli.NewHandler(ccliService)
 
-	// Public pages
-	publicHandler := public.NewHandler(db.Pool)
+	// Public pages (with JWT secret for token validation)
+	publicHandler := public.NewHandler(db.Pool, cfg.JWTSecret)
+
+	// Media Library
+	mediaService := media.NewService(db.Pool)
+	mediaHandler := media.NewHandler(mediaService)
 
 	// Setup router
 	r := router.New(
@@ -182,6 +187,7 @@ func run() error {
 		careHandler,
 		ccliHandler,
 		publicHandler,
+		mediaHandler,
 		cfg.StripeWebhookSecret,
 		cfg.StripeGivingWebhookSecret,
 		cfg.FrontendURL,

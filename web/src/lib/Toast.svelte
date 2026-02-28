@@ -1,6 +1,7 @@
 <script>
 	import { toast } from './stores/toast';
 	import { fade, fly } from 'svelte/transition';
+	import { AlertTriangle, CheckCircle, Zap, Info } from 'lucide-svelte';
 
 	$: toasts = $toast;
 </script>
@@ -14,13 +15,13 @@
 		>
 			<div class="flex items-start gap-3">
 				{#if type === 'error'}
-					<span class="text-xl">⚠️</span>
+					<AlertTriangle size={20} />
 				{:else if type === 'success'}
-					<span class="text-xl">✅</span>
+					<CheckCircle size={20} />
 				{:else if type === 'warning'}
-					<span class="text-xl">⚡</span>
+					<Zap size={20} />
 				{:else}
-					<span class="text-xl">ℹ️</span>
+					<Info size={20} />
 				{/if}
 				<div class="flex-1">
 					<p class="text-sm font-medium">{message}</p>

@@ -1,6 +1,7 @@
 <script>
 	import { onMount } from 'svelte';
 	import { api } from '$lib/api';
+	import { User, Pencil, Trash2, DollarSign, CheckCircle, ClipboardList } from 'lucide-svelte';
 
 	let kpis = null;
 	let atRisk = [];
@@ -50,10 +51,10 @@
 
 	function getActivityIcon(type) {
 		const icons = {
-			'user-plus': '👤', 'user-edit': '✏️', 'user-minus': '🗑️',
-			'dollar': '💰', 'check-circle': '✅', 'activity': '📋'
+			'user-plus': User, 'user-edit': Pencil, 'user-minus': Trash2,
+			'dollar': DollarSign, 'check-circle': CheckCircle, 'activity': ClipboardList
 		};
-		return icons[type] || '📋';
+		return icons[type] || ClipboardList;
 	}
 
 	const quickActions = [
@@ -195,7 +196,7 @@
 					<div class="space-y-3">
 						{#each activities as activity}
 							<a href={activity.link || '#'} class="flex items-start gap-3 p-3 rounded-lg hover:bg-[var(--surface-hover)] transition-colors">
-								<span class="text-xl flex-shrink-0 mt-0.5">{getActivityIcon(activity.icon)}</span>
+								<span class="flex-shrink-0 mt-0.5"><svelte:component this={getActivityIcon(activity.icon)} size={20} /></span>
 								<div class="flex-1 min-w-0">
 									<p class="text-sm font-medium text-primary">{activity.title}</p>
 									<p class="text-xs text-secondary truncate">{activity.description}</p>

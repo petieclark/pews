@@ -3,191 +3,199 @@ package notification
 import (
 	"context"
 	"fmt"
+	"os"
+	"strings"
+	"text/template"
 	"time"
 
-	"github.com/google/uuid"
-	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
-type Service struct {
-	db *pgxpool.Pool
+// NotificationService handles sending volunteer assignment notifications
+type NotificationService struct {
+	db           *pgxpool.Pool
+	sendGridURL  string
+	fromEmail    string
+	fromName     string
+	pewsBaseURL  string
+	tokenSecret  string
 }
 
-func NewService(db *pgxpool.Pool) *Service {
-	return &Service{db: db}
+// AssignmentNotificationData holds data for the email template
+type AssignmentNotificationData struct {
+	PersonFirstName string
+	PersonLastName  string
+	ServiceName     string
+	ServiceDate     string
+	ServiceTime     string
+	TeamName        string
+	PositionName    string
+	AceptURL        string
+	DeclineURL      string
+	ChurchName      string
+	CurrentYear     int
 }
 
-// Create creates a new notification for a specific user
-func (s *Service) Create(ctx context.Context, tenantID string, req CreateNotificationRequest) (*Notification, error) {
-	notif := &Notification{
-		ID:        uuid.New().String(),
-		TenantID:  tenantID,
-		UserID:    req.UserID,
-		Title:     req.Title,
-		Message:   req.Message,
-		Type:      req.Type,
-		Read:      false,
-		Link:      req.Link,
-		CreatedAt: time.Now(),
+// NewNotificationService creates a new notification service
+func NewNotificationService(db *pgxpool.Pool) *NotificationService {
+	return &NotificationService{
+		db:          db,
+		sendGridURL: os.Getenv("SENDGRID_API_KEY"),
+		fromEmail:   os.Getenv("SENDGRID_FROM_EMAIL"),
+		fromName:    os.Getenv("SENDGRID_FROM_NAME"),
+		pewsBaseURL: getBaseURL(),
+		tokenSecret: os.Getenv("JWT_SECRET"),
 	}
+}
 
-	_, err := s.db.Exec(ctx,
-		`INSERT INTO notifications (id, tenant_id, user_id, title, message, type, read, link, created_at)
-		 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)`,
-		notif.ID, notif.TenantID, notif.UserID, notif.Title, notif.Message, notif.Type, notif.Read, notif.Link, notif.CreatedAt,
-	)
+// getBaseURL returns the base URL for the application
+func getBaseURL() string {
+	url := os.Getenv("PEWS_BASE_URL")
+	if url == "" {
+		url = "https://app.pews.local" // default for development
+	}
+	return url
+}
+
+// SendAssignmentNotification sends a volunteer assignment notification email
+func (ns *NotificationService) SendAssignmentNotification(ctx context.Context, assignmentID, personID string) error {
+	// Get person and assignment details from database
+	personName, serviceDetails, err := ns.getAssignmentDetails(ctx, assignmentID, personID)
 	if err != nil {
-		return nil, fmt.Errorf("failed to create notification: %w", err)
+		return fmt.Errorf("failed to get assignment details: %w", err)
 	}
 
-	return notif, nil
-}
+	// Generate tokenized URLs for accept/decline
+	acceptURL := fmt.Sprintf("%s/respond/%s?action=accept", ns.pewsBaseURL, assignmentID)
+	declineURL := fmt.Sprintf("%s/respond/%s?action=decline", ns.pewsBaseURL, assignmentID)
 
-// CreateForAllAdmins creates a notification for all admin users in a tenant
-func (s *Service) CreateForAllAdmins(ctx context.Context, tenantID, title, message string, notifType NotificationType, link *string) error {
-	// Get all admin users for this tenant
-	rows, err := s.db.Query(ctx,
-		`SELECT id FROM users WHERE tenant_id = $1 AND role = 'admin'`,
-		tenantID,
-	)
+	// Prepare email template data
+	data := AssignmentNotificationData{
+		PersonFirstName: personName.FirstName,
+		PersonLastName:  personName.LastName,
+		ServiceName:     serviceDetails.ServiceName,
+		ServiceDate:     serviceDetails.ServiceDate,
+		ServiceTime:     serviceDetails.ServiceTime,
+		TeamName:        serviceDetails.TeamName,
+		PositionName:    serviceDetails.PositionName,
+		AceptURL:        acceptURL,
+		DeclineURL:      declineURL,
+		ChurchName:      ns.fromName,
+		CurrentYear:     time.Now().Year(),
+	}
+
+	// Render HTML email template
+	htmlContent, err := ns.renderTemplate(data)
 	if err != nil {
-		return fmt.Errorf("failed to fetch admin users: %w", err)
-	}
-	defer rows.Close()
-
-	adminIDs := []string{}
-	for rows.Next() {
-		var id string
-		if err := rows.Scan(&id); err != nil {
-			return err
-		}
-		adminIDs = append(adminIDs, id)
+		return fmt.Errorf("failed to render email template: %w", err)
 	}
 
-	if err := rows.Err(); err != nil {
-		return err
+	// Send via SendGrid (or log in dev mode)
+	err = ns.sendEmail(personName.Email, "Volunteer Assignment - "+serviceDetails.ServiceName, htmlContent)
+	if err != nil {
+		return fmt.Errorf("failed to send notification email: %w", err)
 	}
 
-	// Create notification for each admin
-	for _, adminID := range adminIDs {
-		_, err := s.Create(ctx, tenantID, CreateNotificationRequest{
-			UserID:  adminID,
-			Title:   title,
-			Message: message,
-			Type:    notifType,
-			Link:    link,
-		})
-		if err != nil {
-			return err
-		}
+	// Mark as notified in database
+	if err := ns.markNotified(ctx, assignmentID); err != nil {
+		return fmt.Errorf("failed to mark assignment as notified: %w", err)
 	}
 
 	return nil
 }
 
-// List returns paginated notifications for a user
-func (s *Service) List(ctx context.Context, tenantID, userID string, params ListNotificationsParams) (*NotificationList, error) {
-	if params.Limit <= 0 {
-		params.Limit = 20
-	}
-	if params.Limit > 100 {
-		params.Limit = 100
-	}
-
-	// Build query
-	query := `SELECT id, tenant_id, user_id, title, message, type, read, link, created_at 
-	          FROM notifications 
-	          WHERE tenant_id = $1 AND user_id = $2`
-	countQuery := `SELECT COUNT(*) FROM notifications WHERE tenant_id = $1 AND user_id = $2`
-
-	args := []interface{}{tenantID, userID}
-	if params.Unread {
-		query += ` AND read = FALSE`
-		countQuery += ` AND read = FALSE`
-	}
-
-	query += ` ORDER BY created_at DESC LIMIT $3 OFFSET $4`
-	args = append(args, params.Limit, params.Offset)
-
-	// Get total count
-	var total int
-	err := s.db.QueryRow(ctx, countQuery, tenantID, userID).Scan(&total)
-	if err != nil {
-		return nil, fmt.Errorf("failed to count notifications: %w", err)
-	}
-
-	// Get notifications
-	rows, err := s.db.Query(ctx, query, args...)
-	if err != nil {
-		return nil, fmt.Errorf("failed to list notifications: %w", err)
-	}
-	defer rows.Close()
-
-	notifications := []Notification{}
-	for rows.Next() {
-		var n Notification
-		if err := rows.Scan(&n.ID, &n.TenantID, &n.UserID, &n.Title, &n.Message, &n.Type, &n.Read, &n.Link, &n.CreatedAt); err != nil {
-			return nil, err
-		}
-		notifications = append(notifications, n)
-	}
-
-	if err := rows.Err(); err != nil {
-		return nil, err
-	}
-
-	return &NotificationList{
-		Notifications: notifications,
-		Total:         total,
-		Limit:         params.Limit,
-		Offset:        params.Offset,
-	}, nil
+type PersonName struct {
+	FirstName string
+	LastName  string
+	Email     string
 }
 
-// MarkAsRead marks a specific notification as read
-func (s *Service) MarkAsRead(ctx context.Context, tenantID, userID, notificationID string) error {
-	result, err := s.db.Exec(ctx,
-		`UPDATE notifications SET read = TRUE 
-		 WHERE id = $1 AND tenant_id = $2 AND user_id = $3`,
-		notificationID, tenantID, userID,
+type ServiceDetails struct {
+	ServiceName   string
+	ServiceDate   string
+	ServiceTime   string
+	TeamName      string
+	PositionName  string
+}
+
+func (ns *NotificationService) getAssignmentDetails(ctx context.Context, assignmentID, personID string) (*PersonName, *ServiceDetails, error) {
+	person := &PersonName{}
+	service := &ServiceDetails{}
+
+	err := ns.db.QueryRow(ctx, `
+		SELECT p.first_name, p.last_name, COALESCE(p.email, ''),
+		       s.name as service_name, TO_CHAR(s.service_date, 'Month DD, YYYY'),
+		       COALESCE(s.service_time, ''),
+		       t.name as team_name,
+		       COALESCE(tp.name, 'Volunteer') as position_name
+		FROM service_team_assignments sta
+		JOIN people p ON p.id = sta.person_id
+		JOIN services s ON s.id = sta.service_id
+		JOIN teams t ON t.id = sta.team_id
+		LEFT JOIN team_positions tp ON tp.id = sta.position_id
+		WHERE sta.id = $1 AND sta.person_id = $2`,
+		assignmentID, personID).Scan(
+		&person.FirstName, &person.LastName, &person.Email,
+		&service.ServiceName, &service.ServiceDate, &service.ServiceTime,
+		&service.TeamName, &service.PositionName,
 	)
+
 	if err != nil {
-		return fmt.Errorf("failed to mark notification as read: %w", err)
+		return nil, nil, fmt.Errorf("failed to query assignment details: %w", err)
 	}
 
-	if result.RowsAffected() == 0 {
-		return pgx.ErrNoRows
+	return person, service, nil
+}
+
+func (ns *NotificationService) renderTemplate(data AssignmentNotificationData) (string, error) {
+	tmplPath := "internal/email/templates/volunteer-assignment.html"
+	
+	// Read template file
+	templateBytes, err := os.ReadFile(tmplPath)
+	if err != nil {
+		return "", fmt.Errorf("failed to read email template: %w", err)
+	}
+
+	tmpl, err := template.New("volunteer-assignment").Parse(string(templateBytes))
+	if err != nil {
+		return "", fmt.Errorf("failed to parse email template: %w", err)
+	}
+
+	var rendered string
+	buf := &strings.Builder{}
+	if err := tmpl.Execute(buf, data); err != nil {
+		return "", fmt.Errorf("failed to execute email template: %w", err)
+	}
+	rendered = buf.String()
+
+	return rendered, nil
+}
+
+func (ns *NotificationService) sendEmail(toEmail, subject, htmlContent string) error {
+	devMode := os.Getenv("DEV_MODE") == "true"
+
+	if devMode {
+		fmt.Printf("[notification] [DEV MODE] Would send email to %s: %s\n", toEmail, subject)
+		return nil
+	}
+
+	// TODO: Implement SendGrid client integration here
+	// For now, return a placeholder error that can be implemented later
+	return fmt.Errorf("SendGrid integration not yet implemented - implement using internal/communication/sendgrid.go")
+}
+
+func (ns *NotificationService) markNotified(ctx context.Context, assignmentID string) error {
+	now := time.Now()
+	_, err := ns.db.Exec(ctx, `
+		UPDATE service_team_assignments 
+		SET notified_at = $1, notification_sent = true 
+		WHERE id = $2`,
+		now, assignmentID,
+	)
+
+	if err != nil {
+		return fmt.Errorf("failed to update notification status: %w", err)
 	}
 
 	return nil
-}
-
-// MarkAllAsRead marks all notifications for a user as read
-func (s *Service) MarkAllAsRead(ctx context.Context, tenantID, userID string) error {
-	_, err := s.db.Exec(ctx,
-		`UPDATE notifications SET read = TRUE 
-		 WHERE tenant_id = $1 AND user_id = $2 AND read = FALSE`,
-		tenantID, userID,
-	)
-	if err != nil {
-		return fmt.Errorf("failed to mark all notifications as read: %w", err)
-	}
-
-	return nil
-}
-
-// GetUnreadCount returns the count of unread notifications for a user
-func (s *Service) GetUnreadCount(ctx context.Context, tenantID, userID string) (int, error) {
-	var count int
-	err := s.db.QueryRow(ctx,
-		`SELECT COUNT(*) FROM notifications 
-		 WHERE tenant_id = $1 AND user_id = $2 AND read = FALSE`,
-		tenantID, userID,
-	).Scan(&count)
-	if err != nil {
-		return 0, fmt.Errorf("failed to get unread count: %w", err)
-	}
-
-	return count, nil
 }

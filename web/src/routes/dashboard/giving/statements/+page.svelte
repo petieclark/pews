@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
+	import { FileText } from 'lucide-svelte';
 
 	let people: any[] = [];
 	let loading = false;
@@ -113,13 +114,13 @@
 				<div class="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
 				Generating PDF...
 			{:else}
-				📄 Download PDF Statement
+				<FileText size={14} class="inline" /> Download PDF Statement
 			{/if}
 		</button>
 	</div>
 
 	<div class="bg-surface rounded-lg shadow p-6 border border-custom">
-		<h3 class="font-semibold text-primary mb-3">📄 About Giving Statements</h3>
+		<h3 class="font-semibold text-primary mb-3"><FileText size={16} class="inline" /> About Giving Statements</h3>
 		<ul class="text-sm text-secondary space-y-2">
 			<li>• Statements include all completed donations for a calendar year</li>
 			<li>• PDF includes church info, donor info, and itemized contributions</li>

@@ -1,6 +1,7 @@
 <script>
 	import { onMount } from 'svelte';
 	import { page } from '$app/stores';
+	import { CalendarDays } from 'lucide-svelte';
 
 	const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8190';
 
@@ -65,7 +66,7 @@
 {:else if error}
 	<div class="flex items-center justify-center min-h-screen">
 		<div class="text-center">
-			<p class="text-6xl mb-4">📅</p>
+			<p class="mb-4"><CalendarDays size={64} /></p>
 			<h1 class="text-2xl font-bold text-[#1B3A4B] mb-2">Not Found</h1>
 			<p class="text-gray-500">This page doesn't exist.</p>
 		</div>
@@ -84,7 +85,7 @@
 	<div class="max-w-4xl mx-auto px-4 py-8">
 		{#if events.length === 0}
 			<div class="text-center py-16">
-				<p class="text-5xl mb-4">📅</p>
+				<p class="mb-4"><CalendarDays size={48} /></p>
 				<h2 class="text-xl font-semibold text-[#1B3A4B] mb-2">No upcoming events</h2>
 				<p class="text-gray-500">Check back soon!</p>
 			</div>

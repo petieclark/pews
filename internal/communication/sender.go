@@ -4,26 +4,89 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"os"
 	"strings"
 	"time"
 
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
-// Sender orchestrates email/SMS delivery for campaigns and auto-responses.
-type Sender struct {
-	mailgun *MailgunClient
-	twilio  *TwilioClient
-	db      *pgxpool.Pool
+// min returns the minimum of two integers.
+func min(a, b int) int {
+	if a < b {
+		return a
+	}
+	return b
 }
 
 // NewSender initialises provider clients from env vars.
 func NewSender(db *pgxpool.Pool) *Sender {
+	devMode := os.Getenv("DEV_MODE") == "true"
 	return &Sender{
-		mailgun: NewMailgunClient(),
-		twilio:  NewTwilioClient(),
-		db:      db,
+		sendgrid: NewSendGridClient(),
+		twilio:   NewTwilioClient(),
+		db:       db,
+		devMode:  devMode,
 	}
+}
+
+// Sender orchestrates email/SMS delivery for campaigns and auto-responses.
+type Sender struct {
+	sendgrid *SendGridClient
+	twilio   *TwilioClient
+	db       *pgxpool.Pool
+	devMode  bool // if true, logs instead of sending
+}
+
+// Message represents a unified message interface for email or SMS
+type Message struct {
+	ToEmail    string            // recipient email address (for email messages)
+	ToPhone    string            // recipient phone number (for SMS)
+	Subject    string            // email subject line (optional for SMS)
+	Body       string            // message body (HTML for email, plain text for SMS)
+	MergeData  RecipientInfo     // merge data for personalization
+	ChurchName string            // church name for branding
+}
+
+// Send sends a unified message via the appropriate channel.
+// It automatically detects whether to send email or SMS based on recipient type.
+func (s *Sender) Send(ctx context.Context, msg Message) error {
+	if s.devMode {
+		log.Printf("[communication] [DEV MODE] would send %s to %s: %s", 
+			map[bool]string{true: "email", false: "SMS"}[msg.ToPhone != ""],
+			msg.ToEmail+msg.ToPhone, msg.Body[:min(50, len(msg.Body))]+"...")
+		return nil // no actual send in dev mode
+	}
+
+	if msg.ToEmail != "" {
+		// Send email via SendGrid
+		subject := MergeTags(msg.Subject, msg.MergeData, msg.ChurchName)
+		body := MergeTags(msg.Body, msg.MergeData, msg.ChurchName)
+		
+		if !s.sendgrid.IsConfigured() {
+			return fmt.Errorf("SendGrid not configured for email delivery")
+		}
+		
+		return s.sendgrid.SendEmail(msg.ToEmail, subject, body, "", msg.ChurchName)
+	}
+
+	if msg.ToPhone != "" {
+		// Send SMS via Twilio
+		body := MergeTags(msg.Body, msg.MergeData, msg.ChurchName)
+		
+		if !s.twilio.IsConfigured() {
+			return fmt.Errorf("Twilio not configured for SMS delivery")
+		}
+		
+		return s.twilio.SendSMS(msg.ToPhone, body)
+	}
+
+	return fmt.Errorf("no recipient specified (email or phone required)")
+}
+
+// GetSender returns the sender instance (for backward compatibility).
+func (h *Handler) GetSender() *Sender {
+	return h.service.GetSender()
 }
 
 // RecipientInfo holds the data needed to personalise and deliver a message.
@@ -86,8 +149,8 @@ func (s *Sender) SendCampaign(ctx context.Context, tenantID string, campaign *Ca
 		var sendErr error
 		switch campaign.Channel {
 		case "email":
-			if !s.mailgun.IsConfigured() {
-				log.Printf("[communication] campaign %s: skipping email to %s — Mailgun not configured", campaign.ID, r.Email)
+			if !s.sendgrid.IsConfigured() {
+				log.Printf("[communication] campaign %s: skipping email to %s — SendGrid not configured", campaign.ID, r.Email)
 				continue
 			}
 			if r.Email == "" {
@@ -95,7 +158,7 @@ func (s *Sender) SendCampaign(ctx context.Context, tenantID string, campaign *Ca
 				failCount++
 				continue
 			}
-			sendErr = s.mailgun.SendEmail(r.Email, subject, body, "", churchName)
+			sendErr = s.sendgrid.SendEmail(r.Email, subject, body, "", churchName)
 
 		case "sms":
 			if !s.twilio.IsConfigured() {
@@ -133,8 +196,13 @@ func (s *Sender) SendCampaign(ctx context.Context, tenantID string, campaign *Ca
 
 // SendWelcomeEmail sends a welcome email for a connection card submission.
 func (s *Sender) SendWelcomeEmail(ctx context.Context, tenantID string, card *ConnectionCard) {
-	if !s.mailgun.IsConfigured() {
-		log.Printf("[communication] skipping welcome email — Mailgun not configured")
+	if s.devMode {
+		log.Printf("[communication] [DEV MODE] would send welcome email to %s", card.Email)
+		return
+	}
+
+	if !s.sendgrid.IsConfigured() {
+		log.Printf("[communication] skipping welcome email — SendGrid not configured")
 		return
 	}
 	if card.Email == "" {
@@ -162,7 +230,7 @@ func (s *Sender) SendWelcomeEmail(ctx context.Context, tenantID string, card *Co
 		body = MergeTags(tmplBody, r, churchName)
 	}
 
-	if err := s.mailgun.SendEmail(card.Email, subject, body, "", churchName); err != nil {
+	if err := s.sendgrid.SendEmail(card.Email, subject, body, "", churchName); err != nil {
 		log.Printf("[communication] failed to send welcome email to %s: %v", card.Email, err)
 	} else {
 		log.Printf("[communication] sent welcome email to %s", card.Email)

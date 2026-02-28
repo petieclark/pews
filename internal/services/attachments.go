@@ -11,11 +11,9 @@ import (
 	"github.com/petieclark/pews/internal/middleware"
 )
 
-const (
-	maxUploadSize = 10 << 20 // 10 MB
-)
+const MaxSongAttachmentSize = 20 * 1024 * 1024 // 20MB
 
-// UploadSongAttachment handles PDF upload for a song
+// UploadSongAttachment handles file upload for a song (PDF, PNG, JPG, DOCX)
 func (h *Handler) UploadSongAttachment(w http.ResponseWriter, r *http.Request) {
 	claims, ok := middleware.GetClaims(r.Context())
 	if !ok {
@@ -32,24 +30,31 @@ func (h *Handler) UploadSongAttachment(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Parse multipart form with size limit
-	r.Body = http.MaxBytesReader(w, r.Body, maxUploadSize)
-	if err := r.ParseMultipartForm(maxUploadSize); err != nil {
-		http.Error(w, "File too large (max 10MB)", http.StatusBadRequest)
+	// Parse multipart form with size limit (20MB max)
+	r.Body = http.MaxBytesReader(w, r.Body, MaxSongAttachmentSize)
+	if err := r.ParseMultipartForm(MaxSongAttachmentSize); err != nil {
+		http.Error(w, "File too large (max 20MB)", http.StatusBadRequest)
 		return
 	}
 
 	file, header, err := r.FormFile("file")
 	if err != nil {
-		http.Error(w, "Failed to read file", http.StatusBadRequest)
+		http.Error(w, "No file provided", http.StatusBadRequest)
 		return
 	}
 	defer file.Close()
 
-	// Validate content type
+	// Validate content type (allow PDF, PNG, JPG, DOCX)
 	contentType := header.Header.Get("Content-Type")
-	if contentType != "application/pdf" {
-		http.Error(w, "Only PDF files are allowed", http.StatusBadRequest)
+	validTypes := map[string]bool{
+		"application/pdf": true,
+		"image/jpeg":      true,
+		"image/jpg":       true,
+		"image/png":       true,
+		"application/vnd.openxmlformats-officedocument.wordprocessingml.document": true,
+	}
+	if !validTypes[contentType] {
+		http.Error(w, "File type not allowed (allowed: PDF, PNG, JPG, DOCX)", http.StatusBadRequest)
 		return
 	}
 
@@ -60,7 +65,7 @@ func (h *Handler) UploadSongAttachment(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Generate filename
+	// Generate safe filename
 	filename := strings.ReplaceAll(header.Filename, " ", "_")
 
 	attachment := &SongAttachment{
@@ -84,7 +89,7 @@ func (h *Handler) UploadSongAttachment(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(created)
 }
 
-// ListSongAttachments lists all attachments for a song
+// ListSongAttachments lists all attachments for a song (metadata only, no file data)
 func (h *Handler) ListSongAttachments(w http.ResponseWriter, r *http.Request) {
 	claims, ok := middleware.GetClaims(r.Context())
 	if !ok {
@@ -104,7 +109,7 @@ func (h *Handler) ListSongAttachments(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(attachments)
 }
 
-// GetSongAttachment downloads a specific attachment
+// GetSongAttachment downloads a specific attachment (returns raw file data for download)
 func (h *Handler) GetSongAttachment(w http.ResponseWriter, r *http.Request) {
 	claims, ok := middleware.GetClaims(r.Context())
 	if !ok {
@@ -120,6 +125,7 @@ func (h *Handler) GetSongAttachment(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Return raw file data for download
 	w.Header().Set("Content-Type", attachment.ContentType)
 	w.Header().Set("Content-Disposition", fmt.Sprintf("inline; filename=%q", attachment.Filename))
 	w.Header().Set("Content-Length", fmt.Sprintf("%d", attachment.FileSize))

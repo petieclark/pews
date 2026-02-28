@@ -1,6 +1,7 @@
 <script>
 	import { onMount } from 'svelte';
 	import { page } from '$app/stores';
+	import { Building2, Users, CalendarDays } from 'lucide-svelte';
 
 	const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8190';
 
@@ -45,7 +46,7 @@
 {:else if error}
 	<div class="flex items-center justify-center min-h-screen">
 		<div class="text-center">
-			<p class="text-6xl mb-4">⛪</p>
+			<p class="mb-4"><Building2 size={64} /></p>
 			<h1 class="text-2xl font-bold text-[#1B3A4B] mb-2">Church Not Found</h1>
 			<p class="text-gray-500">The page you're looking for doesn't exist.</p>
 		</div>
@@ -57,7 +58,7 @@
 			{#if church.logo}
 				<img src={church.logo} alt={church.name} class="w-24 h-24 rounded-full mx-auto mb-6 object-cover border-4 border-white/20" />
 			{:else}
-				<div class="w-24 h-24 rounded-full mx-auto mb-6 bg-white/10 flex items-center justify-center text-4xl">⛪</div>
+				<div class="w-24 h-24 rounded-full mx-auto mb-6 bg-white/10 flex items-center justify-center"><Building2 size={40} /></div>
 			{/if}
 			<h1 class="text-4xl font-bold mb-4">{church.name}</h1>
 			{#if church.about}
@@ -70,12 +71,12 @@
 	<div class="max-w-4xl mx-auto px-4 -mt-8">
 		<div class="grid grid-cols-2 md:grid-cols-4 gap-4">
 			<a href="/groups/{slug}" class="bg-white rounded-xl shadow-md p-6 text-center hover:shadow-lg transition-shadow group">
-				<div class="text-3xl mb-2 group-hover:scale-110 transition-transform">👥</div>
+				<div class="mb-2 group-hover:scale-110 transition-transform"><Users size={28} /></div>
 				<div class="font-semibold text-[#1B3A4B]">Groups</div>
 				<div class="text-sm text-gray-500">Find community</div>
 			</a>
 			<a href="/events/{slug}" class="bg-white rounded-xl shadow-md p-6 text-center hover:shadow-lg transition-shadow group">
-				<div class="text-3xl mb-2 group-hover:scale-110 transition-transform">📅</div>
+				<div class="mb-2 group-hover:scale-110 transition-transform"><CalendarDays size={28} /></div>
 				<div class="font-semibold text-[#1B3A4B]">Events</div>
 				<div class="text-sm text-gray-500">What's happening</div>
 			</a>

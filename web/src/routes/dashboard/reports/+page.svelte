@@ -1,14 +1,15 @@
 <script>
 	import { onMount, onDestroy } from 'svelte';
 	import { api } from '$lib/api';
+	import { Users, DollarSign, TrendingUp, Music, Zap } from 'lucide-svelte';
 
 	let activeTab = 'attendance';
 	const tabs = [
-		{ id: 'attendance', label: 'Attendance', icon: '👥' },
-		{ id: 'giving', label: 'Giving', icon: '💰' },
-		{ id: 'growth', label: 'Growth', icon: '📈' },
-		{ id: 'songs', label: 'Songs', icon: '🎵' },
-		{ id: 'engagement', label: 'Engagement', icon: '⚡' }
+		{ id: 'attendance', label: 'Attendance', icon: Users },
+		{ id: 'giving', label: 'Giving', icon: DollarSign },
+		{ id: 'growth', label: 'Growth', icon: TrendingUp },
+		{ id: 'songs', label: 'Songs', icon: Music },
+		{ id: 'engagement', label: 'Engagement', icon: Zap }
 	];
 
 	let dateRange = '12m';
@@ -235,7 +236,7 @@
 						? 'bg-[var(--teal)] text-white shadow-sm' 
 						: 'text-secondary hover:text-[var(--text-primary)] hover:bg-[var(--surface-hover)]'}"
 			>
-				<span>{tab.icon}</span>
+				<span><svelte:component this={tab.icon} size={16} /></span>
 				{tab.label}
 			</button>
 		{/each}

@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	
 	"time"
 
 	"github.com/google/uuid"
@@ -15,12 +16,11 @@ type Service struct {
 	db *pgxpool.Pool
 }
 
+
 func NewService(db *pgxpool.Pool) *Service {
 	return &Service{db: db}
 }
-
 // ServiceType operations
-
 func (s *Service) ListServiceTypes(ctx context.Context, tenantID string) ([]ServiceType, error) {
 	rows, err := s.db.Query(ctx, `
 		SELECT id, tenant_id, name, COALESCE(default_time, ''), COALESCE(default_day, ''), 
@@ -31,7 +31,6 @@ func (s *Service) ListServiceTypes(ctx context.Context, tenantID string) ([]Serv
 		return nil, fmt.Errorf("failed to list service types: %w", err)
 	}
 	defer rows.Close()
-
 	types := []ServiceType{}
 	for rows.Next() {
 		var st ServiceType
@@ -42,28 +41,22 @@ func (s *Service) ListServiceTypes(ctx context.Context, tenantID string) ([]Serv
 		}
 		types = append(types, st)
 	}
-
 	return types, nil
 }
-
 func (s *Service) CreateServiceType(ctx context.Context, tenantID string, st *ServiceType) (*ServiceType, error) {
 	st.ID = uuid.New().String()
 	st.TenantID = tenantID
-
 	err := s.db.QueryRow(ctx, `
 		INSERT INTO service_types (id, tenant_id, name, default_time, default_day, color, is_active)
 		VALUES ($1, $2, $3, $4, $5, $6, $7)
 		RETURNING created_at, updated_at`,
 		st.ID, st.TenantID, st.Name, st.DefaultTime, st.DefaultDay, st.Color, st.IsActive,
 	).Scan(&st.CreatedAt, &st.UpdatedAt)
-
 	if err != nil {
 		return nil, fmt.Errorf("failed to create service type: %w", err)
 	}
-
 	return st, nil
 }
-
 func (s *Service) UpdateServiceType(ctx context.Context, tenantID, typeID string, st *ServiceType) (*ServiceType, error) {
 	err := s.db.QueryRow(ctx, `
 		UPDATE service_types SET 
@@ -72,22 +65,17 @@ func (s *Service) UpdateServiceType(ctx context.Context, tenantID, typeID string
 		RETURNING created_at, updated_at`,
 		st.Name, st.DefaultTime, st.DefaultDay, st.Color, st.IsActive, typeID,
 	).Scan(&st.CreatedAt, &st.UpdatedAt)
-
 	if err != nil {
 		if err == pgx.ErrNoRows {
 			return nil, fmt.Errorf("service type not found")
 		}
 		return nil, fmt.Errorf("failed to update service type: %w", err)
 	}
-
 	st.ID = typeID
 	st.TenantID = tenantID
-
 	return st, nil
 }
-
 // Services operations
-
 func (s *Service) ListServices(ctx context.Context, tenantID, fromDate, toDate, typeID, status string, page, limit int) ([]ChurchService, int, error) {
 	if page < 1 {
 		page = 1
@@ -96,35 +84,29 @@ func (s *Service) ListServices(ctx context.Context, tenantID, fromDate, toDate, 
 		limit = 50
 	}
 	offset := (page - 1) * limit
-
 	whereClause := "WHERE 1=1"
 	args := []interface{}{}
 	argPos := 1
-
 	if fromDate != "" {
 		whereClause += fmt.Sprintf(" AND service_date >= $%d", argPos)
 		args = append(args, fromDate)
 		argPos++
 	}
-
 	if toDate != "" {
 		whereClause += fmt.Sprintf(" AND service_date <= $%d", argPos)
 		args = append(args, toDate)
 		argPos++
 	}
-
 	if typeID != "" {
 		whereClause += fmt.Sprintf(" AND service_type_id = $%d", argPos)
 		args = append(args, typeID)
 		argPos++
 	}
-
 	if status != "" {
 		whereClause += fmt.Sprintf(" AND status = $%d", argPos)
 		args = append(args, status)
 		argPos++
 	}
-
 	// Count total
 	var total int
 	countQuery := "SELECT COUNT(*) FROM services " + whereClause
@@ -132,7 +114,6 @@ func (s *Service) ListServices(ctx context.Context, tenantID, fromDate, toDate, 
 	if err != nil {
 		return nil, 0, fmt.Errorf("failed to count services: %w", err)
 	}
-
 	// Get services
 	query := fmt.Sprintf(`
 		SELECT s.id, s.tenant_id, s.service_type_id, COALESCE(s.name, ''), s.service_date, 
@@ -143,15 +124,12 @@ func (s *Service) ListServices(ctx context.Context, tenantID, fromDate, toDate, 
 		%s
 		ORDER BY s.service_date DESC, s.service_time
 		LIMIT $%d OFFSET $%d`, whereClause, argPos, argPos+1)
-
 	args = append(args, limit, offset)
-
 	rows, err := s.db.Query(ctx, query, args...)
 	if err != nil {
 		return nil, 0, fmt.Errorf("failed to list services: %w", err)
 	}
 	defer rows.Close()
-
 	svcs := []ChurchService{}
 	for rows.Next() {
 		var svc ChurchService
@@ -162,26 +140,19 @@ func (s *Service) ListServices(ctx context.Context, tenantID, fromDate, toDate, 
 		if err != nil {
 			return nil, 0, fmt.Errorf("failed to scan service: %w", err)
 		}
-
 		svc.ServiceType = &ServiceType{Name: stName, Color: stColor}
-
 		// Count team members
 		var teamCount int
 		s.db.QueryRow(ctx, "SELECT COUNT(*) FROM service_teams WHERE service_id = $1", svc.ID).Scan(&teamCount)
-		
 		svcs = append(svcs, svc)
 	}
-
 	return svcs, total, nil
 }
-
 func (s *Service) GetUpcomingServices(ctx context.Context, tenantID string, limit int) ([]ChurchService, error) {
 	if limit < 1 || limit > 20 {
 		limit = 4
 	}
-
 	today := time.Now().Format("2006-01-02")
-
 	rows, err := s.db.Query(ctx, `
 		SELECT s.id, s.tenant_id, s.service_type_id, COALESCE(s.name, ''), s.service_date, 
 		       COALESCE(s.service_time, ''), COALESCE(s.notes, ''), COALESCE(s.status, 'draft'), s.created_at, s.updated_at,
@@ -195,7 +166,6 @@ func (s *Service) GetUpcomingServices(ctx context.Context, tenantID string, limi
 		return nil, fmt.Errorf("failed to get upcoming services: %w", err)
 	}
 	defer rows.Close()
-
 	svcs := []ChurchService{}
 	for rows.Next() {
 		var svc ChurchService
@@ -206,14 +176,11 @@ func (s *Service) GetUpcomingServices(ctx context.Context, tenantID string, limi
 		if err != nil {
 			return nil, fmt.Errorf("failed to scan service: %w", err)
 		}
-
 		svc.ServiceType = &ServiceType{Name: stName, Color: stColor}
 		svcs = append(svcs, svc)
 	}
-
 	return svcs, nil
 }
-
 func (s *Service) GetServiceByID(ctx context.Context, tenantID, serviceID string) (*ChurchService, error) {
 	var svc ChurchService
 	err := s.db.QueryRow(ctx, `
@@ -228,7 +195,6 @@ func (s *Service) GetServiceByID(ctx context.Context, tenantID, serviceID string
 		}
 		return nil, fmt.Errorf("failed to get service: %w", err)
 	}
-
 	// Load service type
 	var st ServiceType
 	err2 := s.db.QueryRow(ctx, `
@@ -240,40 +206,32 @@ func (s *Service) GetServiceByID(ctx context.Context, tenantID, serviceID string
 	if err2 == nil {
 		svc.ServiceType = &st
 	}
-
 	// Load items
 	items, err2 := s.GetServiceItems(ctx, tenantID, serviceID)
 	if err2 == nil {
 		svc.Items = items
 	}
-
 	// Load team
 	team, err2 := s.GetServiceTeam(ctx, tenantID, serviceID)
 	if err2 == nil {
 		svc.Team = team
 	}
-
 	return &svc, nil
 }
-
 func (s *Service) CreateService(ctx context.Context, tenantID string, svc *ChurchService) (*ChurchService, error) {
 	svc.ID = uuid.New().String()
 	svc.TenantID = tenantID
-
 	err := s.db.QueryRow(ctx, `
 		INSERT INTO services (id, tenant_id, service_type_id, name, service_date, service_time, notes, status)
 		VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
 		RETURNING created_at, updated_at`,
 		svc.ID, svc.TenantID, svc.ServiceTypeID, svc.Name, svc.ServiceDate, svc.ServiceTime, svc.Notes, svc.Status,
 	).Scan(&svc.CreatedAt, &svc.UpdatedAt)
-
 	if err != nil {
 		return nil, fmt.Errorf("failed to create service: %w", err)
 	}
-
 	return svc, nil
 }
-
 func (s *Service) UpdateService(ctx context.Context, tenantID, serviceID string, svc *ChurchService) (*ChurchService, error) {
 	err := s.db.QueryRow(ctx, `
 		UPDATE services SET 
@@ -282,35 +240,27 @@ func (s *Service) UpdateService(ctx context.Context, tenantID, serviceID string,
 		RETURNING created_at, updated_at`,
 		svc.ServiceTypeID, svc.Name, svc.ServiceDate, svc.ServiceTime, svc.Notes, svc.Status, serviceID,
 	).Scan(&svc.CreatedAt, &svc.UpdatedAt)
-
 	if err != nil {
 		if err == pgx.ErrNoRows {
 			return nil, fmt.Errorf("service not found")
 		}
 		return nil, fmt.Errorf("failed to update service: %w", err)
 	}
-
 	svc.ID = serviceID
 	svc.TenantID = tenantID
-
 	return svc, nil
 }
-
 func (s *Service) DeleteService(ctx context.Context, tenantID, serviceID string) error {
 	result, err := s.db.Exec(ctx, "DELETE FROM services WHERE id = $1", serviceID)
 	if err != nil {
 		return fmt.Errorf("failed to delete service: %w", err)
 	}
-
 	if result.RowsAffected() == 0 {
 		return fmt.Errorf("service not found")
 	}
-
 	return nil
 }
-
 // Service Items operations
-
 func (s *Service) GetServiceItems(ctx context.Context, tenantID, serviceID string) ([]ServiceItem, error) {
 	rows, err := s.db.Query(ctx, `
 		SELECT id, service_id, item_type, title, song_id, COALESCE(song_key, ''), position, duration_minutes, COALESCE(notes, ''), COALESCE(assigned_to, '')
@@ -321,7 +271,6 @@ func (s *Service) GetServiceItems(ctx context.Context, tenantID, serviceID strin
 		return nil, fmt.Errorf("failed to get service items: %w", err)
 	}
 	defer rows.Close()
-
 	items := []ServiceItem{}
 	for rows.Next() {
 		var item ServiceItem
@@ -330,7 +279,6 @@ func (s *Service) GetServiceItems(ctx context.Context, tenantID, serviceID strin
 		if err != nil {
 			return nil, fmt.Errorf("failed to scan service item: %w", err)
 		}
-
 		// Load song if present
 		if item.SongID != nil {
 			song, err := s.GetSongByID(ctx, tenantID, *item.SongID)
@@ -338,36 +286,28 @@ func (s *Service) GetServiceItems(ctx context.Context, tenantID, serviceID strin
 				item.Song = song
 			}
 		}
-
 		items = append(items, item)
 	}
-
 	return items, nil
 }
-
 func (s *Service) AddServiceItem(ctx context.Context, tenantID string, item *ServiceItem) (*ServiceItem, error) {
 	item.ID = uuid.New().String()
-
 	_, err := s.db.Exec(ctx, `
 		INSERT INTO service_items (id, service_id, item_type, title, song_id, song_key, position, duration_minutes, notes, assigned_to)
 		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)`,
 		item.ID, item.ServiceID, item.ItemType, item.Title, item.SongID, item.SongKey, item.Position, item.DurationMinutes, item.Notes, item.AssignedTo,
 	)
-
 	if err != nil {
 		return nil, fmt.Errorf("failed to add service item: %w", err)
 	}
-
 	// Update song usage if song_id is present
 	if item.SongID != nil {
 		s.db.Exec(ctx, `
 			UPDATE songs SET times_used = times_used + 1, last_used = CURRENT_DATE 
 			WHERE id = $1`, *item.SongID)
 	}
-
 	return item, nil
 }
-
 func (s *Service) UpdateServiceItem(ctx context.Context, tenantID, itemID string, item *ServiceItem) (*ServiceItem, error) {
 	result, err := s.db.Exec(ctx, `
 		UPDATE service_items SET 
@@ -375,48 +315,38 @@ func (s *Service) UpdateServiceItem(ctx context.Context, tenantID, itemID string
 		WHERE id = $9`,
 		item.ItemType, item.Title, item.SongID, item.SongKey, item.Position, item.DurationMinutes, item.Notes, item.AssignedTo, itemID,
 	)
-
 	if err != nil {
 		return nil, fmt.Errorf("failed to update service item: %w", err)
 	}
-
 	if result.RowsAffected() == 0 {
 		return nil, fmt.Errorf("service item not found")
 	}
-
 	item.ID = itemID
-
 	return item, nil
 }
-
 func (s *Service) DeleteServiceItem(ctx context.Context, tenantID, itemID string) error {
 	result, err := s.db.Exec(ctx, "DELETE FROM service_items WHERE id = $1", itemID)
 	if err != nil {
 		return fmt.Errorf("failed to delete service item: %w", err)
 	}
-
 	if result.RowsAffected() == 0 {
 		return fmt.Errorf("service item not found")
 	}
-
 	return nil
 }
-
 // Service Team operations
-
 func (s *Service) GetServiceTeam(ctx context.Context, tenantID, serviceID string) ([]ServiceTeam, error) {
 	rows, err := s.db.Query(ctx, `
 		SELECT st.id, st.service_id, st.person_id, st.role, COALESCE(st.status, 'pending'), COALESCE(st.notes, ''),
-		       COALESCE(p.first_name, ''), COALESCE(p.last_name, '')
+		       COALESCE(p.first_name, '') as first_name, COALESCE(p.last_name, '') as last_name
 		FROM service_teams st
-		JOIN people p ON p.id = st.person_id
+		LEFT JOIN people p ON p.id = st.person_id
 		WHERE st.service_id = $1
 		ORDER BY st.role`, serviceID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get service team: %w", err)
 	}
 	defer rows.Close()
-
 	team := []ServiceTeam{}
 	for rows.Next() {
 		var member ServiceTeam
@@ -427,61 +357,46 @@ func (s *Service) GetServiceTeam(ctx context.Context, tenantID, serviceID string
 		}
 		team = append(team, member)
 	}
-
 	return team, nil
 }
-
 func (s *Service) AddServiceTeamMember(ctx context.Context, tenantID string, member *ServiceTeam) (*ServiceTeam, error) {
 	member.ID = uuid.New().String()
-
 	_, err := s.db.Exec(ctx, `
 		INSERT INTO service_teams (id, service_id, person_id, role, status, notes)
 		VALUES ($1, $2, $3, $4, $5, $6)`,
 		member.ID, member.ServiceID, member.PersonID, member.Role, member.Status, member.Notes,
 	)
-
 	if err != nil {
 		return nil, fmt.Errorf("failed to add service team member: %w", err)
 	}
-
 	return member, nil
 }
-
 func (s *Service) UpdateServiceTeamMember(ctx context.Context, tenantID, teamID string, member *ServiceTeam) (*ServiceTeam, error) {
 	result, err := s.db.Exec(ctx, `
 		UPDATE service_teams SET role = $1, status = $2, notes = $3
 		WHERE id = $4`,
 		member.Role, member.Status, member.Notes, teamID,
 	)
-
 	if err != nil {
 		return nil, fmt.Errorf("failed to update service team member: %w", err)
 	}
-
 	if result.RowsAffected() == 0 {
 		return nil, fmt.Errorf("service team member not found")
 	}
-
 	member.ID = teamID
-
 	return member, nil
 }
-
 func (s *Service) DeleteServiceTeamMember(ctx context.Context, tenantID, teamID string) error {
 	result, err := s.db.Exec(ctx, "DELETE FROM service_teams WHERE id = $1", teamID)
 	if err != nil {
 		return fmt.Errorf("failed to delete service team member: %w", err)
 	}
-
 	if result.RowsAffected() == 0 {
 		return fmt.Errorf("service team member not found")
 	}
-
 	return nil
 }
-
 // Songs operations
-
 func (s *Service) ListSongs(ctx context.Context, tenantID, query string, page, limit int) ([]Song, int, error) {
 	return s.ListSongsFiltered(ctx, tenantID, SongListParams{
 		Query: query,
@@ -489,7 +404,6 @@ func (s *Service) ListSongs(ctx context.Context, tenantID, query string, page, l
 		Limit: limit,
 	})
 }
-
 func (s *Service) ListSongsFiltered(ctx context.Context, tenantID string, params SongListParams) ([]Song, int, error) {
 	if params.Page < 1 {
 		params.Page = 1
@@ -498,35 +412,29 @@ func (s *Service) ListSongsFiltered(ctx context.Context, tenantID string, params
 		params.Limit = 20
 	}
 	offset := (params.Page - 1) * params.Limit
-
 	whereClause := "WHERE 1=1"
 	args := []interface{}{}
 	argPos := 1
-
 	if params.Query != "" {
 		whereClause += fmt.Sprintf(" AND (title ILIKE $%d OR artist ILIKE $%d OR tags ILIKE $%d OR ccli_number ILIKE $%d)", argPos, argPos, argPos, argPos)
 		args = append(args, "%"+params.Query+"%")
 		argPos++
 	}
-
 	if params.Key != "" {
 		whereClause += fmt.Sprintf(" AND default_key = $%d", argPos)
 		args = append(args, params.Key)
 		argPos++
 	}
-
 	if params.Tag != "" {
 		whereClause += fmt.Sprintf(" AND tags ILIKE $%d", argPos)
 		args = append(args, "%"+params.Tag+"%")
 		argPos++
 	}
-
 	if params.HasLyrics == "yes" {
 		whereClause += " AND lyrics IS NOT NULL AND lyrics != ''"
 	} else if params.HasLyrics == "no" {
 		whereClause += " AND (lyrics IS NULL OR lyrics = '')"
 	}
-
 	// Count total
 	var total int
 	countQuery := "SELECT COUNT(*) FROM songs " + whereClause
@@ -534,7 +442,6 @@ func (s *Service) ListSongsFiltered(ctx context.Context, tenantID string, params
 	if err != nil {
 		return nil, 0, fmt.Errorf("failed to count songs: %w", err)
 	}
-
 	// Determine sort order
 	orderBy := "ORDER BY title ASC"
 	switch params.Sort {
@@ -549,42 +456,36 @@ func (s *Service) ListSongsFiltered(ctx context.Context, tenantID string, params
 	case "artist":
 		orderBy = "ORDER BY artist ASC, title ASC"
 	}
-
 	// Get songs
 	sqlQuery := fmt.Sprintf(`
-		SELECT id, tenant_id, title, COALESCE(artist, ''), COALESCE(default_key, ''), COALESCE(tempo, 0), COALESCE(ccli_number, ''), COALESCE(lyrics, ''), COALESCE(notes, ''), COALESCE(tags, ''), COALESCE(youtube_url, ''), COALESCE(spotify_url, ''), COALESCE(apple_music_url, ''), COALESCE(rehearsal_url, ''), last_used, times_used, created_at, updated_at
+		SELECT id, tenant_id, title, COALESCE(artist, ''), COALESCE(default_key, ''), COALESCE(tempo, 0), COALESCE(ccli_number, ''), COALESCE(lyrics, ''), COALESCE(notes, ''), COALESCE(tags, ''), COALESCE(youtube_url, ''), COALESCE(spotify_url, ''), COALESCE(apple_music_url, ''), COALESCE(rehearsal_url, ''), authors, copyright_year, publisher, license_type, last_used, times_used, created_at, updated_at
 		FROM songs
 		%s
 		%s
 		LIMIT $%d OFFSET $%d`, whereClause, orderBy, argPos, argPos+1)
-
 	args = append(args, params.Limit, offset)
-
 	rows, err := s.db.Query(ctx, sqlQuery, args...)
 	if err != nil {
 		return nil, 0, fmt.Errorf("failed to list songs: %w", err)
 	}
 	defer rows.Close()
-
 	songs := []Song{}
 	for rows.Next() {
 		var song Song
 		err := rows.Scan(&song.ID, &song.TenantID, &song.Title, &song.Artist, &song.DefaultKey,
 			&song.Tempo, &song.CCLINumber, &song.Lyrics, &song.Notes, &song.Tags,
 			&song.YoutubeURL, &song.SpotifyURL, &song.AppleMusicURL, &song.RehearsalURL,
+			&song.Authors, &song.CopyrightYear, &song.Publisher, &song.LicenseType,
 			&song.LastUsed, &song.TimesUsed, &song.CreatedAt, &song.UpdatedAt)
 		if err != nil {
 			return nil, 0, fmt.Errorf("failed to scan song: %w", err)
 		}
 		songs = append(songs, song)
 	}
-
 	return songs, total, nil
 }
-
 func (s *Service) GetSongStats(ctx context.Context, tenantID string) (*SongStats, error) {
 	stats := &SongStats{}
-
 	// Total songs, with lyrics
 	err := s.db.QueryRow(ctx, `
 		SELECT 
@@ -594,14 +495,12 @@ func (s *Service) GetSongStats(ctx context.Context, tenantID string) (*SongStats
 	if err != nil {
 		return nil, fmt.Errorf("failed to get song counts: %w", err)
 	}
-
 	// With attachments
 	err = s.db.QueryRow(ctx, `
 		SELECT COUNT(DISTINCT song_id) FROM song_attachments`).Scan(&stats.WithAttachments)
 	if err != nil {
 		stats.WithAttachments = 0 // table might not exist
 	}
-
 	// Most used (top 5)
 	rows, err := s.db.Query(ctx, `
 		SELECT id, tenant_id, title, COALESCE(artist, ''), COALESCE(default_key, ''), COALESCE(tempo, 0), COALESCE(ccli_number, ''), '', '', COALESCE(tags, ''), COALESCE(youtube_url, ''), COALESCE(spotify_url, ''), COALESCE(apple_music_url, ''), COALESCE(rehearsal_url, ''), last_used, times_used, created_at, updated_at
@@ -613,7 +512,6 @@ func (s *Service) GetSongStats(ctx context.Context, tenantID string) (*SongStats
 		return nil, fmt.Errorf("failed to get most used songs: %w", err)
 	}
 	defer rows.Close()
-
 	for rows.Next() {
 		var song Song
 		err := rows.Scan(&song.ID, &song.TenantID, &song.Title, &song.Artist, &song.DefaultKey,
@@ -625,7 +523,6 @@ func (s *Service) GetSongStats(ctx context.Context, tenantID string) (*SongStats
 		}
 		stats.MostUsed = append(stats.MostUsed, song)
 	}
-
 	// Recently added (last 5)
 	rows2, err := s.db.Query(ctx, `
 		SELECT id, tenant_id, title, COALESCE(artist, ''), COALESCE(default_key, ''), COALESCE(tempo, 0), COALESCE(ccli_number, ''), '', '', COALESCE(tags, ''), COALESCE(youtube_url, ''), COALESCE(spotify_url, ''), COALESCE(apple_music_url, ''), COALESCE(rehearsal_url, ''), last_used, times_used, created_at, updated_at
@@ -636,7 +533,6 @@ func (s *Service) GetSongStats(ctx context.Context, tenantID string) (*SongStats
 		return nil, fmt.Errorf("failed to get recently added songs: %w", err)
 	}
 	defer rows2.Close()
-
 	for rows2.Next() {
 		var song Song
 		err := rows2.Scan(&song.ID, &song.TenantID, &song.Title, &song.Artist, &song.DefaultKey,
@@ -648,7 +544,6 @@ func (s *Service) GetSongStats(ctx context.Context, tenantID string) (*SongStats
 		}
 		stats.RecentlyAdded = append(stats.RecentlyAdded, song)
 	}
-
 	// All unique keys
 	rows3, err := s.db.Query(ctx, `
 		SELECT DISTINCT default_key FROM songs 
@@ -663,7 +558,6 @@ func (s *Service) GetSongStats(ctx context.Context, tenantID string) (*SongStats
 			}
 		}
 	}
-
 	// All unique tags (split comma-separated)
 	rows4, err := s.db.Query(ctx, `
 		SELECT DISTINCT TRIM(unnest(string_to_array(tags, ','))) as tag 
@@ -679,7 +573,6 @@ func (s *Service) GetSongStats(ctx context.Context, tenantID string) (*SongStats
 			}
 		}
 	}
-
 	// Ensure slices are non-nil for JSON serialization
 	if stats.MostUsed == nil {
 		stats.MostUsed = []Song{}
@@ -693,18 +586,17 @@ func (s *Service) GetSongStats(ctx context.Context, tenantID string) (*SongStats
 	if stats.AllTags == nil {
 		stats.AllTags = []string{}
 	}
-
 	return stats, nil
 }
-
 func (s *Service) GetSongByID(ctx context.Context, tenantID, songID string) (*Song, error) {
 	var song Song
 	err := s.db.QueryRow(ctx, `
-		SELECT id, tenant_id, title, COALESCE(artist, ''), COALESCE(default_key, ''), COALESCE(tempo, 0), COALESCE(ccli_number, ''), COALESCE(lyrics, ''), COALESCE(notes, ''), COALESCE(tags, ''), COALESCE(youtube_url, ''), COALESCE(spotify_url, ''), COALESCE(apple_music_url, ''), COALESCE(rehearsal_url, ''), last_used, times_used, created_at, updated_at
+		SELECT id, tenant_id, title, COALESCE(artist, ''), COALESCE(default_key, ''), COALESCE(tempo, 0), COALESCE(ccli_number, ''), COALESCE(lyrics, ''), COALESCE(notes, ''), COALESCE(tags, ''), COALESCE(youtube_url, ''), COALESCE(spotify_url, ''), COALESCE(apple_music_url, ''), COALESCE(rehearsal_url, ''), authors, copyright_year, publisher, license_type, last_used, times_used, created_at, updated_at
 		FROM songs WHERE id = $1`, songID).Scan(
 		&song.ID, &song.TenantID, &song.Title, &song.Artist, &song.DefaultKey,
 		&song.Tempo, &song.CCLINumber, &song.Lyrics, &song.Notes, &song.Tags,
 		&song.YoutubeURL, &song.SpotifyURL, &song.AppleMusicURL, &song.RehearsalURL,
+		&song.Authors, &song.CopyrightYear, &song.Publisher, &song.LicenseType,
 		&song.LastUsed, &song.TimesUsed, &song.CreatedAt, &song.UpdatedAt,
 	)
 	if err != nil {
@@ -713,69 +605,55 @@ func (s *Service) GetSongByID(ctx context.Context, tenantID, songID string) (*So
 		}
 		return nil, fmt.Errorf("failed to get song: %w", err)
 	}
-
 	return &song, nil
 }
-
 func (s *Service) CreateSong(ctx context.Context, tenantID string, song *Song) (*Song, error) {
 	song.ID = uuid.New().String()
 	song.TenantID = tenantID
-
 	err := s.db.QueryRow(ctx, `
-		INSERT INTO songs (id, tenant_id, title, artist, default_key, tempo, ccli_number, lyrics, notes, tags, youtube_url, spotify_url, apple_music_url, rehearsal_url)
-		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)
+		INSERT INTO songs (id, tenant_id, title, artist, default_key, tempo, ccli_number, lyrics, notes, tags, youtube_url, spotify_url, apple_music_url, rehearsal_url, authors, copyright_year, publisher, license_type)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18)
 		RETURNING created_at, updated_at`,
-		song.ID, song.TenantID, song.Title, song.Artist, song.DefaultKey, song.Tempo, song.CCLINumber, song.Lyrics, song.Notes, song.Tags, song.YoutubeURL, song.SpotifyURL, song.AppleMusicURL, song.RehearsalURL,
+		song.ID, song.TenantID, song.Title, song.Artist, song.DefaultKey, song.Tempo, song.CCLINumber, song.Lyrics, song.Notes, song.Tags, song.YoutubeURL, song.SpotifyURL, song.AppleMusicURL, song.RehearsalURL, song.Authors, song.CopyrightYear, song.Publisher, song.LicenseType,
 	).Scan(&song.CreatedAt, &song.UpdatedAt)
-
 	if err != nil {
 		return nil, fmt.Errorf("failed to create song: %w", err)
 	}
-
 	return song, nil
 }
-
 func (s *Service) UpdateSong(ctx context.Context, tenantID, songID string, song *Song) (*Song, error) {
 	err := s.db.QueryRow(ctx, `
 		UPDATE songs SET 
-			title = $1, artist = $2, default_key = $3, tempo = $4, ccli_number = $5, lyrics = $6, notes = $7, tags = $8, youtube_url = $9, spotify_url = $10, apple_music_url = $11, rehearsal_url = $12
-		WHERE id = $13
+			title = $1, artist = $2, default_key = $3, tempo = $4, ccli_number = $5, lyrics = $6, notes = $7, tags = $8, youtube_url = $9, spotify_url = $10, apple_music_url = $11, rehearsal_url = $12, authors = $13, copyright_year = $14, publisher = $15, license_type = $16
+		WHERE id = $17
 		RETURNING created_at, updated_at`,
-		song.Title, song.Artist, song.DefaultKey, song.Tempo, song.CCLINumber, song.Lyrics, song.Notes, song.Tags, song.YoutubeURL, song.SpotifyURL, song.AppleMusicURL, song.RehearsalURL, songID,
+		song.Title, song.Artist, song.DefaultKey, song.Tempo, song.CCLINumber, song.Lyrics, song.Notes, song.Tags, song.YoutubeURL, song.SpotifyURL, song.AppleMusicURL, song.RehearsalURL, song.Authors, song.CopyrightYear, song.Publisher, song.LicenseType, songID,
 	).Scan(&song.CreatedAt, &song.UpdatedAt)
-
 	if err != nil {
 		if err == pgx.ErrNoRows {
 			return nil, fmt.Errorf("song not found")
 		}
 		return nil, fmt.Errorf("failed to update song: %w", err)
 	}
-
 	song.ID = songID
 	song.TenantID = tenantID
-
 	return song, nil
 }
-
 func (s *Service) DeleteSong(ctx context.Context, tenantID, songID string) error {
 	result, err := s.db.Exec(ctx, "DELETE FROM songs WHERE id = $1", songID)
 	if err != nil {
 		return fmt.Errorf("failed to delete song: %w", err)
 	}
-
 	if result.RowsAffected() == 0 {
 		return fmt.Errorf("song not found")
 	}
-
 	return nil
 }
-
 func (s *Service) GetSongUsage(ctx context.Context, tenantID, songID string) ([]SongUsage, error) {
 	_, err := s.db.Exec(ctx, "SELECT set_config('app.current_tenant_id', $1, TRUE)", tenantID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to set tenant context: %w", err)
 	}
-
 	rows, err := s.db.Query(ctx, `
 		SELECT si.service_id, COALESCE(s.name, ''), s.service_date, COALESCE(s.service_time, ''), COALESCE(si.song_key, ''), si.position
 		FROM service_items si
@@ -786,7 +664,6 @@ func (s *Service) GetSongUsage(ctx context.Context, tenantID, songID string) ([]
 		return nil, fmt.Errorf("failed to get song usage: %w", err)
 	}
 	defer rows.Close()
-
 	usage := []SongUsage{}
 	for rows.Next() {
 		var u SongUsage
@@ -796,16 +673,12 @@ func (s *Service) GetSongUsage(ctx context.Context, tenantID, songID string) ([]
 		}
 		usage = append(usage, u)
 	}
-
 	return usage, nil
 }
-
 // Song Attachment operations
-
 func (s *Service) CreateSongAttachment(ctx context.Context, tenantID string, attachment *SongAttachment) (*SongAttachment, error) {
 	attachment.ID = uuid.New().String()
 	attachment.TenantID = tenantID
-
 	err := s.db.QueryRow(ctx, `
 		INSERT INTO song_attachments (id, tenant_id, song_id, filename, original_name, content_type, file_data, file_size, uploaded_by)
 		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
@@ -813,17 +686,13 @@ func (s *Service) CreateSongAttachment(ctx context.Context, tenantID string, att
 		attachment.ID, attachment.TenantID, attachment.SongID, attachment.Filename, attachment.OriginalName,
 		attachment.ContentType, attachment.FileData, attachment.FileSize, attachment.UploadedBy,
 	).Scan(&attachment.CreatedAt)
-
 	if err != nil {
 		return nil, fmt.Errorf("failed to create song attachment: %w", err)
 	}
-
 	// Clear FileData from response (already stored)
 	attachment.FileData = nil
-
 	return attachment, nil
 }
-
 func (s *Service) ListSongAttachments(ctx context.Context, tenantID, songID string) ([]SongAttachment, error) {
 	rows, err := s.db.Query(ctx, `
 		SELECT id, tenant_id, song_id, filename, original_name, content_type, file_size, uploaded_by, created_at
@@ -834,7 +703,6 @@ func (s *Service) ListSongAttachments(ctx context.Context, tenantID, songID stri
 		return nil, fmt.Errorf("failed to list song attachments: %w", err)
 	}
 	defer rows.Close()
-
 	attachments := []SongAttachment{}
 	for rows.Next() {
 		var a SongAttachment
@@ -844,10 +712,8 @@ func (s *Service) ListSongAttachments(ctx context.Context, tenantID, songID stri
 		}
 		attachments = append(attachments, a)
 	}
-
 	return attachments, nil
 }
-
 func (s *Service) GetSongAttachment(ctx context.Context, tenantID, attachmentID string) (*SongAttachment, error) {
 	var a SongAttachment
 	err := s.db.QueryRow(ctx, `
@@ -855,32 +721,25 @@ func (s *Service) GetSongAttachment(ctx context.Context, tenantID, attachmentID 
 		FROM song_attachments
 		WHERE tenant_id = $1 AND id = $2`, tenantID, attachmentID).Scan(
 		&a.ID, &a.TenantID, &a.SongID, &a.Filename, &a.OriginalName, &a.ContentType, &a.FileData, &a.FileSize, &a.UploadedBy, &a.CreatedAt)
-
 	if err != nil {
 		if err == pgx.ErrNoRows {
 			return nil, fmt.Errorf("attachment not found")
 		}
 		return nil, fmt.Errorf("failed to get song attachment: %w", err)
 	}
-
 	return &a, nil
 }
-
 func (s *Service) DeleteSongAttachment(ctx context.Context, tenantID, attachmentID string) error {
 	result, err := s.db.Exec(ctx, "DELETE FROM song_attachments WHERE tenant_id = $1 AND id = $2", tenantID, attachmentID)
 	if err != nil {
 		return fmt.Errorf("failed to delete song attachment: %w", err)
 	}
-
 	if result.RowsAffected() == 0 {
 		return fmt.Errorf("attachment not found")
 	}
-
 	return nil
 }
-
 // Service Template operations
-
 func (s *Service) ListTemplates(ctx context.Context, tenantID string) ([]ServiceTemplate, error) {
 	rows, err := s.db.Query(ctx, `
 		SELECT id, tenant_id, name, COALESCE(description, ''), template_data, created_at, updated_at
@@ -891,7 +750,6 @@ func (s *Service) ListTemplates(ctx context.Context, tenantID string) ([]Service
 		return nil, fmt.Errorf("failed to list templates: %w", err)
 	}
 	defer rows.Close()
-
 	templates := []ServiceTemplate{}
 	for rows.Next() {
 		var t ServiceTemplate
@@ -903,7 +761,6 @@ func (s *Service) ListTemplates(ctx context.Context, tenantID string) ([]Service
 	}
 	return templates, nil
 }
-
 func (s *Service) GetTemplate(ctx context.Context, tenantID, templateID string) (*ServiceTemplate, error) {
 	var t ServiceTemplate
 	err := s.db.QueryRow(ctx, `
@@ -919,15 +776,12 @@ func (s *Service) GetTemplate(ctx context.Context, tenantID, templateID string) 
 	}
 	return &t, nil
 }
-
 func (s *Service) CreateTemplate(ctx context.Context, tenantID string, t *ServiceTemplate) (*ServiceTemplate, error) {
 	t.ID = uuid.New().String()
 	t.TenantID = tenantID
-
 	if t.TemplateData == nil {
 		t.TemplateData = json.RawMessage(`{}`)
 	}
-
 	err := s.db.QueryRow(ctx, `
 		INSERT INTO service_templates (id, tenant_id, name, description, template_data)
 		VALUES ($1, $2, $3, $4, $5)
@@ -939,7 +793,6 @@ func (s *Service) CreateTemplate(ctx context.Context, tenantID string, t *Servic
 	}
 	return t, nil
 }
-
 func (s *Service) UpdateTemplate(ctx context.Context, tenantID, templateID string, t *ServiceTemplate) (*ServiceTemplate, error) {
 	err := s.db.QueryRow(ctx, `
 		UPDATE service_templates SET name = $1, description = $2, template_data = $3, updated_at = NOW()
@@ -957,7 +810,6 @@ func (s *Service) UpdateTemplate(ctx context.Context, tenantID, templateID strin
 	t.TenantID = tenantID
 	return t, nil
 }
-
 func (s *Service) DeleteTemplate(ctx context.Context, tenantID, templateID string) error {
 	result, err := s.db.Exec(ctx, "DELETE FROM service_templates WHERE id = $1 AND tenant_id = $2", templateID, tenantID)
 	if err != nil {
@@ -968,14 +820,12 @@ func (s *Service) DeleteTemplate(ctx context.Context, tenantID, templateID strin
 	}
 	return nil
 }
-
 // SaveAsTemplate creates a template from an existing service
 func (s *Service) SaveAsTemplate(ctx context.Context, tenantID, serviceID, name, description string) (*ServiceTemplate, error) {
 	svc, err := s.GetServiceByID(ctx, tenantID, serviceID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get service: %w", err)
 	}
-
 	type TemplateItem struct {
 		ItemType        string  `json:"item_type"`
 		Title           string  `json:"title"`
@@ -986,16 +836,13 @@ func (s *Service) SaveAsTemplate(ctx context.Context, tenantID, serviceID, name,
 		Notes           string  `json:"notes,omitempty"`
 		AssignedTo      string  `json:"assigned_to,omitempty"`
 	}
-
 	type TemplateTeamRole struct {
 		Role string `json:"role"`
 	}
-
 	type TemplateData struct {
 		Items []TemplateItem     `json:"items"`
 		Roles []TemplateTeamRole `json:"roles"`
 	}
-
 	td := TemplateData{}
 	for _, item := range svc.Items {
 		td.Items = append(td.Items, TemplateItem{
@@ -1009,7 +856,6 @@ func (s *Service) SaveAsTemplate(ctx context.Context, tenantID, serviceID, name,
 			AssignedTo:      item.AssignedTo,
 		})
 	}
-
 	// Extract unique roles from team
 	rolesSeen := map[string]bool{}
 	for _, member := range svc.Team {
@@ -1018,28 +864,23 @@ func (s *Service) SaveAsTemplate(ctx context.Context, tenantID, serviceID, name,
 			rolesSeen[member.Role] = true
 		}
 	}
-
 	templateDataJSON, err := json.Marshal(td)
 	if err != nil {
 		return nil, fmt.Errorf("failed to marshal template data: %w", err)
 	}
-
 	t := &ServiceTemplate{
 		Name:         name,
 		Description:  description,
 		TemplateData: templateDataJSON,
 	}
-
 	return s.CreateTemplate(ctx, tenantID, t)
 }
-
 // CopyService duplicates a service with its items (no team)
 func (s *Service) CopyService(ctx context.Context, tenantID, serviceID string, newDate time.Time) (*ChurchService, error) {
 	original, err := s.GetServiceByID(ctx, tenantID, serviceID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get original service: %w", err)
 	}
-
 	newSvc := &ChurchService{
 		ServiceTypeID: original.ServiceTypeID,
 		Name:          original.Name,
@@ -1048,12 +889,10 @@ func (s *Service) CopyService(ctx context.Context, tenantID, serviceID string, n
 		Notes:         original.Notes,
 		Status:        "draft",
 	}
-
 	created, err := s.CreateService(ctx, tenantID, newSvc)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create copy: %w", err)
 	}
-
 	// Copy items
 	for _, item := range original.Items {
 		newItem := &ServiceItem{
@@ -1071,10 +910,8 @@ func (s *Service) CopyService(ctx context.Context, tenantID, serviceID string, n
 			return nil, fmt.Errorf("failed to copy item: %w", err)
 		}
 	}
-
 	return s.GetServiceByID(ctx, tenantID, created.ID)
 }
-
 // ReorderItems batch-updates item positions
 func (s *Service) ReorderItems(ctx context.Context, tenantID, serviceID string, itemIDs []string) error {
 	for i, id := range itemIDs {
@@ -1085,7 +922,6 @@ func (s *Service) ReorderItems(ctx context.Context, tenantID, serviceID string, 
 	}
 	return nil
 }
-
 // DeleteServiceType soft-deletes a service type
 func (s *Service) DeleteServiceType(ctx context.Context, tenantID, typeID string) error {
 	result, err := s.db.Exec(ctx, "UPDATE service_types SET is_active = false WHERE id = $1 AND tenant_id = $2", typeID, tenantID)
@@ -1102,7 +938,6 @@ func (s *Service) ListVolunteerTeams(ctx context.Context, tenantID string) ([]Vo
 	if err != nil {
 		return nil, fmt.Errorf("failed to set tenant context: %w", err)
 	}
-
 	rows, err := s.db.Query(ctx, `
 		SELECT vt.id, vt.tenant_id, vt.name, COALESCE(vt.description, ''), COALESCE(vt.color, ''), vt.is_active, 
 		       vt.created_at, vt.updated_at,
@@ -1115,7 +950,6 @@ func (s *Service) ListVolunteerTeams(ctx context.Context, tenantID string) ([]Vo
 		return nil, fmt.Errorf("failed to list volunteer teams: %w", err)
 	}
 	defer rows.Close()
-
 	teams := []VolunteerTeam{}
 	for rows.Next() {
 		var team VolunteerTeam
@@ -1126,16 +960,13 @@ func (s *Service) ListVolunteerTeams(ctx context.Context, tenantID string) ([]Vo
 		}
 		teams = append(teams, team)
 	}
-
 	return teams, nil
 }
-
 func (s *Service) GetVolunteerTeamByID(ctx context.Context, tenantID, teamID string) (*VolunteerTeam, error) {
 	_, err := s.db.Exec(ctx, "SELECT set_config('app.current_tenant_id', $1, TRUE)", tenantID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to set tenant context: %w", err)
 	}
-
 	var team VolunteerTeam
 	err = s.db.QueryRow(ctx, `
 		SELECT id, tenant_id, name, COALESCE(description, ''), COALESCE(color, ''), is_active, created_at, updated_at
@@ -1149,39 +980,31 @@ func (s *Service) GetVolunteerTeamByID(ctx context.Context, tenantID, teamID str
 		}
 		return nil, fmt.Errorf("failed to get volunteer team: %w", err)
 	}
-
 	return &team, nil
 }
-
 func (s *Service) CreateVolunteerTeam(ctx context.Context, tenantID string, team *VolunteerTeam) (*VolunteerTeam, error) {
 	_, err := s.db.Exec(ctx, "SELECT set_config('app.current_tenant_id', $1, TRUE)", tenantID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to set tenant context: %w", err)
 	}
-
 	team.ID = uuid.New().String()
 	team.TenantID = tenantID
-
 	err = s.db.QueryRow(ctx, `
 		INSERT INTO volunteer_teams (id, tenant_id, name, description, color, is_active)
 		VALUES ($1, $2, $3, $4, $5, $6)
 		RETURNING created_at, updated_at`,
 		team.ID, team.TenantID, team.Name, team.Description, team.Color, team.IsActive,
 	).Scan(&team.CreatedAt, &team.UpdatedAt)
-
 	if err != nil {
 		return nil, fmt.Errorf("failed to create volunteer team: %w", err)
 	}
-
 	return team, nil
 }
-
 func (s *Service) UpdateVolunteerTeam(ctx context.Context, tenantID, teamID string, team *VolunteerTeam) (*VolunteerTeam, error) {
 	_, err := s.db.Exec(ctx, "SELECT set_config('app.current_tenant_id', $1, TRUE)", tenantID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to set tenant context: %w", err)
 	}
-
 	err = s.db.QueryRow(ctx, `
 		UPDATE volunteer_teams SET 
 			name = $1, description = $2, color = $3, is_active = $4
@@ -1189,46 +1012,36 @@ func (s *Service) UpdateVolunteerTeam(ctx context.Context, tenantID, teamID stri
 		RETURNING created_at, updated_at`,
 		team.Name, team.Description, team.Color, team.IsActive, teamID,
 	).Scan(&team.CreatedAt, &team.UpdatedAt)
-
 	if err != nil {
 		if err == pgx.ErrNoRows {
 			return nil, fmt.Errorf("volunteer team not found")
 		}
 		return nil, fmt.Errorf("failed to update volunteer team: %w", err)
 	}
-
 	team.ID = teamID
 	team.TenantID = tenantID
-
 	return team, nil
 }
-
 func (s *Service) DeleteVolunteerTeam(ctx context.Context, tenantID, teamID string) error {
 	_, err := s.db.Exec(ctx, "SELECT set_config('app.current_tenant_id', $1, TRUE)", tenantID)
 	if err != nil {
 		return fmt.Errorf("failed to set tenant context: %w", err)
 	}
-
 	result, err := s.db.Exec(ctx, "DELETE FROM volunteer_teams WHERE id = $1", teamID)
 	if err != nil {
 		return fmt.Errorf("failed to delete volunteer team: %w", err)
 	}
-
 	if result.RowsAffected() == 0 {
 		return fmt.Errorf("volunteer team not found")
 	}
-
 	return nil
 }
-
 // Team Members operations
-
 func (s *Service) GetTeamMembers(ctx context.Context, tenantID, teamID string) ([]TeamMember, error) {
 	_, err := s.db.Exec(ctx, "SELECT set_config('app.current_tenant_id', $1, TRUE)", tenantID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to set tenant context: %w", err)
 	}
-
 	rows, err := s.db.Query(ctx, `
 		SELECT tm.id, tm.team_id, tm.person_id, tm.role, tm.is_active, tm.added_at,
 		       p.first_name, p.last_name, p.email,
@@ -1242,7 +1055,6 @@ func (s *Service) GetTeamMembers(ctx context.Context, tenantID, teamID string) (
 		return nil, fmt.Errorf("failed to get team members: %w", err)
 	}
 	defer rows.Close()
-
 	members := []TeamMember{}
 	for rows.Next() {
 		var member TeamMember
@@ -1254,16 +1066,13 @@ func (s *Service) GetTeamMembers(ctx context.Context, tenantID, teamID string) (
 		}
 		members = append(members, member)
 	}
-
 	return members, nil
 }
-
 func (s *Service) GetPersonTeams(ctx context.Context, tenantID, personID string) ([]TeamMember, error) {
 	_, err := s.db.Exec(ctx, "SELECT set_config('app.current_tenant_id', $1, TRUE)", tenantID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to set tenant context: %w", err)
 	}
-
 	rows, err := s.db.Query(ctx, `
 		SELECT tm.id, tm.team_id, tm.person_id, tm.role, tm.is_active, tm.added_at,
 		       p.first_name, p.last_name, p.email,
@@ -1277,7 +1086,6 @@ func (s *Service) GetPersonTeams(ctx context.Context, tenantID, personID string)
 		return nil, fmt.Errorf("failed to get person teams: %w", err)
 	}
 	defer rows.Close()
-
 	members := []TeamMember{}
 	for rows.Next() {
 		var member TeamMember
@@ -1289,83 +1097,65 @@ func (s *Service) GetPersonTeams(ctx context.Context, tenantID, personID string)
 		}
 		members = append(members, member)
 	}
-
 	return members, nil
 }
-
 func (s *Service) AddTeamMember(ctx context.Context, tenantID string, member *TeamMember) (*TeamMember, error) {
 	_, err := s.db.Exec(ctx, "SELECT set_config('app.current_tenant_id', $1, TRUE)", tenantID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to set tenant context: %w", err)
 	}
-
 	member.ID = uuid.New().String()
-
 	err = s.db.QueryRow(ctx, `
 		INSERT INTO team_members (id, team_id, person_id, role, is_active)
 		VALUES ($1, $2, $3, $4, $5)
 		RETURNING added_at`,
 		member.ID, member.TeamID, member.PersonID, member.Role, member.IsActive,
 	).Scan(&member.AddedAt)
-
 	if err != nil {
 		return nil, fmt.Errorf("failed to add team member: %w", err)
 	}
-
 	return member, nil
 }
-
 func (s *Service) UpdateTeamMember(ctx context.Context, tenantID, memberID string, member *TeamMember) (*TeamMember, error) {
 	_, err := s.db.Exec(ctx, "SELECT set_config('app.current_tenant_id', $1, TRUE)", tenantID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to set tenant context: %w", err)
 	}
-
 	err = s.db.QueryRow(ctx, `
 		UPDATE team_members SET role = $1, is_active = $2
 		WHERE id = $3
 		RETURNING added_at`,
 		member.Role, member.IsActive, memberID,
 	).Scan(&member.AddedAt)
-
 	if err != nil {
 		if err == pgx.ErrNoRows {
 			return nil, fmt.Errorf("team member not found")
 		}
 		return nil, fmt.Errorf("failed to update team member: %w", err)
 	}
-
 	member.ID = memberID
-
 	return member, nil
 }
-
 func (s *Service) RemoveTeamMember(ctx context.Context, tenantID, memberID string) error {
 	_, err := s.db.Exec(ctx, "SELECT set_config('app.current_tenant_id', $1, TRUE)", tenantID)
 	if err != nil {
 		return fmt.Errorf("failed to set tenant context: %w", err)
 	}
-
 	result, err := s.db.Exec(ctx, "DELETE FROM team_members WHERE id = $1", memberID)
 	if err != nil {
 		return fmt.Errorf("failed to remove team member: %w", err)
 	}
-
 	if result.RowsAffected() == 0 {
 		return fmt.Errorf("team member not found")
 	}
-
 	return nil
 }
-
 // Volunteer Availability operations
-
 func (s *Service) GetPersonAvailability(ctx context.Context, tenantID, personID string) ([]VolunteerAvailability, error) {
 	_, err := s.db.Exec(ctx, "SELECT set_config('app.current_tenant_id', $1, TRUE)", tenantID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to set tenant context: %w", err)
 	}
-
 	rows, err := s.db.Query(ctx, `
 		SELECT va.id, va.person_id, va.team_id, va.start_date, va.end_date, va.reason,
 		       va.created_at, va.updated_at,
@@ -1378,7 +1168,6 @@ func (s *Service) GetPersonAvailability(ctx context.Context, tenantID, personID 
 		return nil, fmt.Errorf("failed to get person availability: %w", err)
 	}
 	defer rows.Close()
-
 	avail := []VolunteerAvailability{}
 	for rows.Next() {
 		var a VolunteerAvailability
@@ -1389,38 +1178,30 @@ func (s *Service) GetPersonAvailability(ctx context.Context, tenantID, personID 
 		}
 		avail = append(avail, a)
 	}
-
 	return avail, nil
 }
-
 func (s *Service) AddAvailability(ctx context.Context, tenantID string, avail *VolunteerAvailability) (*VolunteerAvailability, error) {
 	_, err := s.db.Exec(ctx, "SELECT set_config('app.current_tenant_id', $1, TRUE)", tenantID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to set tenant context: %w", err)
 	}
-
 	avail.ID = uuid.New().String()
-
 	err = s.db.QueryRow(ctx, `
 		INSERT INTO volunteer_availability (id, person_id, team_id, start_date, end_date, reason)
 		VALUES ($1, $2, $3, $4, $5, $6)
 		RETURNING created_at, updated_at`,
 		avail.ID, avail.PersonID, avail.TeamID, avail.StartDate, avail.EndDate, avail.Reason,
 	).Scan(&avail.CreatedAt, &avail.UpdatedAt)
-
 	if err != nil {
 		return nil, fmt.Errorf("failed to add availability: %w", err)
 	}
-
 	return avail, nil
 }
-
 func (s *Service) UpdateAvailability(ctx context.Context, tenantID, availID string, avail *VolunteerAvailability) (*VolunteerAvailability, error) {
 	_, err := s.db.Exec(ctx, "SELECT set_config('app.current_tenant_id', $1, TRUE)", tenantID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to set tenant context: %w", err)
 	}
-
 	err = s.db.QueryRow(ctx, `
 		UPDATE volunteer_availability SET 
 			start_date = $1, end_date = $2, reason = $3, team_id = $4
@@ -1428,60 +1209,47 @@ func (s *Service) UpdateAvailability(ctx context.Context, tenantID, availID stri
 		RETURNING created_at, updated_at`,
 		avail.StartDate, avail.EndDate, avail.Reason, avail.TeamID, availID,
 	).Scan(&avail.CreatedAt, &avail.UpdatedAt)
-
 	if err != nil {
 		if err == pgx.ErrNoRows {
 			return nil, fmt.Errorf("availability not found")
 		}
 		return nil, fmt.Errorf("failed to update availability: %w", err)
 	}
-
 	avail.ID = availID
-
 	return avail, nil
 }
-
 func (s *Service) DeleteAvailability(ctx context.Context, tenantID, availID string) error {
 	_, err := s.db.Exec(ctx, "SELECT set_config('app.current_tenant_id', $1, TRUE)", tenantID)
 	if err != nil {
 		return fmt.Errorf("failed to set tenant context: %w", err)
 	}
-
 	result, err := s.db.Exec(ctx, "DELETE FROM volunteer_availability WHERE id = $1", availID)
 	if err != nil {
 		return fmt.Errorf("failed to delete availability: %w", err)
 	}
-
 	if result.RowsAffected() == 0 {
 		return fmt.Errorf("availability not found")
 	}
-
 	return nil
 }
-
 func (s *Service) IsPersonAvailable(ctx context.Context, tenantID, personID string, date time.Time) (bool, error) {
 	_, err := s.db.Exec(ctx, "SELECT set_config('app.current_tenant_id', $1, TRUE)", tenantID)
 	if err != nil {
 		return false, fmt.Errorf("failed to set tenant context: %w", err)
 	}
-
 	var available bool
 	err = s.db.QueryRow(ctx, "SELECT is_person_available($1, $2)", personID, date).Scan(&available)
 	if err != nil {
 		return false, fmt.Errorf("failed to check availability: %w", err)
 	}
-
 	return available, nil
 }
-
 // Scheduling helpers
-
 func (s *Service) GetSchedulingConflicts(ctx context.Context, tenantID string, serviceDate time.Time) ([]SchedulingConflict, error) {
 	_, err := s.db.Exec(ctx, "SELECT set_config('app.current_tenant_id', $1, TRUE)", tenantID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to set tenant context: %w", err)
 	}
-
 	rows, err := s.db.Query(ctx, `
 		SELECT person_id, first_name, last_name, service_count
 		FROM get_scheduling_conflicts($1, $2)`, serviceDate, tenantID)
@@ -1489,7 +1257,6 @@ func (s *Service) GetSchedulingConflicts(ctx context.Context, tenantID string, s
 		return nil, fmt.Errorf("failed to get scheduling conflicts: %w", err)
 	}
 	defer rows.Close()
-
 	conflicts := []SchedulingConflict{}
 	for rows.Next() {
 		var c SchedulingConflict
@@ -1499,16 +1266,13 @@ func (s *Service) GetSchedulingConflicts(ctx context.Context, tenantID string, s
 		}
 		conflicts = append(conflicts, c)
 	}
-
 	return conflicts, nil
 }
-
 func (s *Service) GetAvailableVolunteers(ctx context.Context, tenantID, teamID string, date time.Time) ([]TeamMember, error) {
 	_, err := s.db.Exec(ctx, "SELECT set_config('app.current_tenant_id', $1, TRUE)", tenantID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to set tenant context: %w", err)
 	}
-
 	rows, err := s.db.Query(ctx, `
 		SELECT tm.id, tm.team_id, tm.person_id, tm.role, tm.is_active, tm.added_at,
 		       p.first_name, p.last_name, p.email,
@@ -1530,7 +1294,6 @@ func (s *Service) GetAvailableVolunteers(ctx context.Context, tenantID, teamID s
 		return nil, fmt.Errorf("failed to get available volunteers: %w", err)
 	}
 	defer rows.Close()
-
 	members := []TeamMember{}
 	for rows.Next() {
 		var member TeamMember
@@ -1542,29 +1305,187 @@ func (s *Service) GetAvailableVolunteers(ctx context.Context, tenantID, teamID s
 		}
 		members = append(members, member)
 	}
-
 	return members, nil
 }
-
 func (s *Service) UpdateServiceTeamStatus(ctx context.Context, tenantID, teamMemberID, status string) error {
+	_, err := s.db.Exec(ctx, "SELECT set_config('app.current_tenant_id', $1, TRUE)", tenantID)
+	if err != nil {
+		return fmt.Errorf("failed to set tenant context: %w", err)
+	}
+	result, err := s.db.Exec(ctx, `
+		UPDATE service_teams SET status = $1, responded_at = NOW()
+		WHERE id = $2`,
+		status, teamMemberID,
+	)
+	if err != nil {
+		return fmt.Errorf("failed to update service team status: %w", err)
+	}
+	if result.RowsAffected() == 0 {
+		return fmt.Errorf("service team member not found")
+	}
+	return nil
+}
+
+// Scheduling Needs - Unfilled Positions API
+type UnfilledPosition struct {
+	ServiceID       string     `json:"service_id"`
+	ServiceName     string     `json:"service_name"`
+	ServiceDate     time.Time  `json:"service_date"`
+	ServiceTime     string     `json:"service_time"`
+	Role            string     `json:"role"`
+	TeamID          *string    `json:"team_id,omitempty"`
+	TeamName        string     `json:"team_name,omitempty"`
+	IsUrgent        bool       `json:"is_urgent"`
+	DaysUntil       int        `json:"days_until"`
+}
+
+type SchedulingNeedsResponse struct {
+	Positions []UnfilledPosition `json:"positions"`
+	ByDate    map[string][]UnfilledPosition `json:"by_date,omitempty"` // grouped by date for frontend
+}
+
+func (s *Service) GetSchedulingNeeds(ctx context.Context, tenantID, fromStr, toStr string) (*SchedulingNeedsResponse, error) {
+	_, err := s.db.Exec(ctx, "SELECT set_config('app.current_tenant_id', $1, TRUE)", tenantID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to set tenant context: %w", err)
+	}
+
+	var fromDate, toDate time.Time
+	var whereClause string
+	var args []interface{}
+
+	if fromStr != "" && toStr != "" {
+		fromDate, _ = time.Parse("2006-01-02", fromStr)
+		toDate, _ = time.Parse("2006-01-02", toStr)
+		whereClause = "WHERE s.service_date >= $1 AND s.service_date <= $2"
+		args = []interface{}{fromDate, toDate}
+	} else {
+		// Default: next 4 weeks from today
+		today := time.Now().Truncate(24 * time.Hour)
+		fourWeeksLater := today.Add(28 * 24 * time.Hour)
+		whereClause = "WHERE s.service_date >= $1 AND s.service_date <= $2"
+		args = []interface{}{today, fourWeeksLater}
+	}
+
+	query := `
+		SELECT 
+			s.id as service_id,
+			COALESCE(s.name, st.name) as service_name,
+			s.service_date,
+			COALESCE(s.service_time, ''),
+			st.role,
+			st.team_id,
+			vt.name as team_name,
+			CASE WHEN st.person_id IS NULL THEN true ELSE false END as is_unfilled
+		FROM service_teams st
+		JOIN services s ON s.id = st.service_id
+		JOIN service_types stype ON stype.id = s.service_type_id
+		LEFT JOIN volunteer_teams vt ON vt.id = st.team_id
+		` + whereClause + `
+		ORDER BY s.service_date ASC, s.service_time, st.role
+	`
+
+	rows, err := s.db.Query(ctx, query, args...)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get scheduling needs: %w", err)
+	}
+	defer rows.Close()
+
+	positions := []UnfilledPosition{}
+	for rows.Next() {
+		var pos UnfilledPosition
+		err := rows.Scan(&pos.ServiceID, &pos.ServiceName, &pos.ServiceDate, &pos.ServiceTime,
+			&pos.Role, &pos.TeamID, &pos.TeamName, &pos.IsUrgent) // IsUrgent = true if unfilled
+		if err != nil {
+			return nil, fmt.Errorf("failed to scan position: %w", err)
+		}
+		
+		// Calculate days until service and urgency flag
+		today := time.Now().Truncate(24 * time.Hour)
+		pos.ServiceDate = pos.ServiceDate.Truncate(24 * time.Hour)
+		diff := int(pos.ServiceDate.Sub(today).Hours() / 24)
+		pos.DaysUntil = diff
+		pos.IsUrgent = diff <= 7 && diff >= 0 // Within next 7 days
+
+		positions = append(positions, pos)
+	}
+
+	// Group by date for frontend display
+	grouped := make(map[string][]UnfilledPosition)
+	for _, pos := range positions {
+		dateKey := pos.ServiceDate.Format("2006-01-02")
+		grouped[dateKey] = append(grouped[dateKey], pos)
+	}
+
+	return &SchedulingNeedsResponse{
+		Positions: positions,
+		ByDate:    grouped,
+	}, nil
+}
+
+// Person search for quick assign
+type SearchPersonResult struct {
+	ID          string `json:"id"`
+	FirstName   string `json:"first_name"`
+	LastName    string `json:"last_name"`
+	Email       string `json:"email,omitempty"`
+	IsAvailable bool   `json:"is_available"` // Available for the given date
+}
+
+func (s *Service) SearchPeople(ctx context.Context, tenantID, query string, dateStr string) ([]SearchPersonResult, error) {
+	_, err := s.db.Exec(ctx, "SELECT set_config('app.current_tenant_id', $1, TRUE)", tenantID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to set tenant context: %w", err)
+	}
+
+	var _ time.Time // searchDate removed - variable no longer used after query fix
+	if dateStr != "" {
+		_, _ = time.Parse("2006-01-02", dateStr)
+	}
+
+	queryClause := "WHERE (first_name ILIKE $1 OR last_name ILIKE $1 OR email ILIKE $1)"
+	args := []interface{}{"%" + query + "%"}
+
+	rows, err := s.db.Query(ctx, `
+		SELECT id, first_name, last_name, email, 
+			CASE WHEN is_person_available(id, $2) THEN true ELSE false END as is_available
+		FROM people `+queryClause+`
+		ORDER BY first_name, last_name`, args...)
+	if err != nil {
+		return nil, fmt.Errorf("failed to search people: %w", err)
+	}
+	defer rows.Close()
+
+	results := []SearchPersonResult{}
+	for rows.Next() {
+		var r SearchPersonResult
+		err := rows.Scan(&r.ID, &r.FirstName, &r.LastName, &r.Email, &r.IsAvailable)
+		if err != nil {
+			return nil, fmt.Errorf("failed to scan result: %w", err)
+		}
+		results = append(results, r)
+	}
+
+	return results, nil
+}
+
+// Assign person to a service team role (quick assign)
+func (s *Service) AssignPersonToRole(ctx context.Context, tenantID, serviceTeamID, personID string) error {
 	_, err := s.db.Exec(ctx, "SELECT set_config('app.current_tenant_id', $1, TRUE)", tenantID)
 	if err != nil {
 		return fmt.Errorf("failed to set tenant context: %w", err)
 	}
 
 	result, err := s.db.Exec(ctx, `
-		UPDATE service_teams SET status = $1, responded_at = NOW()
+		UPDATE service_teams SET person_id = $1, status = 'confirmed', responded_at = NOW()
 		WHERE id = $2`,
-		status, teamMemberID,
+		personID, serviceTeamID,
 	)
-
 	if err != nil {
-		return fmt.Errorf("failed to update service team status: %w", err)
+		return fmt.Errorf("failed to assign person: %w", err)
 	}
-
 	if result.RowsAffected() == 0 {
-		return fmt.Errorf("service team member not found")
+		return fmt.Errorf("service team not found or already has person assigned")
 	}
-
 	return nil
 }

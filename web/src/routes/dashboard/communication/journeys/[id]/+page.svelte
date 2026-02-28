@@ -3,6 +3,7 @@
 	import { page } from '$app/stores';
 	import { api } from '$lib/api';
 	import { goto } from '$app/navigation';
+	import { Mail, ClipboardList } from 'lucide-svelte';
 
 	let journey = null;
 	let enrollments = [];
@@ -44,7 +45,7 @@
 		{ tag: '{{church_name}}', label: 'Church Name' }
 	];
 
-	const stepIcons = { send_email: '📧', send_sms: '💬', wait: '⏳', add_tag: '🏷️', add_to_group: '📋' };
+	const stepIcons = { send_email: Mail, send_sms: null, wait: null, add_tag: null, add_to_group: ClipboardList };
 	const stepLabels = { send_email: 'Send Email', send_sms: 'Send SMS', wait: 'Wait', add_tag: 'Add Tag', add_to_group: 'Add to Group' };
 
 	$: journeyId = $page.params.id;
@@ -275,7 +276,7 @@
 					<div class="flex items-center gap-2">
 						<div class="px-3 py-2 rounded-lg border text-center min-w-[80px]" style="background: var(--surface); border-color: var(--teal); border-width: 2px">
 							<div class="text-xs font-medium" style="color: var(--text-secondary)">Day {computeDay(journey.steps, i)}</div>
-							<div class="text-lg">{stepIcons[step.step_type] || '•'}</div>
+							<div class="text-lg">{#if stepIcons[step.step_type]}<svelte:component this={stepIcons[step.step_type]} size={20} />{:else}•{/if}</div>
 							<div class="text-xs" style="color: var(--text-secondary)">{stepLabels[step.step_type] || step.step_type}</div>
 						</div>
 						{#if i < journey.steps.length - 1}
@@ -304,8 +305,8 @@
 							<div>
 								<label class="block text-xs font-medium mb-1" style="color: var(--text-secondary)">Channel</label>
 								<select bind:value={newStep.step_type} class="w-full px-3 py-2 rounded-lg border text-sm" style="background: var(--bg); border-color: var(--border); color: var(--text-primary)">
-									<option value="send_email">📧 Email</option>
-									<option value="send_sms">💬 SMS</option>
+									<option value="send_email">Email</option>
+									<option value="send_sms">SMS</option>
 								</select>
 							</div>
 							<div>
@@ -352,7 +353,7 @@
 							<div class="flex items-start gap-4">
 								<div class="flex flex-col items-center">
 									<div class="w-10 h-10 rounded-full flex items-center justify-center text-lg border-2" style="background: var(--surface); border-color: var(--teal)">
-										{stepIcons[step.step_type] || '•'}
+										{#if stepIcons[step.step_type]}<svelte:component this={stepIcons[step.step_type]} size={20} />{:else}•{/if}
 									</div>
 									{#if i < journey.steps.length - 1}
 										<div class="w-0.5 h-16" style="background: var(--border)"></div>
@@ -372,7 +373,7 @@
 										<button on:click={() => deleteStep(step.id)} class="text-xs px-2 py-1 rounded hover:bg-red-50" style="color: #c33">✕</button>
 									</div>
 									{#if cfg.subject}
-										<div class="text-sm font-medium mt-1" style="color: var(--text-primary)">📋 {cfg.subject}</div>
+										<div class="text-sm font-medium mt-1" style="color: var(--text-primary)"><ClipboardList size={14} class="inline" /> {cfg.subject}</div>
 									{/if}
 									{#if cfg.body}
 										<div class="text-sm mt-1 line-clamp-2" style="color: var(--text-secondary)">{@html cfg.body.replace(/<[^>]*>/g, ' ').substring(0, 150)}{cfg.body.length > 150 ? '...' : ''}</div>

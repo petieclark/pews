@@ -1,11 +1,13 @@
 <script>
+	import { Building2, Puzzle, Users, CreditCard, Download, Smartphone } from 'lucide-svelte';
+
 	const settingsPages = [
-		{ href: '/dashboard/settings/profile', label: 'Church Profile', desc: 'Name, address, logo, timezone', icon: '🏛️' },
-		{ href: '/dashboard/settings/modules', label: 'Modules', desc: 'Enable or disable features', icon: '🧩' },
-		{ href: '/dashboard/settings/users', label: 'Users & Roles', desc: 'Manage team access and permissions', icon: '👥' },
-		{ href: '/dashboard/settings/billing', label: 'Billing', desc: 'Plan, usage, and payments', icon: '💳' },
-		{ href: '/dashboard/settings/import', label: 'Import', desc: 'Import from PCO or CSV', icon: '📥' },
-		{ href: '/dashboard/settings/qr', label: 'QR Codes', desc: 'Generate printable QR codes', icon: '📱' }
+		{ href: '/dashboard/settings/profile', label: 'Church Profile', desc: 'Name, address, logo, timezone', icon: Building2 },
+		{ href: '/dashboard/settings/modules', label: 'Modules', desc: 'Enable or disable features', icon: Puzzle },
+		{ href: '/dashboard/settings/users', label: 'Users & Roles', desc: 'Manage team access and permissions', icon: Users },
+		{ href: '/dashboard/settings/billing', label: 'Billing', desc: 'Plan, usage, and payments', icon: CreditCard },
+		{ href: '/dashboard/settings/import', label: 'Import', desc: 'Import from PCO or CSV', icon: Download },
+		{ href: '/dashboard/settings/qr', label: 'QR Codes', desc: 'Generate printable QR codes', icon: Smartphone }
 	];
 </script>
 
@@ -18,7 +20,7 @@
 				href={page.href}
 				class="bg-surface rounded-lg border border-custom p-5 hover:bg-[var(--surface-hover)] transition-colors group"
 			>
-				<div class="text-2xl mb-2">{page.icon}</div>
+				<div class="mb-2"><svelte:component this={page.icon} size={24} /></div>
 				<h2 class="text-lg font-semibold text-primary group-hover:text-[var(--teal)] transition-colors">{page.label}</h2>
 				<p class="text-sm text-secondary mt-1">{page.desc}</p>
 			</a>

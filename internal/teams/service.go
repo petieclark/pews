@@ -3,16 +3,30 @@ package teams
 import (
 	"context"
 	"fmt"
+	"time"
 
+	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
 type Service struct {
-	db *pgxpool.Pool
+	db                  *pgxpool.Pool
+	notificationService *NotificationService
 }
 
-func NewService(db *pgxpool.Pool) *Service {
-	return &Service{db: db}
+func NewService(db *pgxpool.Pool, jwtSecret string) *Service {
+	s := &Service{db: db}
+	
+	if jwtSecret != "" && len(jwtSecret) > 10 {
+		s.notificationService = NewNotificationService(db, jwtSecret)
+	}
+	
+	return s
+}
+
+// GetNotificationService returns the notification service (for testing or external use)
+func (s *Service) GetNotificationService() *NotificationService {
+	return s.notificationService
 }
 
 func (s *Service) ListTeams(ctx context.Context, tenantID string) ([]Team, error) {
@@ -276,30 +290,58 @@ func (s *Service) GetServiceAssignments(ctx context.Context, tenantID, serviceID
 	return assignments, nil
 }
 
-func (s *Service) SaveServiceAssignments(ctx context.Context, tenantID, serviceID string, assignments []ServiceTeamAssignment) error {
+func (s *Service) SaveServiceAssignments(ctx context.Context, tenantID, serviceID string, assignments []ServiceTeamAssignment) ([]ServiceTeamAssignment, error) {
 	tx, err := s.db.Begin(ctx)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	defer tx.Rollback(ctx)
 
 	// Delete existing assignments for this service
 	_, err = tx.Exec(ctx, `DELETE FROM service_team_assignments WHERE service_id = $1 AND tenant_id = $2`, serviceID, tenantID)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
+	var createdAssignments []ServiceTeamAssignment
+	
 	for _, a := range assignments {
-		_, err = tx.Exec(ctx, `
+		var created ServiceTeamAssignment
+		err = tx.QueryRow(ctx, `
 			INSERT INTO service_team_assignments (tenant_id, service_id, team_id, position_id, person_id, status, notes)
-			VALUES ($1, $2, $3, $4, $5, $6, $7)`,
-			tenantID, serviceID, a.TeamID, a.PositionID, a.PersonID, a.Status, a.Notes)
+			VALUES ($1, $2, $3, $4, $5, $6, $7)
+			RETURNING id, tenant_id, service_id, team_id, position_id, person_id, status, notes`,
+			tenantID, serviceID, a.TeamID, a.PositionID, a.PersonID, a.Status, a.Notes).Scan(
+			&created.ID, &created.TenantID, &created.ServiceID, &created.TeamID, 
+			&created.PositionID, &created.PersonID, &created.Status, &created.Notes)
+		
 		if err != nil {
-			return fmt.Errorf("failed to insert assignment: %w", err)
+			return nil, fmt.Errorf("failed to insert assignment: %w", err)
 		}
+		createdAssignments = append(createdAssignments, created)
 	}
 
-	return tx.Commit(ctx)
+	if err := tx.Commit(ctx); err != nil {
+		return nil, err
+	}
+
+	// Send notifications for new assignments (fire and forget via goroutine)
+	if s.notificationService != nil && len(createdAssignments) > 0 {
+		go func(assignments []ServiceTeamAssignment) {
+			for _, a := range assignments {
+				notifErr := s.notificationService.SendAssignmentNotification(ctx, a.ID, serviceID)
+				if notifErr != nil {
+					// Log error (in production use proper logger)
+					fmt.Printf("[NOTIFICATION] Failed to send assignment notification for ID %s: %v\n", a.ID, notifErr)
+				} else {
+					// Mark as notified
+					s.notificationService.UpdateNotificationSent(ctx, a.ID)
+				}
+			}
+		}(createdAssignments)
+	}
+
+	return createdAssignments, nil
 }
 
 func (s *Service) CopyServiceAssignments(ctx context.Context, tenantID, targetServiceID, sourceServiceID string) ([]ServiceTeamAssignment, error) {
@@ -360,4 +402,134 @@ func (s *Service) GetPersonSchedule(ctx context.Context, tenantID, personID stri
 		assignments = append(assignments, a)
 	}
 	return assignments, nil
+}
+
+// ---- Volunteer Blockouts ----
+
+func (s *Service) GetPersonBlockouts(ctx context.Context, tenantID, personID string) ([]VolunteerBlockout, error) {
+	rows, err := s.db.Query(ctx, `
+		SELECT id, tenant_id, person_id, start_date::text, end_date::text, reason, is_recurring, day_of_week, created_at, updated_at
+		FROM volunteer_blockouts
+		WHERE person_id = $1 AND tenant_id = $2
+		ORDER BY start_date`, personID, tenantID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	blockouts := []VolunteerBlockout{}
+	for rows.Next() {
+		var b VolunteerBlockout
+		var dayOfWeek *int
+		if err := rows.Scan(&b.ID, &b.TenantID, &b.PersonID, &b.StartDate, &b.EndDate, &b.Reason, &b.IsRecurring, &dayOfWeek, &b.CreatedAt, &b.UpdatedAt); err != nil {
+			return nil, err
+		}
+		if dayOfWeek != nil {
+			dow := int(*dayOfWeek)
+			b.DayOfWeek = &dow
+		}
+		blockouts = append(blockouts, b)
+	}
+	return blockouts, nil
+}
+
+func (s *Service) CreateBlockout(ctx context.Context, tenantID, personID string, startDate, endDate, reason string, isRecurring bool, dayOfWeek *int) (*VolunteerBlockout, error) {
+	var b VolunteerBlockout
+	err := s.db.QueryRow(ctx, `
+		INSERT INTO volunteer_blockouts (tenant_id, person_id, start_date, end_date, reason, is_recurring, day_of_week)
+		VALUES ($1, $2, $3, $4, $5, $6, $7)
+		RETURNING id, tenant_id, person_id, start_date::text, end_date::text, reason, is_recurring, day_of_week, created_at, updated_at`,
+		tenantID, personID, startDate, endDate, reason, isRecurring, dayOfWeek).Scan(
+		&b.ID, &b.TenantID, &b.PersonID, &b.StartDate, &b.EndDate, &b.Reason, &b.IsRecurring, &b.DayOfWeek, &b.CreatedAt, &b.UpdatedAt)
+	if err != nil {
+		return nil, err
+	}
+	return &b, nil
+}
+
+func (s *Service) UpdateBlockout(ctx context.Context, tenantID, blockoutID string, startDate, endDate, reason string, isRecurring bool, dayOfWeek *int) (*VolunteerBlockout, error) {
+	var b VolunteerBlockout
+	err := s.db.QueryRow(ctx, `
+		UPDATE volunteer_blockouts SET start_date = $3, end_date = $4, reason = $5, is_recurring = $6, day_of_week = $7, updated_at = NOW()
+		WHERE id = $1 AND tenant_id = $2
+		RETURNING id, tenant_id, person_id, start_date::text, end_date::text, reason, is_recurring, day_of_week, created_at, updated_at`,
+		blockoutID, tenantID, startDate, endDate, reason, isRecurring, dayOfWeek).Scan(
+		&b.ID, &b.TenantID, &b.PersonID, &b.StartDate, &b.EndDate, &b.Reason, &b.IsRecurring, &b.DayOfWeek, &b.CreatedAt, &b.UpdatedAt)
+	if err != nil {
+		return nil, fmt.Errorf("failed to update blockout: %w", err)
+	}
+	return &b, nil
+}
+
+func (s *Service) DeleteBlockout(ctx context.Context, tenantID, blockoutID string) error {
+	ct, err := s.db.Exec(ctx, `DELETE FROM volunteer_blockouts WHERE id = $1 AND tenant_id = $2`, blockoutID, tenantID)
+	if err != nil {
+		return err
+	}
+	if ct.RowsAffected() == 0 {
+		return fmt.Errorf("blockout not found")
+	}
+	return nil
+}
+
+// IsVolunteerBlocked checks if a volunteer is blocked on a specific date
+// Returns true if blocked, along with the matching blockout info
+func (s *Service) IsVolunteerBlocked(ctx context.Context, tenantID, personID string, checkDate time.Time) (*BlockoutMatch, error) {
+	// Check non-recurring blockouts where date falls within range
+	var b VolunteerBlockout
+	err := s.db.QueryRow(ctx, `
+		SELECT id, tenant_id, person_id, start_date::text, end_date::text, reason, is_recurring, day_of_week, created_at, updated_at
+		FROM volunteer_blockouts
+		WHERE person_id = $1 AND tenant_id = $2
+		  AND is_recurring = false
+		  AND $3 >= start_date AND $3 <= end_date
+		LIMIT 1`, personID, tenantID, checkDate).Scan(
+		&b.ID, &b.TenantID, &b.PersonID, &b.StartDate, &b.EndDate, &b.Reason, &b.IsRecurring, &b.DayOfWeek, &b.CreatedAt, &b.UpdatedAt)
+
+	if err == nil {
+		// Found a matching non-recurring blockout
+		return &BlockoutMatch{Blockout: b, IsRecurring: false}, nil
+	} else if err != pgx.ErrNoRows {
+		// Some other error occurred
+		return nil, err
+	}
+
+	// Check recurring blockouts by day_of_week
+	var b2 VolunteerBlockout
+	err = s.db.QueryRow(ctx, `
+		SELECT id, tenant_id, person_id, start_date::text, end_date::text, reason, is_recurring, day_of_week, created_at, updated_at
+		FROM volunteer_blockouts
+		WHERE person_id = $1 AND tenant_id = $2
+		  AND is_recurring = true
+		  AND day_of_week IS NOT NULL
+		  AND EXTRACT(DOW FROM $3) = day_of_week
+		LIMIT 1`, personID, tenantID, checkDate).Scan(
+		&b2.ID, &b2.TenantID, &b2.PersonID, &b2.StartDate, &b2.EndDate, &b2.Reason, &b2.IsRecurring, &b2.DayOfWeek, &b2.CreatedAt, &b2.UpdatedAt)
+
+	if err == nil {
+		return &BlockoutMatch{Blockout: b2, IsRecurring: true}, nil
+	} else if err != pgx.ErrNoRows {
+		return nil, err
+	}
+
+	// No blockout found
+	return nil, nil
+}
+
+// CheckAssignmentsForConflicts checks all assignments for blockout conflicts
+// Returns a map of person_id -> matching blockout for those who are blocked
+func (s *Service) CheckAssignmentsForConflicts(ctx context.Context, tenantID string, serviceDate time.Time, personIDs []string) (map[string]*BlockoutMatch, error) {
+	conflicts := make(map[string]*BlockoutMatch)
+
+	for _, personID := range personIDs {
+		match, err := s.IsVolunteerBlocked(ctx, tenantID, personID, serviceDate)
+		if err != nil {
+			return nil, fmt.Errorf("conflict check failed for person %s: %w", personID, err)
+		}
+		if match != nil {
+			conflicts[personID] = match
+		}
+	}
+
+	return conflicts, nil
 }

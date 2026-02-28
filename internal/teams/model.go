@@ -61,3 +61,23 @@ type Member struct {
 	Email        string  `json:"email,omitempty"`
 	PositionName *string `json:"position_name,omitempty"`
 }
+
+// VolunteerBlockout represents a volunteer's unavailable dates
+type VolunteerBlockout struct {
+	ID         string    `json:"id"`
+	TenantID   string    `json:"tenant_id"`
+	PersonID   string    `json:"person_id"`
+	StartDate  string    `json:"start_date"`
+	EndDate    string    `json:"end_date"`
+	Reason     *string   `json:"reason,omitempty"`
+	IsRecurring bool     `json:"is_recurring"`
+	DayOfWeek  *int      `json:"day_of_week,omitempty"` // 0=Sun..6=Sat
+	CreatedAt  time.Time `json:"created_at"`
+	UpdatedAt  time.Time `json:"updated_at"`
+}
+
+// BlockoutMatch represents a matched blockout for a given date
+type BlockoutMatch struct {
+	Blockout       VolunteerBlockout `json:"blockout"`
+	IsRecurring    bool              `json:"is_recurring_match"` // true if matched by day_of_week, false if by date range
+}

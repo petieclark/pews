@@ -1,5 +1,6 @@
 <script>
 	import { onMount } from 'svelte';
+	import { Mail, Send, Users } from 'lucide-svelte';
 	import { api } from '$lib/api';
 	import { goto } from '$app/navigation';
 
@@ -172,7 +173,7 @@
 				<button on:click={() => { targetType = 'all'; targetId = ''; }}
 					class="w-full p-4 rounded-lg border text-left transition"
 					style="background: {targetType === 'all' ? 'rgba(74,139,140,0.1)' : 'var(--bg)'}; border-color: {targetType === 'all' ? 'var(--teal)' : 'var(--border)'}">
-					<div class="font-medium" style="color: var(--text-primary)">👥 All Members</div>
+					<div class="font-medium" style="color: var(--text-primary)"><Users size={14} class="inline" /> All Members</div>
 					<div class="text-sm" style="color: var(--text-secondary)">Send to everyone in your directory</div>
 				</button>
 				<button on:click={() => targetType = 'group'}
@@ -234,7 +235,7 @@
 						<div class="flex gap-4 mt-2">
 							<label class="flex items-center gap-2 cursor-pointer">
 								<input type="radio" bind:group={channel} value="email" />
-								<span style="color: var(--text-primary)">📧 Email</span>
+								<span style="color: var(--text-primary)"><Mail size={14} class="inline" /> Email</span>
 							</label>
 							<label class="flex items-center gap-2 cursor-pointer">
 								<input type="radio" bind:group={channel} value="sms" />
@@ -310,7 +311,7 @@
 					</div>
 					<div class="p-4 rounded-lg" style="background: var(--bg)">
 						<div class="text-sm font-medium" style="color: var(--text-secondary)">Channel</div>
-						<div class="font-medium" style="color: var(--text-primary)">{channel === 'email' ? '📧 Email' : '💬 SMS'}</div>
+						<div class="font-medium" style="color: var(--text-primary)">{#if channel === 'email'}<Mail size={14} class="inline" /> Email{:else}💬 SMS{/if}</div>
 					</div>
 					<div class="p-4 rounded-lg" style="background: var(--bg)">
 						<div class="text-sm font-medium" style="color: var(--text-secondary)">Audience</div>
@@ -333,7 +334,7 @@
 					<button on:click={() => createAndSend(true)} disabled={loading}
 						class="flex-1 px-6 py-3 rounded-lg font-medium"
 						style="background: var(--teal); color: white; opacity: {loading ? 0.5 : 1}">
-						{loading ? 'Sending...' : '🚀 Send Now'}
+						{#if loading}Sending...{:else}<Send size={14} class="inline" /> Send Now{/if}
 					</button>
 				</div>
 			</div>

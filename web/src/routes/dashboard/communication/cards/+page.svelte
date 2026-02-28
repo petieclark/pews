@@ -1,5 +1,6 @@
 <script>
 	import { onMount } from 'svelte';
+	import { Mail, Smartphone, Heart, CreditCard } from 'lucide-svelte';
 	import { api } from '$lib/api';
 
 	let cards = [];
@@ -83,7 +84,7 @@
 		</div>
 	{:else if filteredCards.length === 0}
 		<div class="rounded-lg shadow border p-12 text-center" style="background: var(--surface); border-color: var(--border)">
-			<div class="text-5xl mb-4">💳</div>
+			<div class="mb-4"><CreditCard size={48} /></div>
 			<h2 class="text-xl font-semibold mb-2" style="color: var(--text-primary)">
 				{showProcessed ? 'No connection cards' : 'All caught up!'}
 			</h2>
@@ -110,10 +111,10 @@
 							</div>
 							<div class="grid grid-cols-1 md:grid-cols-2 gap-2 text-sm" style="color: var(--text-secondary)">
 								{#if card.email}
-									<div>📧 {card.email}</div>
+									<div><Mail size={14} class="inline" /> {card.email}</div>
 								{/if}
 								{#if card.phone}
-									<div>📱 {card.phone}</div>
+									<div><Smartphone size={14} class="inline" /> {card.phone}</div>
 								{/if}
 								{#if card.how_heard}
 									<div>🔍 How heard: {card.how_heard}</div>
@@ -124,7 +125,7 @@
 							</div>
 							{#if card.prayer_request}
 								<div class="mt-3 p-3 rounded-lg text-sm" style="background: var(--bg); color: var(--text-primary)">
-									<span class="font-medium">🙏 Prayer Request:</span> {card.prayer_request}
+									<span class="font-medium"><Heart size={14} class="inline" /> Prayer Request:</span> {card.prayer_request}
 								</div>
 							{/if}
 							<div class="mt-2 text-xs" style="color: var(--text-secondary)">

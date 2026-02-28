@@ -1,6 +1,7 @@
 <script>
 	import { onMount } from 'svelte';
 	import { page } from '$app/stores';
+	import { PartyPopper, Users, BookOpen, Heart, Building2, User, HeartHandshake, Globe, Music } from 'lucide-svelte';
 
 	const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8190';
 
@@ -72,13 +73,13 @@
 	}
 
 	const typeIcons = {
-		'small_group': '👥', 'bible_study': '📖', 'prayer': '🙏', 'service': '⛪',
-		'youth': '🧑‍🤝‍🧑', 'men': '👨', 'women': '👩', 'couples': '💑',
-		'recovery': '💚', 'outreach': '🌍', 'worship': '🎵'
+		'small_group': Users, 'bible_study': BookOpen, 'prayer': Heart, 'service': Building2,
+		'youth': Users, 'men': User, 'women': User, 'couples': Heart,
+		'recovery': HeartHandshake, 'outreach': Globe, 'worship': Music
 	};
 
 	function getTypeIcon(type) {
-		return typeIcons[type] || '👥';
+		return typeIcons[type] || Users;
 	}
 
 	function formatDay(day) {
@@ -98,7 +99,7 @@
 {:else if error}
 	<div class="flex items-center justify-center min-h-screen">
 		<div class="text-center">
-			<p class="text-6xl mb-4">👥</p>
+			<p class="mb-4"><Users size={64} /></p>
 			<h1 class="text-2xl font-bold text-[#1B3A4B] mb-2">Not Found</h1>
 			<p class="text-gray-500">This page doesn't exist.</p>
 		</div>
@@ -117,7 +118,7 @@
 	<div class="max-w-5xl mx-auto px-4 py-8">
 		{#if groups.length === 0}
 			<div class="text-center py-16">
-				<p class="text-5xl mb-4">👥</p>
+				<p class="mb-4"><Users size={48} /></p>
 				<h2 class="text-xl font-semibold text-[#1B3A4B] mb-2">No groups available right now</h2>
 				<p class="text-gray-500">Check back soon for new group opportunities!</p>
 			</div>
@@ -131,8 +132,8 @@
 									{#if group.photo_url}
 										<img src={group.photo_url} alt={group.name} class="w-12 h-12 rounded-lg object-cover" />
 									{:else}
-										<div class="w-12 h-12 rounded-lg bg-[#8FBCB0]/20 flex items-center justify-center text-xl">
-											{getTypeIcon(group.group_type)}
+										<div class="w-12 h-12 rounded-lg bg-[#8FBCB0]/20 flex items-center justify-center">
+											<svelte:component this={getTypeIcon(group.group_type)} size={24} />
 										</div>
 									{/if}
 									<div>
@@ -160,7 +161,7 @@
 									</div>
 								{/if}
 								<div class="flex items-center gap-2">
-									<span>👤</span>
+									<User size={14} />
 									<span>{group.member_count} member{group.member_count !== 1 ? 's' : ''}</span>
 									{#if group.leader_name}
 										<span class="text-gray-300">·</span>
@@ -196,7 +197,7 @@
 		<div class="bg-white rounded-2xl w-full max-w-md shadow-2xl" on:click|stopPropagation>
 			{#if submitted}
 				<div class="p-8 text-center">
-					<div class="text-5xl mb-4">🎉</div>
+					<div class="mb-4"><PartyPopper size={48} /></div>
 					<h2 class="text-2xl font-bold text-[#1B3A4B] mb-2">You're signed up!</h2>
 					<p class="text-gray-600 mb-6">Thanks! The group leader will reach out soon.</p>
 					<button on:click={closeModal} class="bg-[#4A8B8C] text-white px-8 py-2.5 rounded-lg font-medium hover:bg-[#3d7374]">

@@ -1,5 +1,6 @@
 <script>
 	import { onMount } from 'svelte';
+	import { Users, Handshake, Home, Users as UsersIcon, Baby, Music, BookOpen, Globe, CheckCircle } from 'lucide-svelte';
 
 	const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8190';
 
@@ -28,14 +29,14 @@
 	];
 
 	const interestOptions = [
-		{ value: 'small_groups', label: 'Small Groups', icon: '👥' },
-		{ value: 'volunteering', label: 'Volunteering', icon: '🤝' },
-		{ value: 'membership', label: 'Membership', icon: '🏠' },
-		{ value: 'youth_ministry', label: 'Youth Ministry', icon: '🧑‍🤝‍🧑' },
-		{ value: 'childrens_ministry', label: "Children's Ministry", icon: '👶' },
-		{ value: 'worship_team', label: 'Worship Team', icon: '🎵' },
-		{ value: 'bible_study', label: 'Bible Study', icon: '📖' },
-		{ value: 'outreach', label: 'Community Outreach', icon: '🌍' }
+		{ value: 'small_groups', label: 'Small Groups', icon: Users },
+		{ value: 'volunteering', label: 'Volunteering', icon: Handshake },
+		{ value: 'membership', label: 'Membership', icon: Home },
+		{ value: 'youth_ministry', label: 'Youth Ministry', icon: UsersIcon },
+		{ value: 'childrens_ministry', label: "Children's Ministry", icon: Baby },
+		{ value: 'worship_team', label: 'Worship Team', icon: Music },
+		{ value: 'bible_study', label: 'Bible Study', icon: BookOpen },
+		{ value: 'outreach', label: 'Community Outreach', icon: Globe }
 	];
 
 	function toggleInterest(value) {
@@ -103,7 +104,7 @@
 
 		{#if submitted}
 			<div class="bg-green-900 bg-opacity-30 border border-green-600 rounded-lg p-8 text-center">
-				<div class="text-6xl mb-4">✅</div>
+				<div class="mb-4"><CheckCircle size={64} /></div>
 				<h2 class="text-2xl font-bold text-green-400 mb-3">Thank You!</h2>
 				<p class="text-gray-300 mb-6">
 					We've received your connection card and will be in touch soon.
@@ -183,7 +184,7 @@
 									on:click={() => toggleInterest(opt.value)}
 									class="flex items-center gap-2 p-3 rounded-lg border text-left transition-all {formData.interests.includes(opt.value) ? 'border-teal-500 bg-teal-900 bg-opacity-30' : 'border-gray-600 bg-gray-900 bg-opacity-30 hover:border-gray-500'}"
 								>
-									<span class="text-lg">{opt.icon}</span>
+									<span class="text-lg"><svelte:component this={opt.icon} size={20} /></span>
 									<span class="text-sm font-medium {formData.interests.includes(opt.value) ? 'text-teal-300' : 'text-gray-300'}">{opt.label}</span>
 								</button>
 							{/each}

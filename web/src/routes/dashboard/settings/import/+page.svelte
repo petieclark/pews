@@ -1,5 +1,6 @@
 <script>
 	import { onMount } from 'svelte';
+	import { ClipboardList } from 'lucide-svelte';
 
 	// State
 	let step = 1; // 1: Select type, 2: Upload/Preview, 3: Column mapping, 4: Import, 5: Results
@@ -310,7 +311,7 @@
 			</h2>
 
 			<div class="mb-6 p-4 rounded-lg" style="background-color: var(--bg); border: 1px solid var(--border)">
-				<h3 class="font-semibold mb-2" style="color: var(--text-primary)">📋 How to export from PCO:</h3>
+				<h3 class="font-semibold mb-2 flex items-center gap-1" style="color: var(--text-primary)"><ClipboardList size={16} /> How to export from PCO:</h3>
 				<ol class="text-sm space-y-1 list-decimal list-inside" style="color: var(--text-secondary)">
 					{#if importType === 'people'}
 						<li>Log into Planning Center Online</li>

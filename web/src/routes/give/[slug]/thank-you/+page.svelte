@@ -1,5 +1,6 @@
 <script>
 	import { page } from '$app/stores';
+	import { PartyPopper } from 'lucide-svelte';
 
 	let slug = $page.params.slug;
 </script>
@@ -10,7 +11,7 @@
 
 <div class="min-h-screen bg-gray-50 flex flex-col items-center justify-center px-4">
 	<div class="text-center max-w-md">
-		<div class="text-7xl mb-6">🎉</div>
+		<div class="mb-6"><PartyPopper size={64} /></div>
 		<h1 class="text-3xl font-bold text-gray-900 mb-3">Thank You!</h1>
 		<p class="text-gray-600 text-lg mb-2">
 			Your generous gift has been received.

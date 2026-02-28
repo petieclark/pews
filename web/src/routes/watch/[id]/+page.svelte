@@ -1,6 +1,7 @@
 <script>
 	import { onMount, onDestroy } from 'svelte';
 	import { page } from '$app/stores';
+	import { FileEdit, Users, HeartHandshake } from 'lucide-svelte';
 
 	const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8190';
 	const SITE_URL = import.meta.env.VITE_SITE_URL || 'http://localhost:5273';
@@ -235,7 +236,7 @@
 						<p class="text-gray-400 mb-4">{stream.description}</p>
 					{/if}
 					<div class="flex items-center gap-4 text-sm text-gray-500">
-						<span>👥 {stream.viewer_count} watching</span>
+						<span class="inline-flex items-center gap-1"><Users size={14} /> {stream.viewer_count} watching</span>
 						{#if stream.status === 'live'}
 							<span class="px-2 py-1 bg-red-600 text-white text-xs font-bold rounded">LIVE</span>
 						{/if}
@@ -244,7 +245,7 @@
 
 				<!-- Sermon Notes -->
 				<div class="p-4 bg-gray-900 rounded-lg">
-					<h3 class="text-lg font-bold text-white mb-3">📝 Sermon Notes</h3>
+					<h3 class="text-lg font-bold text-white mb-3"><FileEdit size={20} class="inline" /> Sermon Notes</h3>
 					<textarea
 						bind:value={notes}
 						rows="8"
@@ -260,7 +261,7 @@
 						href="/give"
 						class="block w-full px-6 py-3 bg-teal-600 hover:bg-teal-700 text-white text-center font-bold rounded-md"
 					>
-						💚 Give Now
+						<HeartHandshake size={18} class="inline" /> Give Now
 					</a>
 				{/if}
 

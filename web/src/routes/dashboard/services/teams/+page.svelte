@@ -2,6 +2,7 @@
 	import { onMount } from 'svelte';
 	import { api } from '$lib/api';
 	import { toast } from '$lib/stores/toast';
+	import { Users } from 'lucide-svelte';
 
 	let teams = [];
 	let loading = true;
@@ -323,7 +324,7 @@
 			</div>
 		{:else if teams.length === 0}
 			<div class="text-center py-20">
-				<div class="text-6xl mb-4">👥</div>
+				<div class="mb-4"><Users size={64} /></div>
 				<h2 class="text-xl font-semibold text-[var(--text-primary)] mb-2">No teams yet</h2>
 				<p class="text-secondary mb-6">Create your first volunteer team to get started</p>
 				<button on:click={() => showCreateModal = true}

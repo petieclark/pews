@@ -777,8 +777,8 @@ func (s *Service) executeJourneyStep(ctx context.Context, tenantID, journeyID, e
 	// Execute based on step type
 	switch step.StepType {
 	case "send_email":
-		if s.sender.mailgun.IsConfigured() && recipient.Email != "" {
-			if err := s.sender.mailgun.SendEmail(recipient.Email, subject, body, "", churchName); err != nil {
+		if s.sender.sendgrid.IsConfigured() && recipient.Email != "" {
+			if err := s.sender.sendgrid.SendEmail(recipient.Email, subject, body, "", churchName); err != nil {
 				log.Printf("[journeys] email send failed for enrollment %s step %d: %v", enrollmentID, step.Position, err)
 			} else {
 				log.Printf("[journeys] sent email to %s for enrollment %s step %d", recipient.Email, enrollmentID, step.Position)

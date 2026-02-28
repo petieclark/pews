@@ -1,5 +1,6 @@
 <script>
 	import { onMount } from 'svelte';
+	import { Mail, FileEdit } from 'lucide-svelte';
 	import { api } from '$lib/api';
 
 	let templates = [];
@@ -95,7 +96,7 @@
 	<div class="mb-6 flex gap-2">
 		{#each ['all', 'email', 'sms'] as ch}
 			<button on:click={() => channelFilter = ch} class="px-4 py-2 rounded-lg font-medium transition capitalize" style="background: {channelFilter === ch ? 'var(--teal)' : 'var(--surface)'}; color: {channelFilter === ch ? 'white' : 'var(--text-primary)'}; border: 1px solid {channelFilter === ch ? 'var(--teal)' : 'var(--border)'}">
-				{ch === 'all' ? 'All' : ch === 'email' ? '📧 Email' : '💬 SMS'}
+				{#if ch === 'all'}All{:else if ch === 'email'}<Mail size={14} class="inline" /> Email{:else}💬 SMS{/if}
 			</button>
 		{/each}
 	</div>
@@ -159,7 +160,7 @@
 		</div>
 	{:else if filteredTemplates.length === 0}
 		<div class="rounded-lg shadow border p-12 text-center" style="background: var(--surface); border-color: var(--border)">
-			<div class="text-5xl mb-4">📝</div>
+			<div class="mb-4"><FileEdit size={48} /></div>
 			<h2 class="text-xl font-semibold mb-2" style="color: var(--text-primary)">No templates yet</h2>
 			<p class="mb-6" style="color: var(--text-secondary)">Create reusable templates for your campaigns and journeys.</p>
 			<button on:click={openCreate} class="px-6 py-2 rounded-lg font-medium" style="background: var(--teal); color: white">Create Template</button>
@@ -170,7 +171,7 @@
 				<div class="rounded-lg shadow border p-5 hover:shadow-md transition" style="background: var(--surface); border-color: var(--border)">
 					<div class="flex items-start justify-between mb-2">
 						<h3 class="font-semibold" style="color: var(--text-primary)">{template.name}</h3>
-						<span class="text-lg">{template.channel === 'email' ? '📧' : '💬'}</span>
+						{#if template.channel === 'email'}<Mail size={20} />{:else}<span class="text-lg">💬</span>{/if}
 					</div>
 					{#if template.category}
 						<span class="px-2 py-0.5 rounded text-xs font-medium capitalize" style="background: var(--bg); color: var(--text-secondary)">{template.category.replace('_', ' ')}</span>

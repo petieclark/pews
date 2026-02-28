@@ -1,5 +1,6 @@
 <script>
 	import { onMount } from 'svelte';
+	import { Mail, FileEdit, CreditCard } from 'lucide-svelte';
 	import { api } from '$lib/api';
 	import { goto } from '$app/navigation';
 
@@ -119,7 +120,7 @@
 							<div>
 								<div class="font-medium" style="color: var(--text-primary)">{campaign.name}</div>
 								<div class="text-sm" style="color: var(--text-secondary)">
-									{campaign.channel === 'email' ? '📧' : '💬'} {campaign.recipient_count} recipients
+									{#if campaign.channel === 'email'}<Mail size={14} class="inline" />{:else}💬{/if} {campaign.recipient_count} recipients
 									{#if campaign.channel === 'email'}
 										• {campaign.recipient_count > 0 ? ((campaign.opened_count / campaign.recipient_count) * 100).toFixed(0) : 0}% opened
 									{/if}
@@ -141,7 +142,7 @@
 				class="p-6 rounded-lg border text-left hover:shadow-md transition"
 				style="background: var(--surface); border-color: var(--border)"
 			>
-				<div class="text-2xl mb-2">📝</div>
+				<div class="mb-2"><FileEdit size={24} /></div>
 				<div class="font-semibold mb-1" style="color: var(--text-primary)">Message Templates</div>
 				<div class="text-sm" style="color: var(--text-secondary)">Create reusable message templates</div>
 			</button>
@@ -159,7 +160,7 @@
 				class="p-6 rounded-lg border text-left hover:shadow-md transition"
 				style="background: var(--surface); border-color: var(--border)"
 			>
-				<div class="text-2xl mb-2">💳</div>
+				<div class="mb-2"><CreditCard size={24} /></div>
 				<div class="font-semibold mb-1" style="color: var(--text-primary)">Connection Cards</div>
 				<div class="text-sm" style="color: var(--text-secondary)">View and process visitor submissions</div>
 			</button>

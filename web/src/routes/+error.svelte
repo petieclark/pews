@@ -1,5 +1,6 @@
 <script>
 	import { page } from '$app/stores';
+	import { AlertTriangle } from 'lucide-svelte';
 	
 	$: status = $page.status;
 	$: message = $page.error?.message || 'An error occurred';
@@ -14,7 +15,7 @@
 		<!-- Pews Logo/Branding -->
 		<div class="mb-8">
 			<h1 class="text-6xl font-bold" style="color: var(--teal);">
-				{status === 404 ? '🪑' : '⚠️'}
+				<AlertTriangle size={64} />
 			</h1>
 		</div>
 

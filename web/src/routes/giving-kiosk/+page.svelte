@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { onMount, onDestroy } from 'svelte';
+	import { AlertTriangle } from 'lucide-svelte';
 	import { goto } from '$app/navigation';
 
 	// Kiosk state
@@ -193,7 +194,7 @@
 		</div>
 	{:else if error}
 		<div class="bg-white rounded-3xl shadow-2xl p-12 max-w-lg text-center">
-			<div class="text-6xl mb-6">⚠️</div>
+			<div class="mb-6"><AlertTriangle size={64} /></div>
 			<h1 class="text-3xl font-bold text-gray-800 mb-4">Oops!</h1>
 			<p class="text-xl text-gray-600">{error}</p>
 		</div>

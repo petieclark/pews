@@ -1,6 +1,7 @@
 <script>
 	import { onMount } from 'svelte';
 	import { api } from '$lib/api';
+	import { Image, FileText, FileEdit, Music, Paperclip, FolderOpen, Download, Trash2 } from 'lucide-svelte';
 
 	let files = [];
 	let folders = [];
@@ -175,11 +176,11 @@
 	}
 
 	function getFileIcon(contentType) {
-		if (contentType.startsWith('image/')) return '🖼️';
-		if (contentType === 'application/pdf') return '📄';
-		if (contentType.includes('word')) return '📝';
-		if (contentType.startsWith('audio/')) return '🎵';
-		return '📎';
+		if (contentType.startsWith('image/')) return Image;
+		if (contentType === 'application/pdf') return FileText;
+		if (contentType.includes('word')) return FileEdit;
+		if (contentType.startsWith('audio/')) return Music;
+		return Paperclip;
 	}
 
 	function formatFileSize(bytes) {
@@ -239,7 +240,7 @@
 			on:dragover={handleDragOver}
 			on:dragleave={handleDragLeave}
 		>
-			<div class="icon">📁</div>
+			<div class="icon"><FolderOpen size={64} /></div>
 			<h3>No files yet</h3>
 			<p>Upload your first file or drag and drop files here</p>
 			<button on:click={() => (showUploadModal = true)} class="btn-primary">Upload Files</button>
@@ -260,7 +261,7 @@
 						{#if file.content_type.startsWith('image/')}
 							<img src={`${import.meta.env.VITE_API_URL}${file.url}`} alt={file.original_name} />
 						{:else}
-							<div class="file-icon">{getFileIcon(file.content_type)}</div>
+							<div class="file-icon"><svelte:component this={getFileIcon(file.content_type)} size={48} /></div>
 						{/if}
 					</button>
 
@@ -271,7 +272,7 @@
 							{new Date(file.created_at).toLocaleDateString()}
 						</div>
 						{#if file.folder}
-							<div class="file-folder">📁 {file.folder}</div>
+							<div class="file-folder"><FolderOpen size={14} class="inline" /> {file.folder}</div>
 						{/if}
 						{#if file.tags && file.tags.length > 0}
 							<div class="file-tags">
@@ -283,8 +284,8 @@
 					</div>
 
 					<div class="file-actions">
-						<button on:click={() => download(file)} class="btn-icon" title="Download">⬇️</button>
-						<button on:click={() => deleteFile(file.id)} class="btn-icon" title="Delete">🗑️</button>
+						<button on:click={() => download(file)} class="btn-icon" title="Download"><Download size={16} /></button>
+						<button on:click={() => deleteFile(file.id)} class="btn-icon" title="Delete"><Trash2 size={16} /></button>
 					</div>
 				</div>
 			{/each}

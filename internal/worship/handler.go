@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"strings"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/petieclark/pews/internal/middleware"
@@ -163,6 +164,7 @@ type AddItemRequest struct {
 	Notes           string  `json:"notes,omitempty"`
 	SongID          *string `json:"song_id,omitempty"`
 	AssignedTo      *string `json:"assigned_to,omitempty"`
+	Key             *string `json:"key,omitempty"`  // Song key for transposition (e.g., "G", "Cm")
 }
 
 // AddItem adds an item to a service plan
@@ -190,7 +192,7 @@ func (h *Handler) AddItem(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	item, err := h.service.AddItem(r.Context(), claims.TenantID, planID, req.ItemOrder, req.ItemType, req.Title, req.DurationMinutes, req.Notes, req.SongID, req.AssignedTo)
+	item, err := h.service.AddItem(r.Context(), claims.TenantID, planID, req.ItemOrder, req.ItemType, req.Title, req.DurationMinutes, req.Notes, req.SongID, req.AssignedTo, req.Key)
 	if err != nil {
 		http.Error(w, "Failed to add item: "+err.Error(), http.StatusInternalServerError)
 		return
@@ -210,6 +212,7 @@ type UpdateItemRequest struct {
 	Notes           string  `json:"notes,omitempty"`
 	SongID          *string `json:"song_id,omitempty"`
 	AssignedTo      *string `json:"assigned_to,omitempty"`
+	Key             *string `json:"key,omitempty"`  // Song key for transposition (e.g., "G", "Cm")
 }
 
 // UpdateItem updates a plan item
@@ -238,7 +241,7 @@ func (h *Handler) UpdateItem(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	item, err := h.service.UpdateItem(r.Context(), claims.TenantID, planID, itemID, req.ItemOrder, req.ItemType, req.Title, req.DurationMinutes, req.Notes, req.SongID, req.AssignedTo)
+	item, err := h.service.UpdateItem(r.Context(), claims.TenantID, planID, itemID, req.ItemOrder, req.ItemType, req.Title, req.DurationMinutes, req.Notes, req.SongID, req.AssignedTo, req.Key)
 	if err != nil {
 		http.Error(w, "Failed to update item: "+err.Error(), http.StatusInternalServerError)
 		return
@@ -298,7 +301,25 @@ func (h *Handler) ExportPlan(w http.ResponseWriter, r *http.Request) {
 	w.Write([]byte(html))
 }
 
-// generatePlanHTML generates a printable HTML version of the service plan
+// GetSharedPlan returns a service plan by token (no auth required for public access)
+func (h *Handler) GetSharedPlan(w http.ResponseWriter, r *http.Request) {
+	token := chi.URLParam(r, "token")
+	if token == "" {
+		http.Error(w, "Token is required", http.StatusBadRequest)
+		return
+	}
+
+	plan, err := h.service.GetPlanByToken(r.Context(), token)
+	if err != nil {
+		http.Error(w, "Plan not found or invalid token", http.StatusNotFound)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(plan)
+}
+
+// generatePlanHTML generates a printable HTML version of the service plan with CCLI attributions
 func generatePlanHTML(plan *ServicePlan) string {
 	html := `<!DOCTYPE html>
 <html>
@@ -311,6 +332,8 @@ func generatePlanHTML(plan *ServicePlan) string {
         th, td { border: 1px solid #ddd; padding: 12px; text-align: left; }
         th { background-color: #f2f2f2; }
         .notes { font-style: italic; color: #666; }
+        .attribution { font-size: 0.85em; color: #555; margin-top: 4px; line-height: 1.4; }
+        .key-badge { display: inline-block; padding: 2px 8px; background-color: #e0f2fe; color: #0369a1; border-radius: 4px; font-weight: bold; font-size: 0.9em; margin-left: 8px; }
         @media print {
             body { margin: 0; }
             button { display: none; }
@@ -327,7 +350,7 @@ func generatePlanHTML(plan *ServicePlan) string {
             <tr>
                 <th>#</th>
                 <th>Type</th>
-                <th>Title</th>
+                <th>Title & Key</th>
                 <th>Duration</th>
                 <th>Assigned To</th>
                 <th>Notes</th>
@@ -343,18 +366,45 @@ func generatePlanHTML(plan *ServicePlan) string {
 			totalDuration += *item.DurationMinutes
 		}
 
+		// Build title with key badge if present
+		titleCell := item.Title
+		if item.Key != "" {
+			titleCell += fmt.Sprintf(` <span class="key-badge">%s</span>`, item.Key)
+		}
+
+		// Add CCLI attribution line for songs
+		attributionHTML := ""
+		if item.ItemType == "song" && item.SongTitle != "" {
+			var attribParts []string
+			// Song title (in case different from plan item title)
+			if item.SongTitle != item.Title {
+				attribParts = append(attribParts, fmt.Sprintf("Song: %s", item.SongTitle))
+			}
+			// Key display in attribution if not shown as badge
+			if item.Key != "" {
+				attribParts = append(attribParts, fmt.Sprintf("Key: %s", item.Key))
+			}
+			if len(attribParts) > 0 {
+				attributionHTML = fmt.Sprintf(`<div class="attribution">%s</div>`, strings.Join(attribParts, " • "))
+			}
+		}
+
 		html += fmt.Sprintf(`
             <tr>
                 <td>%d</td>
                 <td>%s</td>
-                <td>%s</td>
+                <td>
+                    %s
+                    %s
+                </td>
                 <td>%s</td>
                 <td>%s</td>
                 <td class="notes">%s</td>
             </tr>`,
 			item.ItemOrder,
 			item.ItemType,
-			item.Title,
+			titleCell,
+			attributionHTML,
 			durationStr,
 			item.AssignedToName,
 			item.Notes,

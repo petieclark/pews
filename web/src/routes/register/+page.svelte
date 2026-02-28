@@ -1,5 +1,6 @@
 <script>
 	import { goto } from '$app/navigation';
+	import { FileEdit } from 'lucide-svelte';
 	import { api, setToken } from '$lib/api';
 	import ThemeToggle from '$lib/ThemeToggle.svelte';
 
@@ -265,7 +266,7 @@
 				<p class="text-secondary mb-4">Your church account has been created successfully.</p>
 				
 				<div class="bg-blue-50 dark:bg-blue-900 border border-blue-200 dark:border-blue-700 rounded-lg p-4 mb-6">
-					<p class="text-sm font-medium text-primary mb-2">📝 Important: Save your church slug</p>
+					<p class="text-sm font-medium text-primary mb-2"><FileEdit size={14} class="inline" /> Important: Save your church slug</p>
 					<div class="bg-white dark:bg-gray-800 rounded px-3 py-2 border border-gray-200 dark:border-gray-700">
 						<code class="text-lg font-mono font-bold text-[var(--teal)]">{generatedSlug}</code>
 					</div>

@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import { api } from '$lib/api';
+	import { CalendarDays, Building2, Users } from 'lucide-svelte';
 
 	interface CalendarEvent {
 		id: string;
@@ -265,7 +266,7 @@
 <div class="space-y-6">
 	<!-- Header -->
 	<div class="flex justify-between items-center">
-		<h1 class="text-3xl font-bold text-[var(--text-primary)]">📅 Calendar</h1>
+		<h1 class="text-3xl font-bold text-[var(--text-primary)] flex items-center gap-2"><CalendarDays size={28} /> Calendar</h1>
 		<div class="flex gap-2">
 			<a href="/api/events/ical" target="_blank" class="px-4 py-2 border border-[var(--border)] text-[var(--text-secondary)] rounded-lg hover:text-[var(--text-primary)] text-sm">Export iCal</a>
 			<button on:click={openCreateModal} class="px-4 py-2 bg-[var(--teal)] text-white rounded-lg hover:opacity-90 font-medium">
@@ -338,7 +339,7 @@
 							</div>
 							{#each dayData.events.slice(0, 3) as event}
 								<button class="block w-full text-left px-1.5 py-0.5 mb-0.5 rounded text-xs text-white truncate cursor-pointer hover:opacity-80 transition-opacity" style="background-color: {event.color || getTypeColor(event.event_type)}" on:click|stopPropagation={() => handleEventClick(event)}>
-									{#if event.service_id}⛪{/if}
+									{#if event.service_id}<Building2 size={12} />{/if}
 									{event.title}
 									{#if event.attendance_count}
 										<span class="opacity-75">({event.attendance_count})</span>
@@ -359,7 +360,7 @@
 		<div class="space-y-3">
 			{#if events.length === 0}
 				<div class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-12 text-center">
-					<div class="text-4xl mb-3">📅</div>
+					<div class="mb-3"><CalendarDays size={40} /></div>
 					<h3 class="text-lg font-semibold text-[var(--text-primary)] mb-2">No events this month</h3>
 					<p class="text-[var(--text-secondary)] mb-4">Create your first event to get started.</p>
 					<button on:click={openCreateModal} class="px-4 py-2 bg-[var(--teal)] text-white rounded-lg hover:opacity-90">+ New Event</button>
@@ -370,14 +371,14 @@
 						<div class="w-1 rounded-full flex-shrink-0" style="background-color: {event.color || getTypeColor(event.event_type)}"></div>
 						<div class="flex-1 min-w-0">
 							<div class="flex items-center gap-2 mb-1">
-								{#if event.service_id}<span class="text-sm">⛪</span>{/if}
+								{#if event.service_id}<span class="text-sm"><Building2 size={14} /></span>{/if}
 								<h3 class="font-semibold text-[var(--text-primary)] truncate">{event.title}</h3>
 								<span class="px-2 py-0.5 text-xs rounded-full text-white flex-shrink-0" style="background-color: {getTypeColor(event.event_type)}">{getTypeLabel(event.event_type)}</span>
 								{#if event.recurring !== 'none'}
 									<span class="text-xs text-[var(--text-secondary)]">🔄 {recurringLabel(event.recurring)}</span>
 								{/if}
 								{#if event.attendance_count}
-									<span class="text-xs text-[var(--text-secondary)]">👥 {event.attendance_count}</span>
+									<span class="text-xs text-[var(--text-secondary)] inline-flex items-center gap-1"><Users size={12} /> {event.attendance_count}</span>
 								{/if}
 							</div>
 							<p class="text-sm text-[var(--text-secondary)]">
@@ -417,7 +418,7 @@
 
 			<div class="space-y-3 text-sm">
 				<div class="flex items-center gap-2 text-[var(--text-secondary)]">
-					<span>📅</span>
+					<CalendarDays size={16} />
 					<span>{formatFullDate(selectedEvent.start_time)}</span>
 				</div>
 				<div class="flex items-center gap-2 text-[var(--text-secondary)]">
@@ -438,13 +439,13 @@
 				{/if}
 				{#if selectedEvent.attendance_count}
 					<div class="flex items-center gap-2 text-[var(--text-secondary)]">
-						<span>👥</span>
+						<Users size={16} />
 						<span>{selectedEvent.attendance_count} checked in</span>
 					</div>
 				{/if}
 				{#if selectedEvent.service_id}
 					<div class="flex items-center gap-2">
-						<span>⛪</span>
+						<Building2 size={16} />
 						<a href="/dashboard/services/{selectedEvent.service_id}" class="text-[var(--teal)] hover:underline text-sm">View Service Details →</a>
 					</div>
 				{/if}

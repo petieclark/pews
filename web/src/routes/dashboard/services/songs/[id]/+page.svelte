@@ -3,6 +3,7 @@
 	import { goto } from '$app/navigation';
 	import { page } from '$app/stores';
 	import { api } from '$lib/api';
+	import { Music2, FileText } from 'lucide-svelte';
 
 	const NOTES = ['C', 'C#', 'Db', 'D', 'D#', 'Eb', 'E', 'F', 'F#', 'Gb', 'G', 'G#', 'Ab', 'A', 'A#', 'Bb', 'B'];
 	const ENHARMONIC = { 'C#': 'Db', 'Db': 'C#', 'D#': 'Eb', 'Eb': 'D#', 'F#': 'Gb', 'Gb': 'F#', 'G#': 'Ab', 'Ab': 'G#', 'A#': 'Bb', 'Bb': 'A#' };
@@ -88,6 +89,10 @@
 				default_key: song.default_key || '',
 				tempo: song.tempo || 0,
 				ccli_number: song.ccli_number || '',
+				authors: song.authors || '',
+				copyright_year: song.copyright_year || null,
+				publisher: song.publisher || '',
+				license_type: song.license_type || '',
 				lyrics: song.lyrics || '',
 				notes: song.notes || '',
 				tags: song.tags || '',
@@ -444,7 +449,7 @@
 		{#if song.youtube_url || song.spotify_url || song.apple_music_url || song.rehearsal_url}
 			<div class="bg-[var(--surface)] rounded-lg border border-[var(--border)]">
 				<div class="p-4 border-b border-[var(--border)]">
-					<h3 class="text-sm font-semibold text-[var(--text-primary)]">🎶 Media & Rehearsal</h3>
+					<h3 class="text-sm font-semibold text-[var(--text-primary)]"><Music2 size={16} class="inline" /> Media & Rehearsal</h3>
 				</div>
 				<div class="p-4 space-y-4">
 					{#if song.youtube_url}
@@ -648,7 +653,7 @@
 					{#each attachments as att}
 						<div class="flex items-center justify-between p-3 rounded-lg bg-[var(--bg)] border border-[var(--border)]">
 							<div class="flex items-center gap-3">
-								<span class="text-xl">📄</span>
+								<FileText size={20} />
 								<div>
 									<a
 										href="{import.meta.env.VITE_API_URL || 'http://localhost:8190'}/api/services/songs/attachments/{att.id}"

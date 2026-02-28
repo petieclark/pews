@@ -1,5 +1,6 @@
 <script>
 	import { onMount } from 'svelte';
+	import { AlertTriangle } from 'lucide-svelte';
 	import { api } from '$lib/api';
 
 	let backups = [];
@@ -274,7 +275,7 @@
 {#if showRestoreDialog}
 	<div class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50" on:click={closeRestoreDialog}>
 		<div class="bg-surface rounded-lg p-6 max-w-md w-full mx-4 border border-custom" on:click|stopPropagation>
-			<h2 class="text-2xl font-bold text-[var(--error-text)] mb-4">⚠️ Restore Backup?</h2>
+			<h2 class="text-2xl font-bold text-[var(--error-text)] mb-4"><AlertTriangle size={24} class="inline" /> Restore Backup?</h2>
 			
 			<div class="mb-4 p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-700 rounded-lg">
 				<p class="text-sm text-red-800 dark:text-red-200 font-medium mb-2">This action will:</p>

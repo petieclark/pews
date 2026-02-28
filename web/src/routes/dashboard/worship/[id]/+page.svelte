@@ -1,5 +1,6 @@
 <script>
 	import { onMount } from 'svelte';
+	import { User, Music, Timer } from 'lucide-svelte';
 	import { page } from '$app/stores';
 	import { goto } from '$app/navigation';
 	import { api } from '$lib/api';
@@ -20,7 +21,8 @@
 		duration_minutes: null,
 		notes: '',
 		song_id: null,
-		assigned_to: null
+		assigned_to: null,
+		key: ''  // Song key for transposition
 	};
 
 	const itemTypes = [
@@ -30,6 +32,13 @@
 		{ value: 'announcement', label: 'Announcement' },
 		{ value: 'video', label: 'Video' },
 		{ value: 'other', label: 'Other' }
+	];
+
+	const songKeys = [
+		'', 'C', 'C#', 'Db', 'D', 'D#', 'Eb', 'E', 'F', 'F#', 'Gb', 
+		'G', 'G#', 'Ab', 'A', 'A#', 'Bb', 'B',
+		'Cm', 'C#m', 'Dm', 'D#m', 'Em', 'Fm', 'F#m', 'Gm', 'G#m', 
+		'Am', 'A#m', 'Bm'
 	];
 
 	$: planId = $page.params.id;
@@ -95,7 +104,8 @@
 				duration_minutes: null,
 				notes: '',
 				song_id: null,
-				assigned_to: null
+				assigned_to: null,
+				key: ''
 			};
 		} catch (error) {
 			alert('Failed to add item: ' + error.message);
@@ -113,7 +123,8 @@
 					duration_minutes: item.duration_minutes,
 					notes: item.notes,
 					song_id: item.song_id,
-					assigned_to: item.assigned_to
+					assigned_to: item.assigned_to,
+					key: item.key  // Include key field
 				})
 			});
 		} catch (error) {
@@ -166,7 +177,12 @@
 			if (song) {
 				newItem.song_id = songId;
 				newItem.title = song.title;
+				newItem.key = song.default_key || '';  // Pre-populate from song's default key
 			}
+		} else {
+			newItem.song_id = null;
+			newItem.title = '';
+			newItem.key = '';
 		}
 	}
 
@@ -326,13 +342,13 @@
 											{/if}
 											<div class="flex gap-4 text-sm text-gray-500">
 												{#if item.duration_minutes}
-													<span>⏱️ {item.duration_minutes} min</span>
+													<span><Timer size={14} class="inline" /> {item.duration_minutes} min</span>
 												{/if}
 												{#if item.assigned_to_name}
-													<span>👤 {item.assigned_to_name}</span>
+													<span><User size={14} class="inline" /> {item.assigned_to_name}</span>
 												{/if}
 												{#if item.song_title}
-													<span>🎵 {item.song_title}</span>
+													<span><Music size={14} class="inline" /> {item.song_title}</span>
 												{/if}
 											</div>
 										</div>
@@ -381,9 +397,22 @@
 						>
 							<option value="">Select from song library...</option>
 							{#each songs as song}
-								<option value={song.id}>{song.title} - {song.artist || 'Unknown Artist'}</option>
+								<option value={song.id}>{song.title} - {song.artist || 'Unknown Artist'}{song.default_key ? ` (${song.default_key})` : ''}</option>
 							{/each}
 						</select>
+					</div>
+
+					<div>
+						<label class="block text-sm font-medium text-gray-700 mb-1">Key for This Service (Optional)</label>
+						<select
+							bind:value={newItem.key}
+							class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-navy focus:border-navy"
+						>
+							{#each songKeys as key}
+								<option value={key}>{key || '(No transposition)'}</option>
+							{/each}
+						</select>
+						<p class="text-xs text-gray-500 mt-1">Defaults to song's key when selected. Change for transposition.</p>
 					</div>
 				{/if}
 

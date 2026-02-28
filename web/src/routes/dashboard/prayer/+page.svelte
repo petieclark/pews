@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import { api } from '$lib/api';
+	import { PartyPopper, Heart, Handshake } from 'lucide-svelte';
 
 	interface PrayerRequest {
 		id: string;
@@ -187,7 +188,7 @@
 	<!-- Header -->
 	<div class="flex justify-between items-center">
 		<div>
-			<h1 class="text-3xl font-bold text-[var(--text-primary)]">🙏 Prayer Requests</h1>
+			<h1 class="text-3xl font-bold text-[var(--text-primary)] flex items-center gap-2"><Heart size={28} /> Prayer Requests</h1>
 			<p class="text-sm text-[var(--text-secondary)] mt-1">{activeCount} active · {answeredCount} answered</p>
 		</div>
 		<button on:click={() => showCreateModal = true} class="px-4 py-2 bg-[var(--teal)] text-white rounded-lg hover:opacity-90 font-medium">
@@ -219,7 +220,7 @@
 		</div>
 	{:else if requests.length === 0}
 		<div class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-12 text-center">
-			<div class="text-5xl mb-4">🙏</div>
+			<div class="mb-4"><Heart size={48} /></div>
 			<h3 class="text-xl font-semibold text-[var(--text-primary)] mb-2">Lift each other up in prayer</h3>
 			<p class="text-[var(--text-secondary)] max-w-md mx-auto mb-6">
 				Prayer requests help your church community support one another through life's joys and challenges.
@@ -255,7 +256,7 @@
 
 					<div class="flex items-center justify-between pt-3 border-t border-[var(--border)]">
 						<button class="flex items-center gap-1.5 text-sm transition-colors {req.is_following ? 'text-[var(--teal)] font-medium' : 'text-[var(--text-secondary)] hover:text-[var(--teal)]'}" on:click|stopPropagation={() => toggleFollow(req)}>
-							🙏 <span>{req.is_following ? 'Praying' : 'I Prayed'} ({req.follower_count || 0})</span>
+							<Heart size={14} class="inline" /> <span>{req.is_following ? 'Praying' : 'I Prayed'} ({req.follower_count || 0})</span>
 						</button>
 
 						<div class="flex items-center gap-1">
@@ -304,7 +305,7 @@
 
 			<div class="flex items-center gap-4 mb-4 pb-4 border-b border-[var(--border)]">
 				<button class="flex items-center gap-1.5 text-sm transition-colors {selectedRequest.is_following ? 'text-[var(--teal)] font-medium' : 'text-[var(--text-secondary)] hover:text-[var(--teal)]'}" on:click={() => toggleFollow(selectedRequest)}>
-					🙏 {selectedRequest.is_following ? "You're praying" : 'Pray for this'}
+					<Heart size={16} class="inline" /> {selectedRequest.is_following ? "You're praying" : 'Pray for this'}
 				</button>
 				<span class="text-sm text-[var(--text-secondary)]">{selectedRequest.follower_count || 0} people praying</span>
 			</div>
@@ -324,7 +325,7 @@
 				{/if}
 				{#if selectedRequest.person_name}
 					<button on:click={() => createFollowUpFromPrayer(selectedRequest)} class="px-3 py-1.5 text-sm bg-[var(--teal)]/10 text-[var(--teal)] rounded-lg hover:bg-[var(--teal)]/20 transition-colors">
-						🤝 Follow up with this person
+						<Handshake size={16} class="inline" /> Follow up with this person
 					</button>
 				{/if}
 			</div>
@@ -341,7 +342,7 @@
 	<div class="fixed inset-0 bg-black/50 flex items-center justify-center z-50" on:click={() => showAnsweredModal = false}>
 		<div class="bg-[var(--surface)] rounded-xl p-6 w-full max-w-md border border-[var(--border)] shadow-xl" on:click|stopPropagation>
 			<div class="text-center mb-4">
-				<div class="text-4xl mb-2">🎉</div>
+				<div class="mb-2"><PartyPopper size={48} /></div>
 				<h2 class="text-xl font-bold text-[var(--text-primary)]">Prayer Answered!</h2>
 				<p class="text-sm text-[var(--text-secondary)]">Share how God answered this prayer.</p>
 			</div>

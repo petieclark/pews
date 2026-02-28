@@ -1,5 +1,6 @@
 <script>
 	import { onMount } from 'svelte';
+	import { Mail } from 'lucide-svelte';
 	import { page } from '$app/stores';
 	import { api } from '$lib/api';
 	import { goto } from '$app/navigation';
@@ -199,7 +200,7 @@
 				<div class="grid grid-cols-3 gap-4 text-sm">
 					<div>
 						<span class="font-medium" style="color: var(--text-secondary)">Channel</span>
-						<div style="color: var(--text-primary)">{campaign.channel === 'email' ? '📧 Email' : '💬 SMS'}</div>
+						<div style="color: var(--text-primary)">{#if campaign.channel === 'email'}<Mail size={14} class="inline" /> Email{:else}💬 SMS{/if}</div>
 					</div>
 					<div>
 						<span class="font-medium" style="color: var(--text-secondary)">Target</span>

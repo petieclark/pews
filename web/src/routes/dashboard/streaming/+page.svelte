@@ -2,6 +2,7 @@
 	import { onMount } from 'svelte';
 	import { goto } from '$app/navigation';
 	import { api } from '$lib/api';
+	import { Users, CalendarDays } from 'lucide-svelte';
 
 	let streams = [];
 	let liveStream = null;
@@ -95,7 +96,7 @@
 				<h3 class="text-2xl font-bold mb-2" style="color: var(--text-primary)">{liveStream.title}</h3>
 				<p class="text-secondary mb-4">{liveStream.description || ''}</p>
 				<div class="flex gap-4 items-center">
-					<span class="text-sm" style="color: var(--text-primary)">👥 {liveStream.viewer_count} watching</span>
+					<span class="text-sm inline-flex items-center gap-1" style="color: var(--text-primary)"><Users size={14} /> {liveStream.viewer_count} watching</span>
 					<span class="text-sm text-secondary">Peak: {liveStream.peak_viewers}</span>
 					<button
 						on:click={() => goto(`/dashboard/streaming/${liveStream.id}`)}
@@ -127,7 +128,7 @@
 									<h3 class="text-lg font-semibold mb-1" style="color: var(--text-primary)">{stream.title}</h3>
 									<p class="text-sm text-secondary mb-2">{stream.description || 'No description'}</p>
 									<div class="flex gap-4 text-sm text-secondary">
-										<span>📅 {formatDate(stream.scheduled_start)}</span>
+										<span class="inline-flex items-center gap-1"><CalendarDays size={14} /> {formatDate(stream.scheduled_start)}</span>
 										<span>📺 {stream.stream_type}</span>
 									</div>
 								</div>
@@ -160,8 +161,8 @@
 									<h3 class="text-lg font-semibold mb-1" style="color: var(--text-primary)">{stream.title}</h3>
 									<p class="text-sm text-secondary mb-2">{stream.description || 'No description'}</p>
 									<div class="flex gap-4 text-sm text-secondary">
-										<span>📅 {formatDate(stream.actual_start || stream.scheduled_start)}</span>
-										<span>👥 Peak viewers: {stream.peak_viewers}</span>
+										<span class="inline-flex items-center gap-1"><CalendarDays size={14} /> {formatDate(stream.actual_start || stream.scheduled_start)}</span>
+										<span class="inline-flex items-center gap-1"><Users size={14} /> Peak viewers: {stream.peak_viewers}</span>
 									</div>
 								</div>
 								<span class="px-2 py-1 rounded text-xs font-medium {getStatusBadge(stream.status)}">

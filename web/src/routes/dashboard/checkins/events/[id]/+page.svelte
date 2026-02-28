@@ -71,13 +71,13 @@
 			// Show medical alerts if any
 			if (result.medical_alerts && result.medical_alerts.length > 0) {
 				const alertText = result.medical_alerts.map(a =>
-					`⚠️ ${a.severity.toUpperCase()}: ${a.alert_type} - ${a.description}`
+					`${a.severity.toUpperCase()}: ${a.alert_type} - ${a.description}`
 				).join('\n');
 				alert('MEDICAL ALERTS:\n\n' + alertText);
 			}
 
 			if (result.first_time) {
-				alert(`🎉 Welcome! ${person.first_name} ${person.last_name} is a first-time visitor!`);
+				alert(`Welcome! ${person.first_name} ${person.last_name} is a first-time visitor!`);
 			}
 
 			searchQuery = '';

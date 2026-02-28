@@ -2,6 +2,7 @@
 	import { onMount } from 'svelte';
 	import { goto } from '$app/navigation';
 	import { api } from '$lib/api';
+	import { Users, Zap, BookOpen, ClipboardList, Library, Trophy, User } from 'lucide-svelte';
 
 	let groups = [];
 	let total = 0;
@@ -126,8 +127,8 @@
 	}
 
 	function getGroupTypeIcon(type) {
-		const icons = { small_group: '👥', ministry_team: '⚡', class: '📖', committee: '📋', bible_study: '📚', team: '🏆' };
-		return icons[type] || '👥';
+		const icons = { small_group: Users, ministry_team: Zap, class: BookOpen, committee: ClipboardList, bible_study: Library, team: Trophy };
+		return icons[type] || Users;
 	}
 
 	function getMeetingDayLabel(day) {
@@ -171,7 +172,7 @@
 	{:else if groups.length === 0 && !filterType && !filterActive}
 		<!-- Empty State -->
 		<div class="bg-surface rounded-lg shadow border border-custom p-12 text-center">
-			<div class="text-6xl mb-4">👥</div>
+			<div class="mb-4 flex justify-center"><Users size={64} /></div>
 			<h2 class="text-2xl font-bold text-primary mb-2">No groups yet</h2>
 			<p class="text-secondary mb-6 max-w-md mx-auto">
 				Create your first group to get started. Organize small groups, ministry teams, classes, and committees.
@@ -197,7 +198,7 @@
 						<img src={group.photo_url} alt={group.name} class="w-full h-40 object-cover" />
 					{:else}
 						<div class="w-full h-40 bg-gradient-to-br from-[var(--teal)] to-[var(--sage)] flex items-center justify-center">
-							<span class="text-5xl">{getGroupTypeIcon(group.group_type)}</span>
+							<span><svelte:component this={getGroupTypeIcon(group.group_type)} size={48} /></span>
 						</div>
 					{/if}
 
@@ -218,7 +219,7 @@
 						<div class="space-y-1.5 text-sm text-secondary">
 							{#if group.leader_name}
 								<div class="flex items-center gap-2">
-									<span>👤</span>
+									<User size={14} />
 									<span class="font-medium">{group.leader_name}</span>
 								</div>
 							{/if}

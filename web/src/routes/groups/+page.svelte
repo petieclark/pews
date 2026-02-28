@@ -1,5 +1,6 @@
 <script>
 	import { onMount } from 'svelte';
+	import { Users, Zap, BookOpen, ClipboardList, Library, Trophy } from 'lucide-svelte';
 
 	let groups = [];
 	let loading = true;
@@ -36,8 +37,8 @@
 	}
 
 	function getGroupTypeIcon(type) {
-		const icons = { small_group: '👥', ministry_team: '⚡', class: '📖', committee: '📋', bible_study: '📚', team: '🏆' };
-		return icons[type] || '👥';
+		const icons = { small_group: Users, ministry_team: Zap, class: BookOpen, committee: ClipboardList, bible_study: Library, team: Trophy };
+		return icons[type] || Users;
 	}
 
 	$: filteredGroups = filterType ? groups.filter(g => g.group_type === filterType) : groups;
@@ -88,7 +89,7 @@
 				{#each filteredGroups as group}
 					<div class="bg-surface border border-custom rounded-lg shadow overflow-hidden">
 						<div class="w-full h-40 bg-gradient-to-br from-[var(--teal)] to-[var(--sage)] flex items-center justify-center">
-							<span class="text-5xl">{getGroupTypeIcon(group.group_type)}</span>
+							<span><svelte:component this={getGroupTypeIcon(group.group_type)} size={48} /></span>
 						</div>
 						<div class="p-5">
 							<h3 class="text-lg font-bold text-primary mb-1">{group.name}</h3>

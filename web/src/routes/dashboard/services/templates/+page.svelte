@@ -2,6 +2,7 @@
 	import { onMount } from 'svelte';
 	import { goto } from '$app/navigation';
 	import { api } from '$lib/api';
+	import { Music, Heart, BookOpen, Megaphone, MessageSquare } from 'lucide-svelte';
 
 	let templates = [];
 	let loading = true;
@@ -19,13 +20,13 @@
 	let newItemTitle = '';
 
 	const itemTypeConfig = {
-		song: { icon: '🎵', label: 'Song' },
-		prayer: { icon: '🙏', label: 'Prayer' },
-		reading: { icon: '📖', label: 'Scripture' },
-		sermon: { icon: '📢', label: 'Sermon' },
-		announcement: { icon: '📣', label: 'Announcement' },
-		transition: { icon: '↔️', label: 'Transition' },
-		other: { icon: '•', label: 'Other' }
+		song: { icon: Music, label: 'Song' },
+		prayer: { icon: Heart, label: 'Prayer' },
+		reading: { icon: BookOpen, label: 'Scripture' },
+		sermon: { icon: Megaphone, label: 'Sermon' },
+		announcement: { icon: MessageSquare, label: 'Announcement' },
+		transition: { icon: null, label: 'Transition' },
+		other: { icon: null, label: 'Other' }
 	};
 
 	onMount(loadTemplates);
@@ -224,7 +225,7 @@
 							{#each form.template_data.items as item, i}
 								<div class="flex items-center gap-2 p-2 bg-[var(--surface-hover)] rounded">
 									<span class="text-sm w-5 text-center text-[var(--text-secondary)]">{i + 1}</span>
-									<span>{itemTypeConfig[item.item_type]?.icon || '•'}</span>
+									<span>{#if itemTypeConfig[item.item_type]?.icon}<svelte:component this={itemTypeConfig[item.item_type].icon} size={16} />{:else}•{/if}</span>
 									<span class="flex-1 text-sm text-[var(--text-primary)]">{item.title}</span>
 									<span class="text-xs text-[var(--text-secondary)]">{itemTypeConfig[item.item_type]?.label}</span>
 									<button type="button" on:click={() => removeItemFromTemplate(form, i)} class="p-1 text-[var(--text-secondary)] hover:text-red-400">
@@ -237,7 +238,7 @@
 					<div class="flex gap-2">
 						<select bind:value={newItemType} class="input-field w-auto">
 							{#each Object.entries(itemTypeConfig) as [key, config]}
-								<option value={key}>{config.icon} {config.label}</option>
+								<option value={key}>{config.label}</option>
 							{/each}
 						</select>
 						<input type="text" bind:value={newItemTitle} placeholder="Item title..." class="input-field flex-1"

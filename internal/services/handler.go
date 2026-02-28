@@ -534,18 +534,22 @@ func (h *Handler) DeleteServiceTeamMember(w http.ResponseWriter, r *http.Request
 // Songs handlers
 
 type CreateSongRequest struct {
-	Title         string `json:"title"`
-	Artist        string `json:"artist,omitempty"`
-	DefaultKey    string `json:"default_key,omitempty"`
-	Tempo         int    `json:"tempo,omitempty"`
-	CCLINumber    string `json:"ccli_number,omitempty"`
-	Lyrics        string `json:"lyrics,omitempty"`
-	Notes         string `json:"notes,omitempty"`
-	Tags          string `json:"tags,omitempty"`
-	YoutubeURL    string `json:"youtube_url,omitempty"`
-	SpotifyURL    string `json:"spotify_url,omitempty"`
-	AppleMusicURL string `json:"apple_music_url,omitempty"`
-	RehearsalURL  string `json:"rehearsal_url,omitempty"`
+	Title         string   `json:"title"`
+	Artist        string   `json:"artist,omitempty"`
+	DefaultKey    string   `json:"default_key,omitempty"`
+	Tempo         int      `json:"tempo,omitempty"`
+	CCLINumber    string   `json:"ccli_number,omitempty"`
+	Lyrics        string   `json:"lyrics,omitempty"`
+	Notes         string   `json:"notes,omitempty"`
+	Tags          string   `json:"tags,omitempty"`
+	YoutubeURL    string   `json:"youtube_url,omitempty"`
+	SpotifyURL    string   `json:"spotify_url,omitempty"`
+	AppleMusicURL string   `json:"apple_music_url,omitempty"`
+	RehearsalURL  string   `json:"rehearsal_url,omitempty"`
+	Authors       []string `json:"authors,omitempty"`
+	CopyrightYear int      `json:"copyright_year,omitempty"`
+	Publisher     string   `json:"publisher,omitempty"`
+	LicenseType   string   `json:"license_type,omitempty"`
 }
 
 func (h *Handler) ListSongs(w http.ResponseWriter, r *http.Request) {
@@ -625,6 +629,10 @@ func (h *Handler) CreateSong(w http.ResponseWriter, r *http.Request) {
 		SpotifyURL:    req.SpotifyURL,
 		AppleMusicURL: req.AppleMusicURL,
 		RehearsalURL:  req.RehearsalURL,
+		Authors:       req.Authors,
+		CopyrightYear: req.CopyrightYear,
+		Publisher:     req.Publisher,
+		LicenseType:   req.LicenseType,
 	}
 
 	createdSong, err := h.service.CreateSong(r.Context(), claims.TenantID, song)
@@ -666,6 +674,10 @@ func (h *Handler) UpdateSong(w http.ResponseWriter, r *http.Request) {
 		SpotifyURL:    req.SpotifyURL,
 		AppleMusicURL: req.AppleMusicURL,
 		RehearsalURL:  req.RehearsalURL,
+		Authors:       req.Authors,
+		CopyrightYear: req.CopyrightYear,
+		Publisher:     req.Publisher,
+		LicenseType:   req.LicenseType,
 	}
 
 	updatedSong, err := h.service.UpdateSong(r.Context(), claims.TenantID, songID, song)
@@ -943,6 +955,7 @@ func (h *Handler) DeleteServiceType(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusNoContent)
 }
 
+
 func (h *Handler) GetSongUsage(w http.ResponseWriter, r *http.Request) {
 	claims, ok := middleware.GetClaims(r.Context())
 	if !ok {
@@ -960,6 +973,87 @@ func (h *Handler) GetSongUsage(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(usage)
 }
+
+// Scheduling Needs - Unfilled Positions
+func (h *Handler) GetSchedulingNeeds(w http.ResponseWriter, r *http.Request) {
+	claims, ok := middleware.GetClaims(r.Context())
+	if !ok {
+		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		return
+	}
+
+	fromStr := r.URL.Query().Get("start")
+	toStr := r.URL.Query().Get("end")
+
+	needs, err := h.service.GetSchedulingNeeds(r.Context(), claims.TenantID, fromStr, toStr)
+	if err != nil {
+		http.Error(w, "Failed to get scheduling needs: "+err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(needs)
+}
+
+// Person Search for Quick Assign
+func (h *Handler) SearchPeople(w http.ResponseWriter, r *http.Request) {
+	claims, ok := middleware.GetClaims(r.Context())
+	if !ok {
+		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		return
+	}
+
+	query := r.URL.Query().Get("q")
+	dateStr := r.URL.Query().Get("date")
+
+	if query == "" {
+		http.Error(w, "Search query required (q parameter)", http.StatusBadRequest)
+		return
+	}
+
+	results, err := h.service.SearchPeople(r.Context(), claims.TenantID, query, dateStr)
+	if err != nil {
+		http.Error(w, "Failed to search people: "+err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(results)
+}
+
+// Quick Assign Person to Role
+func (h *Handler) AssignPersonToRole(w http.ResponseWriter, r *http.Request) {
+	claims, ok := middleware.GetClaims(r.Context())
+	if !ok {
+		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		return
+	}
+
+	serviceTeamID := chi.URLParam(r, "id")
+
+	var req struct {
+		PersonID string `json:"person_id"`
+	}
+
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, "Invalid request body", http.StatusBadRequest)
+		return
+	}
+
+	if req.PersonID == "" {
+		http.Error(w, "person_id required", http.StatusBadRequest)
+		return
+	}
+
+	if err := h.service.AssignPersonToRole(r.Context(), claims.TenantID, serviceTeamID, req.PersonID); err != nil {
+		http.Error(w, "Failed to assign: "+err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	w.WriteHeader(http.StatusNoContent)
+}
+// Song Attachment handlers
+
 // Volunteer Teams handlers
 
 type CreateVolunteerTeamRequest struct {

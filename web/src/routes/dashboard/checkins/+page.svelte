@@ -1,5 +1,6 @@
 <script>
 	import { onMount } from 'svelte';
+	import { Monitor, ShieldCheck, ClipboardList } from 'lucide-svelte';
 	import { goto } from '$app/navigation';
 	import { api } from '$lib/api';
 	import { Chart, registerables } from 'chart.js';
@@ -103,7 +104,7 @@
 			recentCheckins = (attendees || []).slice(0, 10);
 			// Reload stats
 			stats = await api('/api/checkins/stats');
-			if (result.first_time) alert('🎉 First-time visitor checked in!');
+			if (result.first_time) alert('First-time visitor checked in!');
 		} catch (error) { alert('Check-in failed: ' + error.message); }
 		checkingIn = false;
 	}
@@ -125,8 +126,8 @@
 	<div class="flex justify-between items-center">
 		<h1 class="text-3xl font-bold text-[var(--text-primary)]">Check-Ins</h1>
 		<div class="flex gap-3">
-			<button on:click={() => goto('/dashboard/checkins/kiosk')} class="px-4 py-2 border border-custom rounded-md text-secondary hover:bg-[var(--surface-hover)]">🖥️ Kiosk</button>
-			<a href="/dashboard/checkins/safety" class="px-4 py-2 border border-custom rounded-md text-secondary hover:bg-[var(--surface-hover)]">🛡️ Safety</a>
+			<button on:click={() => goto('/dashboard/checkins/kiosk')} class="px-4 py-2 border border-custom rounded-md text-secondary hover:bg-[var(--surface-hover)]"><Monitor size={16} class="inline" /> Kiosk</button>
+			<a href="/dashboard/checkins/safety" class="px-4 py-2 border border-custom rounded-md text-secondary hover:bg-[var(--surface-hover)]"><ShieldCheck size={16} class="inline" /> Safety</a>
 			<a href="/dashboard/checkins/stations" class="px-4 py-2 border border-custom rounded-md text-secondary hover:bg-[var(--surface-hover)]">📍 Stations</a>
 		</div>
 	</div>
@@ -230,7 +231,7 @@
 			</div>
 			{#if events.length === 0}
 				<div class="text-center py-8">
-					<div class="text-4xl mb-3">📋</div>
+					<div class="mb-3"><ClipboardList size={48} /></div>
 					<p class="text-secondary mb-2">No active events today</p>
 					<p class="text-sm text-secondary">Create an event to start checking people in.</p>
 				</div>

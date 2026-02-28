@@ -1,5 +1,6 @@
 <script>
 	import { onMount } from 'svelte';
+	import { ShieldCheck, Users, AlertTriangle } from 'lucide-svelte';
 	import { api } from '$lib/api';
 
 	let searchQuery = '';
@@ -111,7 +112,7 @@
 <div class="space-y-6">
 	<div class="flex justify-between items-center">
 		<div>
-			<h1 class="text-3xl font-bold text-[var(--text-primary)]">🛡️ Child Safety</h1>
+			<h1 class="text-3xl font-bold text-[var(--text-primary)]"><ShieldCheck size={24} class="inline" /> Child Safety</h1>
 			<p class="text-secondary mt-1">Manage medical alerts and authorized pickups</p>
 		</div>
 		<a href="/dashboard/checkins" class="px-4 py-2 border border-custom rounded-md text-secondary hover:bg-[var(--surface-hover)] dark:hover:bg-gray-800">
@@ -151,7 +152,7 @@
 			<!-- Medical Alerts -->
 			<div class="bg-surface border border-custom rounded-lg shadow p-6">
 				<div class="flex justify-between items-center mb-4">
-					<h2 class="text-lg font-semibold text-[var(--text-primary)]">⚠️ Medical Alerts</h2>
+					<h2 class="text-lg font-semibold text-[var(--text-primary)]"><AlertTriangle size={20} class="inline" /> Medical Alerts</h2>
 					<button on:click={() => showAlertModal = true}
 						class="px-3 py-1 text-sm bg-[var(--teal)] text-white rounded-md hover:bg-opacity-90">
 						+ Add Alert
@@ -187,7 +188,7 @@
 			<!-- Authorized Pickups -->
 			<div class="bg-surface border border-custom rounded-lg shadow p-6">
 				<div class="flex justify-between items-center mb-4">
-					<h2 class="text-lg font-semibold text-[var(--text-primary)]">👥 Authorized Pickups</h2>
+					<h2 class="text-lg font-semibold text-[var(--text-primary)]"><Users size={20} class="inline" /> Authorized Pickups</h2>
 					<button on:click={() => showPickupModal = true}
 						class="px-3 py-1 text-sm bg-[var(--teal)] text-white rounded-md hover:bg-opacity-90">
 						+ Add Pickup

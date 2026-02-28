@@ -1,6 +1,7 @@
 <script>
 	import { onMount } from 'svelte';
 	import { page } from '$app/stores';
+	import { Building2 } from 'lucide-svelte';
 
 	let slug = $page.params.slug;
 	let church = null;
@@ -116,7 +117,7 @@
 		</div>
 	{:else if !church.giving_enabled}
 		<div class="text-center py-24">
-			<div class="text-6xl mb-4">💒</div>
+			<div class="mb-4 flex justify-center"><Building2 size={64} /></div>
 			<h1 class="text-2xl font-bold text-gray-800 mb-2">{church.name}</h1>
 			<p class="text-gray-500">Online giving is not yet available for this church.</p>
 		</div>
@@ -126,7 +127,7 @@
 			{#if church.logo}
 				<img src={church.logo} alt={church.name} class="w-20 h-20 rounded-full mx-auto mb-4 object-cover" />
 			{:else}
-				<div class="w-20 h-20 rounded-full mx-auto mb-4 bg-teal-100 flex items-center justify-center text-3xl">⛪</div>
+				<div class="w-20 h-20 rounded-full mx-auto mb-4 bg-teal-100 flex items-center justify-center"><Building2 size={32} /></div>
 			{/if}
 			<h1 class="text-2xl font-bold text-gray-900">{church.name}</h1>
 			<p class="text-gray-500 mt-1">Online Giving</p>

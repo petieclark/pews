@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import { api } from '$lib/api';
+	import { AlertTriangle, Heart, ClipboardList, Handshake, CheckCircle, User, CalendarDays } from 'lucide-svelte';
 
 	interface FollowUp {
 		id: string;
@@ -52,9 +53,9 @@
 		{ value: 'pastoral_care', label: 'Pastoral Care', icon: '❤️' },
 		{ value: 'hospital_visit', label: 'Hospital Visit', icon: '🏥' },
 		{ value: 'counseling', label: 'Counseling', icon: '💬' },
-		{ value: 'prayer_response', label: 'Prayer Response', icon: '🙏' },
-		{ value: 'general', label: 'General', icon: '📋' },
-		{ value: 'membership', label: 'Membership', icon: '🤝' }
+		{ value: 'prayer_response', label: 'Prayer Response', icon: Heart },
+		{ value: 'general', label: 'General', icon: ClipboardList },
+		{ value: 'membership', label: 'Membership', icon: Handshake }
 	];
 
 	const priorities = [
@@ -67,7 +68,7 @@
 		{ status: 'new', label: 'New', icon: '🆕', color: '#3B82F6' },
 		{ status: 'in_progress', label: 'In Progress', icon: '🔄', color: '#F59E0B' },
 		{ status: 'waiting', label: 'Waiting', icon: '⏳', color: '#8B5CF6' },
-		{ status: 'completed', label: 'Completed', icon: '✅', color: '#10B981' }
+		{ status: 'completed', label: 'Completed', icon: CheckCircle, color: '#10B981' }
 	];
 
 	onMount(() => { load(); loadPeople(); });
@@ -186,7 +187,7 @@
 <div class="space-y-6">
 	<!-- Header -->
 	<div class="flex justify-between items-center">
-		<h1 class="text-3xl font-bold text-[var(--text-primary)]">🤝 Care & Follow-Ups</h1>
+		<h1 class="text-3xl font-bold text-[var(--text-primary)] flex items-center gap-2"><Handshake size={28} /> Care & Follow-Ups</h1>
 		<button on:click={() => { showCreateModal = true; personSearch = ''; }} class="px-4 py-2 bg-[var(--teal)] text-white rounded-lg hover:opacity-90 font-medium">
 			+ New Follow-Up
 		</button>
@@ -213,7 +214,7 @@
 	<!-- Kanban Board -->
 	{#if followUps.length === 0 && !stats.new_count}
 		<div class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-12 text-center">
-			<div class="text-5xl mb-4">🤝</div>
+			<div class="mb-4"><Handshake size={48} /></div>
 			<h3 class="text-xl font-semibold text-[var(--text-primary)] mb-2">No follow-ups yet</h3>
 			<p class="text-[var(--text-secondary)] max-w-md mx-auto mb-6">
 				Follow-ups help you track pastoral care, visitor connections, and member needs.
@@ -229,7 +230,7 @@
 				{@const items = getColumnItems(col.status)}
 				<div class="bg-[var(--bg)] rounded-lg border border-[var(--border)] flex flex-col">
 					<div class="px-4 py-3 border-b border-[var(--border)] flex items-center gap-2">
-						<span>{col.icon}</span>
+						<span><svelte:component this={col.icon} size={16} /></span>
 						<span class="font-semibold text-[var(--text-primary)]">{col.label}</span>
 						<span class="ml-auto text-sm px-2 py-0.5 rounded-full bg-[var(--surface)] text-[var(--text-secondary)]">{items.length}</span>
 					</div>
@@ -237,7 +238,7 @@
 						{#each items as item}
 							<button class="w-full text-left bg-[var(--surface)] rounded-lg p-3 border border-[var(--border)] hover:border-[var(--teal)] transition-colors cursor-pointer" on:click={() => openDetail(item)}>
 								<div class="flex items-start justify-between gap-2 mb-1">
-									<span class="font-medium text-sm text-[var(--text-primary)] truncate">{getTypeInfo(item.type).icon} {item.title}</span>
+									<span class="font-medium text-sm text-[var(--text-primary)] truncate inline-flex items-center gap-1"><svelte:component this={getTypeInfo(item.type).icon} size={14} /> {item.title}</span>
 									<span class="w-2 h-2 rounded-full flex-shrink-0 mt-1.5" style="background-color: {getPriorityInfo(item.priority).color}" title="{getPriorityInfo(item.priority).label} priority"></span>
 								</div>
 								<div class="text-xs text-[var(--text-secondary)]">{item.person_name}</div>
@@ -247,7 +248,7 @@
 								<div class="flex items-center gap-2 mt-1">
 									{#if item.due_date}
 										<span class="text-xs {isOverdue(item) ? 'text-red-500 font-semibold' : 'text-[var(--text-secondary)]'}">
-											{isOverdue(item) ? '⚠️ Overdue: ' : 'Due: '}{formatDate(item.due_date)}
+											{#if isOverdue(item)}<AlertTriangle size={12} class="inline" /> Overdue: {:else}Due: {/if}{formatDate(item.due_date)}
 										</span>
 									{/if}
 									<span class="text-xs text-[var(--text-secondary)] ml-auto">{daysSince(item.created_at)}d ago</span>
@@ -271,7 +272,7 @@
 			<div class="flex items-start justify-between mb-4">
 				<div>
 					<div class="flex items-center gap-2 mb-1">
-						<span class="text-sm">{getTypeInfo(selectedItem.type).icon}</span>
+						<span class="text-sm"><svelte:component this={getTypeInfo(selectedItem.type).icon} size={14} /></span>
 						<span class="text-xs px-2 py-0.5 rounded-full bg-[var(--surface-hover)] text-[var(--text-secondary)]">{getTypeInfo(selectedItem.type).label}</span>
 						<span class="w-2 h-2 rounded-full" style="background-color: {getPriorityInfo(selectedItem.priority).color}"></span>
 						<span class="text-xs text-[var(--text-secondary)]">{getPriorityInfo(selectedItem.priority).label}</span>
@@ -283,7 +284,7 @@
 
 			<div class="space-y-3 text-sm mb-4">
 				<div class="flex items-center gap-2 text-[var(--text-secondary)]">
-					<span>👤</span><a href="/dashboard/people/{selectedItem.person_id}" class="text-[var(--teal)] hover:underline">{selectedItem.person_name}</a>
+					<User size={14} /><a href="/dashboard/people/{selectedItem.person_id}" class="text-[var(--teal)] hover:underline">{selectedItem.person_name}</a>
 				</div>
 				{#if selectedItem.assigned_name}
 					<div class="flex items-center gap-2 text-[var(--text-secondary)]">
@@ -292,11 +293,11 @@
 				{/if}
 				{#if selectedItem.due_date}
 					<div class="flex items-center gap-2 {isOverdue(selectedItem) ? 'text-red-500 font-semibold' : 'text-[var(--text-secondary)]'}">
-						<span>📅</span><span>{isOverdue(selectedItem) ? 'Overdue: ' : 'Due: '}{formatDate(selectedItem.due_date)}</span>
+						<CalendarDays size={14} /><span>{isOverdue(selectedItem) ? 'Overdue: ' : 'Due: '}{formatDate(selectedItem.due_date)}</span>
 					</div>
 				{/if}
 				<div class="flex items-center gap-2 text-[var(--text-secondary)]">
-					<span>📅</span><span>Created {formatDateTime(selectedItem.created_at)}</span>
+					<CalendarDays size={14} /><span>Created {formatDateTime(selectedItem.created_at)}</span>
 				</div>
 			</div>
 
@@ -308,7 +309,7 @@
 						style={selectedItem.status === col.status ? `background-color: ${col.color}` : ''}
 						on:click={() => updateStatus(selectedItem.id, col.status)}
 					>
-						{col.icon} {col.label}
+						<svelte:component this={col.icon} size={12} /> {col.label}
 					</button>
 				{/each}
 			</div>
@@ -378,7 +379,7 @@
 						<label class="block text-sm font-medium text-[var(--text-primary)] mb-1">Type</label>
 						<select bind:value={formData.type} class="w-full px-3 py-2 rounded-lg border border-[var(--border)] bg-[var(--bg)] text-[var(--text-primary)]">
 							{#each types as t}
-								<option value={t.value}>{t.icon} {t.label}</option>
+								<option value={t.value}>{t.label}</option>
 							{/each}
 						</select>
 					</div>

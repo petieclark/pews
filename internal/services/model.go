@@ -48,6 +48,10 @@ type Song struct {
 	SpotifyURL    string    `json:"spotify_url,omitempty"`
 	AppleMusicURL string    `json:"apple_music_url,omitempty"`
 	RehearsalURL  string    `json:"rehearsal_url,omitempty"`
+	Authors       []string  `json:"authors,omitempty"`
+	CopyrightYear int       `json:"copyright_year,omitempty"`
+	Publisher     string    `json:"publisher,omitempty"`
+	LicenseType   string    `json:"license_type,omitempty"` // e.g., "CCLI", "PD", "Custom"
 	LastUsed      *time.Time `json:"last_used,omitempty"`
 	TimesUsed     int       `json:"times_used"`
 	CreatedAt     time.Time `json:"created_at"`
