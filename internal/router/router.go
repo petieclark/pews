@@ -88,6 +88,9 @@ func New(
 	// Public routes (no auth required) - Worship service plan sharing
 	r.Get("/api/worship/plans/shared/{token}", worshipHandler.GetSharedPlan)
 
+	// Public song attachment download endpoint (for shared plans only - token validated at router level)
+	r.Get("/api/services/songs/attachments/public/{attachmentId}", servicesHandler.GetPublicSongAttachment)
+
 	// Public routes
 	r.Post("/api/auth/register", authHandler.Register)
 	r.Post("/api/auth/login", authHandler.Login)
@@ -595,10 +598,10 @@ func New(
 		// Media Library
 		r.Post("/api/media/upload", mediaHandler.UploadFile)
 		r.Get("/api/media", mediaHandler.ListFiles)
+		r.Get("/api/media/folders", mediaHandler.ListFolders)  // MUST come before /{id} routes!
 		r.Get("/api/media/{id}", mediaHandler.GetFile)
 		r.Put("/api/media/{id}", mediaHandler.UpdateFile)
 		r.Delete("/api/media/{id}", mediaHandler.DeleteFile)
-		r.Get("/api/media/folders", mediaHandler.ListFolders)
 
 		// Health check (at the end as a fallback)
 		r.Get("/health", func(w http.ResponseWriter, r *http.Request) {

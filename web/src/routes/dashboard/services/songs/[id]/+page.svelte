@@ -42,6 +42,10 @@
 		try {
 			song = await api(`/api/services/songs/${songId}`);
 			transposeKey = song.default_key || '';
+			// Ensure authors is always an array (in case backend returns null or string)
+			if (!song.authors || !Array.isArray(song.authors)) {
+				song.authors = [];
+			}
 		} catch (error) {
 			console.error('Failed to load song:', error);
 			goto('/dashboard/services/songs');
@@ -89,7 +93,7 @@
 				default_key: song.default_key || '',
 				tempo: song.tempo || 0,
 				ccli_number: song.ccli_number || '',
-				authors: song.authors || '',
+				authors: song.authors || [], // authors is array in backend
 				copyright_year: song.copyright_year || null,
 				publisher: song.publisher || '',
 				license_type: song.license_type || '',
@@ -101,7 +105,18 @@
 				apple_music_url: song.apple_music_url || '',
 				rehearsal_url: song.rehearsal_url || ''
 			};
-			payload[field] = field === 'tempo' ? parseInt(editValue) || 0 : editValue;
+			
+			if (field === 'tempo') {
+				payload[field] = parseInt(editValue) || 0;
+			} else if (field === 'authors') {
+				// Convert comma-separated string to array
+				payload[field] = editValue.split(',').map(a => a.trim()).filter(a => a);
+			} else if (field === 'copyright_year') {
+				payload[field] = editValue ? parseInt(editValue) || null : null;
+			} else {
+				payload[field] = editValue;
+			}
+			
 			song = await api(`/api/services/songs/${songId}`, {
 				method: 'PUT',
 				body: JSON.stringify(payload)
@@ -109,6 +124,7 @@
 			if (field === 'default_key') transposeKey = song.default_key || '';
 		} catch (error) {
 			console.error('Failed to save:', error);
+			alert('Failed to save: ' + error.message);
 		}
 		editing = null;
 	}
@@ -197,12 +213,19 @@
 	}
 
 	async function uploadFile(file) {
-		if (file.type !== 'application/pdf') {
-			alert('Only PDF files are allowed');
+		const allowedTypes = {
+			'application/pdf': true,
+			'image/jpeg': true,
+			'image/jpg': true,
+			'image/png': true,
+			'application/vnd.openxmlformats-officedocument.wordprocessingml.document': true
+		};
+		if (!allowedTypes[file.type]) {
+			alert('File type not allowed. Allowed: PDF, PNG, JPG, DOCX');
 			return;
 		}
-		if (file.size > 10 * 1024 * 1024) {
-			alert('File size must be less than 10MB');
+		if (file.size > 20 * 1024 * 1024) {
+			alert('File size must be less than 20MB');
 			return;
 		}
 		uploadingFile = true;
@@ -443,6 +466,128 @@
 					{/if}
 				</div>
 			{/if}
+		</div>
+
+		<!-- Licensing & Attribution (NEW - CCLI metadata) -->
+		<div class="bg-[var(--surface)] rounded-lg border border-[var(--border)] p-4">
+			<h3 class="text-sm font-semibold text-[var(--text-primary)] mb-4">Licensing &amp; Attribution</h3>
+			<div class="space-y-4">
+				<!-- Authors -->
+				{#if editing === 'authors'}
+					<div>
+						<label class="block text-xs font-medium text-[var(--text-secondary)] mb-1">Authors / Songwriters</label>
+						<input
+							bind:value={editValue}
+							on:blur={() => saveField('authors')}
+							on:keydown={(e) => handleEditKeydown(e, 'authors')}
+							class="w-full px-3 py-2 bg-[var(--bg)] border border-teal rounded-lg text-sm text-[var(--text-primary)] focus:outline-none"
+							placeholder="John Smith, Jane Doe (comma-separated)"
+							autofocus
+						/>
+					</div>
+				{:else}
+					<div>
+						<label class="block text-xs font-medium text-[var(--text-secondary)] mb-1">Authors / Songwriters</label>
+						<div class="flex items-center justify-between">
+							{#if song.authors && song.authors.length > 0}
+								<span class="text-sm text-[var(--text-primary)]">{song.authors.join(', ')}</span>
+							{:else}
+								<span class="text-sm text-[var(--text-secondary)] italic">Not specified</span>
+							{/if}
+							<button on:click={() => startEdit('authors')} class="text-xs text-teal hover:underline ml-2">Edit</button>
+						</div>
+					</div>
+				{/if}
+
+				<!-- Copyright Year -->
+				{#if editing === 'copyright_year'}
+					<div>
+						<label class="block text-xs font-medium text-[var(--text-secondary)] mb-1">Copyright Year</label>
+						<input
+							type="number"
+							bind:value={editValue}
+							on:blur={() => saveField('copyright_year')}
+							on:keydown={(e) => handleEditKeydown(e, 'copyright_year')}
+							class="w-full px-3 py-2 bg-[var(--bg)] border border-teal rounded-lg text-sm text-[var(--text-primary)] focus:outline-none"
+							placeholder="YYYY"
+							autofocus
+						/>
+					</div>
+				{:else}
+					<div>
+						<label class="block text-xs font-medium text-[var(--text-secondary)] mb-1">Copyright Year</label>
+						<div class="flex items-center justify-between">
+							{#if song.copyright_year}
+								<span class="text-sm text-[var(--text-primary)]">{song.copyright_year}</span>
+							{:else}
+								<span class="text-sm text-[var(--text-secondary)] italic">Not specified</span>
+							{/if}
+							<button on:click={() => startEdit('copyright_year')} class="text-xs text-teal hover:underline ml-2">Edit</button>
+						</div>
+					</div>
+				{/if}
+
+				<!-- Publisher -->
+				{#if editing === 'publisher'}
+					<div>
+						<label class="block text-xs font-medium text-[var(--text-secondary)] mb-1">Publisher</label>
+						<input
+							bind:value={editValue}
+							on:blur={() => saveField('publisher')}
+							on:keydown={(e) => handleEditKeydown(e, 'publisher')}
+							class="w-full px-3 py-2 bg-[var(--bg)] border border-teal rounded-lg text-sm text-[var(--text-primary)] focus:outline-none"
+							placeholder="Publisher name"
+							autofocus
+						/>
+					</div>
+				{:else}
+					<div>
+						<label class="block text-xs font-medium text-[var(--text-secondary)] mb-1">Publisher</label>
+						<div class="flex items-center justify-between">
+							{#if song.publisher}
+								<span class="text-sm text-[var(--text-primary)]">{song.publisher}</span>
+							{:else}
+								<span class="text-sm text-[var(--text-secondary)] italic">Not specified</span>
+							{/if}
+							<button on:click={() => startEdit('publisher')} class="text-xs text-teal hover:underline ml-2">Edit</button>
+						</div>
+					</div>
+				{/if}
+
+				<!-- License Type -->
+				{#if editing === 'license_type'}
+					<div>
+						<label class="block text-xs font-medium text-[var(--text-secondary)] mb-1">License Type</label>
+						<select
+							bind:value={editValue}
+							on:blur={() => saveField('license_type')}
+							class="w-full px-3 py-2 bg-[var(--bg)] border border-teal rounded-lg text-sm text-[var(--text-primary)] focus:outline-none"
+						>
+							<option value="">Select license type</option>
+							<option value="CCLI">CCLI</option>
+							<option value="PD">Public Domain</option>
+							<option value="Custom">Custom License</option>
+							<option value="ASCAP">ASCAP</option>
+							<option value="BMI">BMI</option>
+							<option value="SESAC">SESAC</option>
+						</select>
+					</div>
+				{:else}
+					<div>
+						<label class="block text-xs font-medium text-[var(--text-secondary)] mb-1">License Type</label>
+						<div class="flex items-center justify-between">
+							{#if song.license_type}
+								<span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-purple-500/15 text-purple-400">
+									{song.license_type}
+								</span>
+							{:else}
+								<span class="text-sm text-[var(--text-secondary)] italic">Not specified</span>
+							{/if}
+							<button on:click={() => startEdit('license_type')} class="text-xs text-teal hover:underline ml-2">Edit</button>
+						</div>
+					</div>
+				{/if}
+			</div>
 		</div>
 
 		<!-- Media Player Section -->
@@ -699,11 +844,11 @@
 					{:else}
 						<svg class="mx-auto h-8 w-8 text-[var(--text-secondary)] mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"/></svg>
 						<label class="cursor-pointer">
-							<span class="text-sm text-teal font-medium hover:underline">Upload PDF</span>
+							<span class="text-sm text-teal font-medium hover:underline">Upload Files</span>
 							<span class="text-sm text-[var(--text-secondary)]"> or drag and drop</span>
-							<input type="file" accept=".pdf" on:change={handleFileSelect} class="hidden" />
+							<input type="file" accept=".pdf,.png,.jpg,.jpeg,.docx" on:change={handleFileSelect} class="hidden" />
 						</label>
-						<p class="text-xs text-[var(--text-secondary)] mt-1">PDF files only, max 10MB</p>
+						<p class="text-xs text-[var(--text-secondary)] mt-1">PDF, PNG, JPG, DOCX files allowed, max 20MB each</p>
 					{/if}
 				</div>
 			</div>

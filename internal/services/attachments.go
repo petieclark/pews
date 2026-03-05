@@ -1,6 +1,7 @@
 package services
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -8,6 +9,7 @@ import (
 	"strings"
 
 	"github.com/go-chi/chi/v5"
+	"github.com/jackc/pgx/v5"
 	"github.com/petieclark/pews/internal/middleware"
 )
 
@@ -148,4 +150,41 @@ func (h *Handler) DeleteSongAttachment(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.WriteHeader(http.StatusNoContent)
+}
+
+// GetPublicSongAttachment downloads a specific song attachment for public plan viewers (no auth required).
+// This endpoint is only accessible via shared plan tokens and validates the token before serving files.
+func (h *Handler) GetPublicSongAttachment(w http.ResponseWriter, r *http.Request) {
+	attachmentID := chi.URLParam(r, "attachmentId")
+
+	// Get attachment metadata first to verify it exists
+	attachment, err := h.service.GetSongAttachmentByToken(r.Context(), attachmentID)
+	if err != nil {
+		http.Error(w, "Attachment not found", http.StatusNotFound)
+		return
+	}
+
+	// Return raw file data for download
+	w.Header().Set("Content-Type", attachment.ContentType)
+	w.Header().Set("Content-Disposition", fmt.Sprintf("inline; filename=%q", attachment.Filename))
+	w.Header().Set("Content-Length", fmt.Sprintf("%d", attachment.FileSize))
+	w.Write(attachment.FileData)
+}
+
+// GetSongAttachmentByToken retrieves an attachment by ID without tenant verification.
+// Used for public plan sharing - the token validation happens at the router level.
+func (s *Service) GetSongAttachmentByToken(ctx context.Context, attachmentID string) (*SongAttachment, error) {
+	var a SongAttachment
+	err := s.db.QueryRow(ctx, `
+		SELECT id, tenant_id, song_id, filename, original_name, content_type, file_data, file_size, uploaded_by, created_at
+		FROM song_attachments
+		WHERE id = $1`, attachmentID).Scan(
+		&a.ID, &a.TenantID, &a.SongID, &a.Filename, &a.OriginalName, &a.ContentType, &a.FileData, &a.FileSize, &a.UploadedBy, &a.CreatedAt)
+	if err != nil {
+		if err == pgx.ErrNoRows {
+			return nil, fmt.Errorf("attachment not found")
+		}
+		return nil, fmt.Errorf("failed to get song attachment: %w", err)
+	}
+	return &a, nil
 }
