@@ -22,7 +22,7 @@ func (s *Service) ListFollowUps(ctx context.Context, tenantID string, status, ty
 	query := `
 		SELECT f.id, f.tenant_id, f.person_id,
 		       COALESCE(p.first_name || ' ' || p.last_name, '') as person_name,
-		       f.assigned_to, COALESCE(u.email, '') as assigned_name,
+		       f.assigned_to, CASE WHEN u.email IS NULL THEN NULL ELSE u.email END as assigned_name,
 		       f.title, f.type, f.priority, f.status,
 		       CASE WHEN f.due_date IS NOT NULL THEN to_char(f.due_date, 'YYYY-MM-DD') ELSE '' END as due_date,
 		       f.completed_at, f.created_at, f.updated_at
@@ -81,7 +81,7 @@ func (s *Service) ListByPerson(ctx context.Context, tenantID, personID string) (
 	query := `
 		SELECT f.id, f.tenant_id, f.person_id,
 		       COALESCE(p.first_name || ' ' || p.last_name, '') as person_name,
-		       f.assigned_to, COALESCE(u.email, '') as assigned_name,
+		       f.assigned_to, CASE WHEN u.email IS NULL THEN NULL ELSE u.email END as assigned_name,
 		       f.title, f.type, f.priority, f.status,
 		       CASE WHEN f.due_date IS NOT NULL THEN to_char(f.due_date, 'YYYY-MM-DD') ELSE '' END as due_date,
 		       f.completed_at, f.created_at, f.updated_at
@@ -119,7 +119,7 @@ func (s *Service) GetFollowUp(ctx context.Context, tenantID, id string) (*Follow
 	query := `
 		SELECT f.id, f.tenant_id, f.person_id,
 		       COALESCE(p.first_name || ' ' || p.last_name, '') as person_name,
-		       f.assigned_to, COALESCE(u.email, '') as assigned_name,
+		       f.assigned_to, CASE WHEN u.email IS NULL THEN NULL ELSE u.email END as assigned_name,
 		       f.title, f.type, f.priority, f.status,
 		       CASE WHEN f.due_date IS NOT NULL THEN to_char(f.due_date, 'YYYY-MM-DD') ELSE '' END as due_date,
 		       f.completed_at, f.created_at, f.updated_at

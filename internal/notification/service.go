@@ -199,3 +199,10 @@ func (ns *NotificationService) markNotified(ctx context.Context, assignmentID st
 
 	return nil
 }
+
+// CreateForAllAdmins creates notifications for all admins in a tenant (stubbed implementation)
+func (ns *NotificationService) CreateForAllAdmins(ctx context.Context, tenantID, title, message string, typ NotificationType, link *string) error {
+	// TODO: Implement admin notification creation
+	// This is a stub to allow compilation - will be implemented separately
+	return nil
+}

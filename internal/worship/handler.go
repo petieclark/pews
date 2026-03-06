@@ -368,8 +368,8 @@ func generatePlanHTML(plan *ServicePlan) string {
 
 		// Build title with key badge if present
 		titleCell := item.Title
-		if item.Key != "" {
-			titleCell += fmt.Sprintf(` <span class="key-badge">%s</span>`, item.Key)
+		if item.Key != nil && *item.Key != "" {
+			titleCell += fmt.Sprintf(` <span class="key-badge">%s</span>`, *item.Key)
 		}
 
 		// Add CCLI attribution line for songs
@@ -381,8 +381,8 @@ func generatePlanHTML(plan *ServicePlan) string {
 				attribParts = append(attribParts, fmt.Sprintf("Song: %s", item.SongTitle))
 			}
 			// Key display in attribution if not shown as badge
-			if item.Key != "" {
-				attribParts = append(attribParts, fmt.Sprintf("Key: %s", item.Key))
+			if item.Key != nil && *item.Key != "" {
+				attribParts = append(attribParts, fmt.Sprintf("Key: %s", *item.Key))
 			}
 			if len(attribParts) > 0 {
 				attributionHTML = fmt.Sprintf(`<div class="attribution">%s</div>`, strings.Join(attribParts, " • "))

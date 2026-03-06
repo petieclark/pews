@@ -3,7 +3,7 @@
 	import { page } from '$app/stores';
 	import { goto } from '$app/navigation';
 	import { api } from '$lib/api';
-	import { Timer, User, Music, ChevronRight } from 'lucide-svelte';
+	import { Timer, User, Music, ChevronRight, Attachment } from 'lucide-svelte';
 
 	let token = '';
 	let plan = null;
@@ -140,6 +140,26 @@
 								<p class="text-sm text-gray-600 italic mt-2 pl-3 border-l-2 border-gray-300">
 									{item.notes}
 								</p>
+							{/if}
+
+							<!-- Attachments (PDFs, images for songs) -->
+							{#if item.attachments && item.attachments.length > 0}
+								<div class="mt-4 pt-3 border-t border-gray-200">
+									<p class="text-xs font-semibold text-gray-700 mb-2 uppercase tracking-wide">Attachments</p>
+									{#each item.attachments as attachment, j}
+										<a
+											href={`/api/services/songs/attachments/public/${attachment.id}`}
+											download
+											class="flex items-center gap-2 px-3 py-2 bg-gray-100 hover:bg-gray-200 rounded text-sm text-navy transition-colors"
+										>
+											<Attachment size={14} />
+											<span class="truncate">{attachment.original_name || attachment.filename}</span>
+											{#if j < item.attachments.length - 1}
+												<br/>
+											{/if}
+										</a>
+									{/each}
+								</div>
 							{/if}
 
 							<!-- Separator (except for last item) -->

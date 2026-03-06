@@ -297,6 +297,34 @@ func (s *Service) SaveServiceAssignments(ctx context.Context, tenantID, serviceI
 	}
 	defer tx.Rollback(ctx)
 
+	// Get service date for conflict detection
+	var serviceDate time.Time
+	err = tx.QueryRow(ctx, `SELECT service_date FROM services WHERE id = $1 AND tenant_id = $2`, serviceID, tenantID).Scan(&serviceDate)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get service date: %w", err)
+	}
+
+	// Check for blockout conflicts before saving
+	personIDs := make([]string, 0, len(assignments))
+	for _, a := range assignments {
+		personIDs = append(personIDs, a.PersonID)
+	}
+
+	conflicts, err := s.CheckAssignmentsForConflicts(ctx, tenantID, serviceDate, personIDs)
+	if err != nil {
+		return nil, fmt.Errorf("failed to check for conflicts: %w", err)
+	}
+
+	if len(conflicts) > 0 {
+		// Return 409 Conflict with list of blocked volunteers
+		blockedPersons := make([]BlockoutMatch, 0, len(conflicts))
+		for personID, match := range conflicts {
+			blockedPersons = append(blockedPersons, *match)
+			_ = personID // unused but available for detailed response if needed
+		}
+		return nil, fmt.Errorf("conflict: %d volunteer(s) have blockout conflicts", len(conflicts))
+	}
+
 	// Delete existing assignments for this service
 	_, err = tx.Exec(ctx, `DELETE FROM service_team_assignments WHERE service_id = $1 AND tenant_id = $2`, serviceID, tenantID)
 	if err != nil {

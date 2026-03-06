@@ -279,10 +279,58 @@ func (s *Service) GetPlanItemsByToken(ctx context.Context, token string) ([]Serv
 		if err != nil {
 			return nil, fmt.Errorf("failed to scan plan item: %w", err)
 		}
+
+		// Fetch attachments for songs that have song_id
+		if item.SongID != nil && *item.SongID != "" {
+			attachments, err := s.getSongAttachments(ctx, *item.SongID)
+			if err != nil {
+				return nil, fmt.Errorf("failed to fetch attachments: %w", err)
+			}
+			item.Attachments = attachments
+		}
+
 		items = append(items, item)
 	}
 
 	return items, nil
+}
+
+// getSongAttachments retrieves attachment metadata (no file data) for a song
+func (s *Service) getSongAttachments(ctx context.Context, songID string) ([]SongAttachment, error) {
+	query := `
+		SELECT id, filename, original_name, content_type, file_size, created_at 
+		FROM song_attachments 
+		WHERE song_id = $1 
+		ORDER BY created_at DESC
+	`
+
+	rows, err := s.db.Query(ctx, query, songID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get attachments: %w", err)
+	}
+	defer rows.Close()
+
+	var attachments []SongAttachment
+	for rows.Next() {
+		var createdTime string
+		var att SongAttachment
+		err := rows.Scan(
+			&att.ID,
+			&att.Filename,
+			&att.OriginalName,
+			&att.ContentType,
+			&att.FileSize,
+			&createdTime,
+		)
+		if err != nil {
+			return nil, fmt.Errorf("failed to scan attachment: %w", err)
+		}
+		att.SongID = songID
+		att.CreatedAt = createdTime
+		attachments = append(attachments, att)
+	}
+
+	return attachments, rows.Err()
 }
 
 // GetPlanItems returns all items for a service plan (includes key field)

@@ -15,7 +15,7 @@ import (
 type Handler struct {
 	service             *Service
 	emailRenderer       *EmailRenderer
-	notificationService *notification.Service
+	notificationService *notification.NotificationService
 }
 
 func NewHandler(service *Service) *Handler {
@@ -29,7 +29,7 @@ func NewHandler(service *Service) *Handler {
 	return &Handler{
 		service:             service,
 		emailRenderer:       renderer,
-		notificationService: notification.NewService(service.GetDB()),
+		notificationService: notification.NewNotificationService(service.GetDB()),
 	}
 }
 
@@ -681,7 +681,7 @@ func (h *Handler) SubmitConnectionCard(w http.ResponseWriter, r *http.Request) {
 		}
 	}()
 
-	// Create notification for all admins
+	// Create notification for all admins (stubbed for now)
 	notifTitle := "New Connection Card"
 	notifMessage := fmt.Sprintf("%s %s submitted a connection card", created.FirstName, created.LastName)
 	link := fmt.Sprintf("/communication/cards/%s", created.ID)
@@ -690,6 +690,13 @@ func (h *Handler) SubmitConnectionCard(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusCreated)
 	json.NewEncoder(w).Encode(created)
+}
+
+// CreateForAllAdmins creates a notification for all admins (stubbed implementation)
+func (h *Handler) CreateForAllAdmins(ctx context.Context, tenantID, title, message string, typ notification.NotificationType, link *string) error {
+	// TODO: Implement admin notification creation
+	// This is a stub to allow compilation - will be implemented separately
+	return nil
 }
 
 func (h *Handler) ListConnectionCards(w http.ResponseWriter, r *http.Request) {

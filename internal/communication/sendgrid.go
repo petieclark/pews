@@ -1,6 +1,7 @@
 package communication
 
 import (
+	"encoding/json"
 	"fmt"
 	"log"
 	"os"
@@ -55,18 +56,22 @@ func (s *SendGridClient) SendEmail(to, subject, htmlBody, textBody, fromName str
 	trackingSettings.SetClickTracking(clickTracking)
 	msg.SetTrackingSettings(trackingSettings)
 
-	request := sg.API(
-		sg.GetRequest(s.apiKey, "https://api.sendgrid.com/v3/mail/send", "api.sendgrid.com"),
-	)
+	request := sg.GetRequest(s.apiKey, "/v3/mail/send", "")
 	request.Method = "POST"
-	request.Payload = msg
+	
+	// Serialize message to JSON for request body using standard library
+	body, err := json.Marshal(msg)
+	if err != nil {
+		return fmt.Errorf("failed to serialize email: %w", err)
+	}
+	request.Body = body
 
-	response, err := sg.MakeRequest(request)
+	response, err := sg.API(request)
 	if err != nil {
 		return fmt.Errorf("sendgrid failed to send email: %w", err)
 	}
 
-	if response.StatusCode != 202 {
+	if response.StatusCode != 202 && response.StatusCode != 200 {
 		return fmt.Errorf("sendgrid returned status code %d: %s", response.StatusCode, string(response.Body))
 	}
 

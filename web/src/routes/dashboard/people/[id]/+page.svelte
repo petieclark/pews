@@ -21,7 +21,17 @@
 	let personFollowUps = [];
 	let personPrayers = [];
 	let givingHistory = [];
+	let blockouts = [];
+	let showBlockoutModal = false;
+	let editingBlockoutId = null;
+	let blockoutForm = { start_date: '', end_date: '', reason: '', is_recurring: false, day_of_week: 0 };
 	let activeTab = 'info';
+
+	// Availability state
+	let availabilityAssignments = [];
+	let loadingAvailability = true;
+	let showAssignmentModal = false;
+	let assignmentForm = { service_id: '', start_time: '', end_time: '' };
 
 	$: personId = $page.params.id;
 
@@ -34,6 +44,7 @@
 		loadCareData();
 		loadPrayerData();
 		loadGiving();
+		loadBlockouts();
 	});
 
 	async function loadPerson() {
@@ -104,6 +115,42 @@
 
 	async function loadGiving() {
 		try { givingHistory = await api(`/api/giving/person/${personId}`, { silent: true }); } catch (e) { givingHistory = []; }
+	}
+
+	async function loadBlockouts() {
+		try { blockouts = await api(`/api/people/${personId}/availability/blockouts`, { silent: true }); } catch (e) { blockouts = []; }
+	}
+
+	async function deleteBlockout(blockoutId) {
+		try {
+			await api(`/api/people/${personId}/availability/blockouts/${blockoutId}`, { method: 'DELETE' });
+			showBlockoutModal = false;
+			editForm = { ...person }; // Reset form if it was open
+			loadBlockouts();
+		} catch (e) { alert('Failed to delete blockout: ' + e.message); }
+	}
+
+	async function saveBlockout() {
+		try {
+			const payload = {
+				start_date: blockoutForm.start_date,
+				end_date: blockoutForm.end_date,
+				reason: blockoutForm.reason,
+				is_recurring: blockoutForm.is_recurring,
+				day_of_week: blockoutForm.day_of_week || 0
+			};
+
+			if (editingBlockoutId) {
+				await api(`/api/people/${personId}/availability/blockouts/${editingBlockoutId}`, { method: 'PUT', body: JSON.stringify(payload) });
+			} else {
+				await api(`/api/people/${personId}/availability/blockouts`, { method: 'POST', body: JSON.stringify(payload) });
+			}
+			
+			showBlockoutModal = false;
+			editingBlockoutId = null;
+			blockoutForm = { start_date: '', end_date: '', reason: '', is_recurring: false, day_of_week: 0 };
+			loadBlockouts();
+		} catch (e) { alert('Failed to save blockout: ' + e.message); }
 	}
 
 	async function recalculateEngagement() {
@@ -206,12 +253,39 @@
 		return Math.floor(seconds / 86400) + 'd ago';
 	}
 
+	// Availability assignment helpers
+	function canTimeOverlap(start1, end1, start2, end2) {
+		const toMinutes = (t) => {
+			const [h, m] = t.split(':').map(Number);
+			return h * 60 + m;
+		};
+		const s1 = toMinutes(start1), e1 = toMinutes(end1);
+		const s2 = toMinutes(start2), e2 = toMinutes(end2);
+		return s1 < e2 && s2 < e1;
+	}
+
+	function formatServiceName(serviceId) {
+		if (!serviceId) return 'Unknown Service';
+		const services = availabilityAssignments.services || [];
+		const found = services.find(s => s.id === serviceId);
+		return found ? `${found.name} (${found.time})` : 'Unknown Service';
+	}
+
+	function timeAgo(dateStr) {
+		const date = new Date(dateStr);
+		const seconds = Math.floor((new Date() - date) / 1000);
+		if (seconds < 60) return 'just now';
+		if (seconds < 3600) return Math.floor(seconds / 60) + 'm ago';
+		return Math.floor(seconds / 3600) + 'h ago';
+	}
+
 	const tabs = [
 		{ id: 'info', label: 'Info' },
 		{ id: 'groups', label: 'Groups & Teams' },
 		{ id: 'giving', label: 'Giving' },
 		{ id: 'care', label: 'Care' },
 		{ id: 'prayer', label: 'Prayer' },
+		{ id: 'blockouts', label: 'Availability' },
 		{ id: 'activity', label: 'Activity' },
 	];
 </script>
@@ -599,6 +673,37 @@
 								<div>
 									<p class="text-sm text-primary">{entry.action}</p>
 									<p class="text-xs text-secondary">{timeAgo(entry.created_at)} · {entry.user_email || 'System'}</p>
+								</div>
+							</div>
+						{/each}
+					</div>
+				{/if}
+			</div>
+		{:else if activeTab === 'blockouts'}
+			<div class="bg-surface rounded-xl shadow-sm border border-custom p-6">
+				<div class="flex justify-between items-center mb-4">
+					<h2 class="text-lg font-semibold text-primary">Volunteer Availability Blockouts</h2>
+					<button on:click={() => showBlockoutModal = true} class="px-3 py-1.5 text-sm bg-[var(--teal)] text-white rounded-md hover:bg-opacity-90">+ Add Blockout</button>
+				</div>
+				{#if blockouts.length === 0}
+					<div class="text-center py-8">
+						<svg class="w-12 h-12 mx-auto mb-2 text-secondary opacity-40" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+							<path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+						</svg>
+						<p class="text-secondary">No availability blockouts set.</p>
+					div>
+				{:else}
+					<div class="space-y-2">
+						{#each blockouts as blockout}
+							<div class="flex items-center justify-between p-3 bg-[var(--surface-hover)] rounded-lg border-l-4 {blockout.is_recurring ? 'border-blue-500' : 'border-red-500'}">
+								<div>
+									<p class="text-sm font-medium text-primary">{formatDate(blockout.start_date)} - {formatDate(blockout.end_date)}</p>
+									{#if blockout.reason}<p class="text-xs text-secondary mt-1">{blockout.reason}</p>{/if}
+									{#if blockout.is_recurring}<span class="text-xs px-2 py-0.5 rounded-full bg-blue-500/10 text-blue-500 ml-1">Recurring</span>{/if}
+								</div>
+								<div class="flex gap-2">
+									<button on:click={() => { editingBlockoutId = blockout.id; showBlockoutModal = true; }} class="text-xs text-[var(--teal)] hover:underline">Edit</button>
+									<button on:click={() => { if(confirm('Delete this blockout?')) deleteBlockout(blockout.id); }} class="text-xs text-red-500 hover:underline">Delete</button>
 								</div>
 							</div>
 						{/each}

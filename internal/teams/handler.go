@@ -3,6 +3,7 @@ package teams
 import (
 	"encoding/json"
 	"net/http"
+	"strings"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/petieclark/pews/internal/middleware"
@@ -337,6 +338,11 @@ func (h *Handler) SaveServiceAssignments(w http.ResponseWriter, r *http.Request)
 
 	savedAssignments, err := h.service.SaveServiceAssignments(r.Context(), claims.TenantID, serviceID, assignments)
 	if err != nil {
+		// Check for blockout conflicts and return 409 Conflict instead of 500
+		if strings.HasPrefix(err.Error(), "conflict:") {
+			http.Error(w, "Volunteer has blockout conflict: "+err.Error(), http.StatusConflict)
+			return
+		}
 		http.Error(w, "Failed to save assignments: "+err.Error(), http.StatusInternalServerError)
 		return
 	}
