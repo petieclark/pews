@@ -100,6 +100,7 @@ func New(
 	// Public kiosk routes
 	r.Get("/api/giving/kiosk/config", givingHandler.GetPublicKioskConfig)
 	r.Post("/api/giving/public/checkout", givingHandler.CreatePublicCheckout)
+	r.Get("/api/giving/public/funds", givingHandler.ListPublicFunds)
 
 	// Public giving page routes (no auth required)
 	r.Get("/api/public/give/{slug}", givingHandler.GetPublicTenantInfo)

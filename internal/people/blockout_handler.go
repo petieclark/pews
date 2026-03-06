@@ -1,14 +1,15 @@
 package people
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"net/http"
-	"strconv"
 	"strings"
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
@@ -22,8 +23,6 @@ func NewBlockoutHandler(db *pgxpool.Pool) *BlockoutHandler {
 
 // ListBlockouts handles GET /api/teams/members/:personId/blockouts
 func (h *BlockoutHandler) ListBlockouts(w http.ResponseWriter, r *http.Request, personID string) {
-	tenantID := getTenantFromContext(r.Context())
-	
 	rows, err := h.db.Query(r.Context(), `SELECT * FROM get_person_blockouts($1)`, personID)
 	if err != nil {
 		http.Error(w, fmt.Sprintf("Database error: %v", err), http.StatusInternalServerError)
@@ -57,7 +56,7 @@ func (h *BlockoutHandler) ListBlockouts(w http.ResponseWriter, r *http.Request, 
 // CreateBlockout handles POST /api/teams/members/:personId/blockouts
 func (h *BlockoutHandler) CreateBlockout(w http.ResponseWriter, r *http.Request, personID string) {
 	tenantID := getTenantFromContext(r.Context())
-	
+
 	var req BlockoutCreateRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		http.Error(w, fmt.Sprintf("Invalid JSON: %v", err), http.StatusBadRequest)
@@ -102,12 +101,12 @@ func (h *BlockoutHandler) CreateBlockout(w http.ResponseWriter, r *http.Request,
 	// Insert blockout
 	blockoutID := uuid.New().String()
 	var createdAt, updatedAt time.Time
-	
+
 	err = h.db.QueryRow(r.Context(), `
 		INSERT INTO volunteer_availability (id, person_id, team_id, start_date, end_date, reason, is_recurring, day_of_week)
 		VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
 		RETURNING created_at, updated_at`,
-		blockoutID, personID, req.TeamID, startDate.UTC(), endDate.UTC(), 
+		blockoutID, personID, req.TeamID, startDate.UTC(), endDate.UTC(),
 		req.Reason, req.IsRecurring, req.DayOfWeek,
 	).Scan(&createdAt, &updatedAt)
 
@@ -138,7 +137,7 @@ func (h *BlockoutHandler) CreateBlockout(w http.ResponseWriter, r *http.Request,
 // UpdateBlockout handles PUT /api/teams/members/:personId/blockouts/:id
 func (h *BlockoutHandler) UpdateBlockout(w http.ResponseWriter, r *http.Request, personID, blockoutID string) {
 	tenantID := getTenantFromContext(r.Context())
-	
+
 	var req BlockoutUpdateRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		http.Error(w, fmt.Sprintf("Invalid JSON: %v", err), http.StatusBadRequest)
@@ -151,8 +150,6 @@ func (h *BlockoutHandler) UpdateBlockout(w http.ResponseWriter, r *http.Request,
 		req.StartDate, req.EndDate, req.TeamID, req.Reason, req.IsRecurring, req.DayOfWeek,
 	}
 
-	hasUpdate := false
-	
 	if req.StartDate != nil {
 		startDate, err := time.ParseInLocation("2006-01-02", *req.StartDate, time.UTC)
 		if err != nil {
@@ -160,7 +157,6 @@ func (h *BlockoutHandler) UpdateBlockout(w http.ResponseWriter, r *http.Request,
 			return
 		}
 		args[0] = startDate.UTC()
-		hasUpdate = true
 	}
 
 	if req.EndDate != nil {
@@ -170,21 +166,16 @@ func (h *BlockoutHandler) UpdateBlockout(w http.ResponseWriter, r *http.Request,
 			return
 		}
 		args[1] = endDate.UTC()
-		hasUpdate = true
 	}
 
-	if req.IsRecurring != nil && req.DayOfWeek == nil {
+	if req.IsRecurring != nil && *req.IsRecurring && req.DayOfWeek == nil {
 		http.Error(w, "day_of_week is required when is_recurring=true", http.StatusBadRequest)
 		return
 	}
 
-	if !req.IsRecurring && req.DayOfWeek != nil {
+	if (req.IsRecurring == nil || !*req.IsRecurring) && req.DayOfWeek != nil {
 		http.Error(w, "day_of_week should not be set for non-recurring blockouts", http.StatusBadRequest)
 		return
-	}
-
-	if *req.IsRecurring || (req.DayOfWeek != nil) {
-		hasUpdate = true
 	}
 
 	query := fmt.Sprintf("UPDATE volunteer_availability SET %s WHERE id = $7 AND person_id = $8 RETURNING updated_at", strings.Join(queryParts, ", "))
@@ -226,8 +217,6 @@ func (h *BlockoutHandler) UpdateBlockout(w http.ResponseWriter, r *http.Request,
 
 // DeleteBlockout handles DELETE /api/teams/members/:personId/blockouts/:id
 func (h *BlockoutHandler) DeleteBlockout(w http.ResponseWriter, r *http.Request, personID, blockoutID string) {
-	tenantID := getTenantFromContext(r.Context())
-	
 	result, err := h.db.Exec(r.Context(), "DELETE FROM volunteer_availability WHERE id = $1 AND person_id = $2", blockoutID, personID)
 	if err != nil {
 		http.Error(w, fmt.Sprintf("Failed to delete blockout: %v", err), http.StatusInternalServerError)
@@ -265,15 +254,14 @@ func (h *BlockoutHandler) CheckAvailability(w http.ResponseWriter, r *http.Reque
 	defer rows.Close()
 
 	conflict := ConflictInfo{}
-	hasConflict := false
-	
+
 	for rows.Next() {
 		var isBlocked bool
 		var conflictType *string
 		var startDate, endDate *time.Time
 		var reason *string
 		var dayOfWeek *int
-		
+
 		err := rows.Scan(&isBlocked, &conflictType, &startDate, &endDate, &reason, &dayOfWeek)
 		if err != nil {
 			http.Error(w, fmt.Sprintf("Failed to scan conflict: %v", err), http.StatusInternalServerError)
@@ -281,7 +269,6 @@ func (h *BlockoutHandler) CheckAvailability(w http.ResponseWriter, r *http.Reque
 		}
 
 		if isBlocked {
-			hasConflict = true
 			conflict.IsBlocked = true
 			if conflictType != nil {
 				conflict.ConflictType = *conflictType
@@ -304,8 +291,8 @@ func (h *BlockoutHandler) CheckAvailability(w http.ResponseWriter, r *http.Reque
 }
 
 // CheckSchedulingConflict is a helper for scheduling endpoints to validate assignments
-func (h *BlockoutHandler) CheckSchedulingConflict(personID string, serviceDate time.Time) (*ConflictInfo, error) {
-	rows, err := h.db.Query(r.Context(), `SELECT * FROM get_volunteer_conflicts($1, $2)`, personID, serviceDate.UTC())
+func (h *BlockoutHandler) CheckSchedulingConflict(ctx context.Context, personID string, serviceDate time.Time) (*ConflictInfo, error) {
+	rows, err := h.db.Query(ctx, `SELECT * FROM get_volunteer_conflicts($1, $2)`, personID, serviceDate.UTC())
 	if err != nil {
 		return nil, fmt.Errorf("failed to check scheduling conflict: %w", err)
 	}
@@ -318,7 +305,7 @@ func (h *BlockoutHandler) CheckSchedulingConflict(personID string, serviceDate t
 		var startDate, endDate *time.Time
 		var reason *string
 		var dayOfWeek *int
-		
+
 		err := rows.Scan(&isBlocked, &conflictType, &startDate, &endDate, &reason, &dayOfWeek)
 		if err != nil {
 			return nil, fmt.Errorf("failed to scan conflict: %w", err)

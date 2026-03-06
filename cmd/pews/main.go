@@ -44,6 +44,7 @@ import (
 	"github.com/petieclark/pews/internal/teams"
 	"github.com/petieclark/pews/internal/tenant"
 	"github.com/petieclark/pews/internal/website"
+	"github.com/petieclark/pews/internal/worship"
 )
 
 func main() {
@@ -97,7 +98,6 @@ func run() error {
 	careService := care.NewService(db.Pool)
 	prayerService := prayer.NewService(db.Pool)
 	searchService := search.NewService(db.Pool)
-	notificationHandler := notification.NewHandler(notification.NewInAppService(db.Pool))
 	websiteService := website.NewService(db.Pool)
 	qrService := qr.NewService(cfg.FrontendURL)
 	smsService := sms.NewService(db.Pool)
@@ -153,8 +153,12 @@ func run() error {
 	publicHandler := public.NewHandler(db.Pool, cfg.JWTSecret)
 
 	// Media Library
-	mediaService := media.NewService(db.Pool)
+	mediaService := media.NewService(db.Pool, "./uploads")
 	mediaHandler := media.NewHandler(mediaService)
+
+	// Worship (Service Planning)
+	worshipService := worship.NewService(db.Pool)
+	worshipHandler := worship.NewHandler(worshipService)
 
 	// Setup router
 	r := router.New(
@@ -188,6 +192,7 @@ func run() error {
 		ccliHandler,
 		publicHandler,
 		mediaHandler,
+		worshipHandler,
 		cfg.StripeWebhookSecret,
 		cfg.StripeGivingWebhookSecret,
 		cfg.FrontendURL,

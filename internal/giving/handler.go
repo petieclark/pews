@@ -20,7 +20,7 @@ type Handler struct {
 	service             *Service
 	stripeService       *StripeService
 	activityService     *activity.Service
-	notificationService *notification.Service
+	notificationService *notification.NotificationService
 }
 
 func NewHandler(service *Service, stripeService *StripeService, activityService *activity.Service) *Handler {
@@ -29,7 +29,7 @@ func NewHandler(service *Service, stripeService *StripeService, activityService 
 		service:             service,
 		stripeService:       stripeService,
 		activityService:     activityService,
-		notificationService: notification.NewService(service.GetDB()),
+		notificationService: notification.NewNotificationService(service.GetDB()),
 	}
 }
 
@@ -899,4 +899,22 @@ func (h *Handler) CreatePublicCheckout(w http.ResponseWriter, r *http.Request) {
 	resp := map[string]string{"url": url}
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(resp)
+}
+
+// ListPublicFunds returns active funds for a tenant (no auth required)
+func (h *Handler) ListPublicFunds(w http.ResponseWriter, r *http.Request) {
+	tenantID := r.URL.Query().Get("tenant_id")
+	if tenantID == "" {
+		http.Error(w, "tenant_id is required", http.StatusBadRequest)
+		return
+	}
+
+	funds, err := h.service.ListActiveFunds(r.Context(), tenantID)
+	if err != nil {
+		http.Error(w, "Failed to list funds: "+err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(funds)
 }

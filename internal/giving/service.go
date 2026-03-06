@@ -101,6 +101,28 @@ func (s *Service) UpdateFund(ctx context.Context, tenantID, fundID, name, descri
 	return s.GetFund(ctx, tenantID, fundID)
 }
 
+func (s *Service) ListActiveFunds(ctx context.Context, tenantID string) ([]Fund, error) {
+	rows, err := s.db.Query(ctx,
+		`SELECT id, tenant_id, name, COALESCE(description, ''), is_default, is_active, created_at, updated_at
+		 FROM funds WHERE tenant_id = $1 AND is_active = TRUE ORDER BY is_default DESC, name ASC`,
+		tenantID,
+	)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	funds := []Fund{}
+	for rows.Next() {
+		var f Fund
+		if err := rows.Scan(&f.ID, &f.TenantID, &f.Name, &f.Description, &f.IsDefault, &f.IsActive, &f.CreatedAt, &f.UpdatedAt); err != nil {
+			return nil, err
+		}
+		funds = append(funds, f)
+	}
+	return funds, rows.Err()
+}
+
 func (s *Service) GetFund(ctx context.Context, tenantID, fundID string) (*Fund, error) {
 	var f Fund
 	err := s.db.QueryRow(ctx,

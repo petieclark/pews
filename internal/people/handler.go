@@ -17,14 +17,14 @@ import (
 type Handler struct {
 	service             *Service
 	activityService     *activity.Service
-	notificationService *notification.Service
+	notificationService *notification.NotificationService
 }
 
 func NewHandler(service *Service, activityService *activity.Service) *Handler {
 	return &Handler{
 		service:             service,
 		activityService:     activityService,
-		notificationService: notification.NewService(service.GetDB()),
+		notificationService: notification.NewNotificationService(service.GetDB()),
 	}
 }
 

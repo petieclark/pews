@@ -1,6 +1,7 @@
 package public
 
 import (
+	"encoding/json"
 	"net/http"
 	"strings"
 
@@ -145,6 +146,89 @@ func (h *Handler) renderSuccessPage(w http.ResponseWriter, action, serviceName, 
 </html>`
 
 	w.Write([]byte(html))
+}
+
+// GetChurchInfo returns public church info
+func (h *Handler) GetChurchInfo(w http.ResponseWriter, r *http.Request) {
+	tenantID := r.URL.Query().Get("tenant_id")
+	if tenantID == "" {
+		http.Error(w, "tenant_id is required", http.StatusBadRequest)
+		return
+	}
+
+	info, err := h.service.GetChurchInfo(r.Context(), tenantID)
+	if err != nil {
+		http.Error(w, "Church not found", http.StatusNotFound)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(info)
+}
+
+// GetEvents returns public events
+func (h *Handler) GetEvents(w http.ResponseWriter, r *http.Request) {
+	tenantID := r.URL.Query().Get("tenant_id")
+	if tenantID == "" {
+		http.Error(w, "tenant_id is required", http.StatusBadRequest)
+		return
+	}
+
+	events, err := h.service.GetPublicEvents(r.Context(), tenantID)
+	if err != nil {
+		http.Error(w, "Failed to get events", http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(events)
+}
+
+// GetPublicGroups returns public groups for the group finder
+func (h *Handler) GetPublicGroups(w http.ResponseWriter, r *http.Request) {
+	tenantID := r.URL.Query().Get("tenant_id")
+	if tenantID == "" {
+		http.Error(w, "tenant_id is required", http.StatusBadRequest)
+		return
+	}
+
+	groups, err := h.service.GetPublicGroups(r.Context(), tenantID)
+	if err != nil {
+		http.Error(w, "Failed to get groups", http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(groups)
+}
+
+// GroupSignup handles public group signup
+func (h *Handler) GroupSignup(w http.ResponseWriter, r *http.Request) {
+	groupID := chi.URLParam(r, "id")
+	if groupID == "" {
+		http.Error(w, "Group ID is required", http.StatusBadRequest)
+		return
+	}
+
+	var req struct {
+		Name  string `json:"name"`
+		Email string `json:"email"`
+		Phone string `json:"phone"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, "Invalid request body", http.StatusBadRequest)
+		return
+	}
+
+	err := h.service.GroupSignup(r.Context(), groupID, req.Name, req.Email, req.Phone)
+	if err != nil {
+		http.Error(w, "Failed to process signup: "+err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusCreated)
+	json.NewEncoder(w).Encode(map[string]string{"message": "Signup submitted successfully"})
 }
 
 func getIcon(action string) string {

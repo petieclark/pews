@@ -162,6 +162,99 @@ func (s *Service) ProcessResponse(ctx context.Context, assignmentID, personID, a
 	return nil
 }
 
+// GetChurchInfo returns public church information
+func (s *Service) GetChurchInfo(ctx context.Context, tenantID string) (map[string]interface{}, error) {
+	var name, slug, logo, about string
+	err := s.db.QueryRow(ctx,
+		`SELECT name, COALESCE(slug, ''), COALESCE(logo, ''), COALESCE(about, '') FROM tenants WHERE id = $1`,
+		tenantID,
+	).Scan(&name, &slug, &logo, &about)
+	if err != nil {
+		return nil, err
+	}
+	return map[string]interface{}{
+		"name": name, "slug": slug, "logo": logo, "about": about,
+	}, nil
+}
+
+// GetPublicEvents returns upcoming public events
+func (s *Service) GetPublicEvents(ctx context.Context, tenantID string) ([]map[string]interface{}, error) {
+	rows, err := s.db.Query(ctx,
+		`SELECT id, name, COALESCE(description, ''), start_time, end_time, COALESCE(location, '')
+		 FROM events WHERE tenant_id = $1 AND is_public = true AND start_time >= NOW()
+		 ORDER BY start_time LIMIT 20`,
+		tenantID,
+	)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	events := []map[string]interface{}{}
+	for rows.Next() {
+		var id, name, description, location string
+		var startTime, endTime time.Time
+		if err := rows.Scan(&id, &name, &description, &startTime, &endTime, &location); err != nil {
+			return nil, err
+		}
+		events = append(events, map[string]interface{}{
+			"id": id, "name": name, "description": description,
+			"start_time": startTime, "end_time": endTime, "location": location,
+		})
+	}
+	return events, nil
+}
+
+// GetPublicGroups returns public groups for the group finder
+func (s *Service) GetPublicGroups(ctx context.Context, tenantID string) ([]map[string]interface{}, error) {
+	rows, err := s.db.Query(ctx,
+		`SELECT id, name, COALESCE(description, ''), group_type, COALESCE(meeting_day, ''),
+		        COALESCE(meeting_time, ''), COALESCE(meeting_location, ''), COALESCE(photo_url, '')
+		 FROM groups WHERE tenant_id = $1 AND is_public = true AND is_active = true
+		 ORDER BY name`,
+		tenantID,
+	)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	groups := []map[string]interface{}{}
+	for rows.Next() {
+		var id, name, description, groupType, meetingDay, meetingTime, meetingLocation, photoURL string
+		if err := rows.Scan(&id, &name, &description, &groupType, &meetingDay, &meetingTime, &meetingLocation, &photoURL); err != nil {
+			return nil, err
+		}
+		groups = append(groups, map[string]interface{}{
+			"id": id, "name": name, "description": description, "group_type": groupType,
+			"meeting_day": meetingDay, "meeting_time": meetingTime, "meeting_location": meetingLocation,
+			"photo_url": photoURL,
+		})
+	}
+	return groups, nil
+}
+
+// GroupSignup handles a public group signup request
+func (s *Service) GroupSignup(ctx context.Context, groupID, name, email, phone string) error {
+	// Verify group is public and active
+	var tenantID string
+	err := s.db.QueryRow(ctx,
+		`SELECT tenant_id FROM groups WHERE id = $1 AND is_public = true AND is_active = true`,
+		groupID,
+	).Scan(&tenantID)
+	if err != nil {
+		return fmt.Errorf("group not found or not accepting signups")
+	}
+
+	// Store the signup as a connection card-style record
+	_, err = s.db.Exec(ctx,
+		`INSERT INTO connection_cards (id, tenant_id, name, email, phone, notes, created_at)
+		 VALUES (gen_random_uuid(), $1, $2, $3, $4, $5, NOW())`,
+		tenantID, name, email, phone, "Group signup: "+groupID,
+	)
+	return err
+}
+
 func splitToken(token string) []string {
 	parts := make([]string, 0, 2)
 	current := ""

@@ -33,3 +33,17 @@ type Member struct {
 	JoinedAt time.Time      `json:"joined_at"`
 	Person   *people.Person `json:"person,omitempty"`
 }
+
+type JoinRequest struct {
+	ID        string    `json:"id"`
+	TenantID  string    `json:"tenant_id"`
+	GroupID   string    `json:"group_id"`
+	Name      string    `json:"name"`
+	Email     string    `json:"email"`
+	Phone     string    `json:"phone,omitempty"`
+	Message   string    `json:"message,omitempty"`
+	Status    string    `json:"status"` // pending, approved, declined
+	CreatedAt time.Time `json:"created_at"`
+	UpdatedAt time.Time `json:"updated_at"`
+	GroupName string    `json:"group_name,omitempty"`
+}

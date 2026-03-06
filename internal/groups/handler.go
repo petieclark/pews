@@ -305,7 +305,10 @@ func (h *Handler) ListPublicGroups(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	groups, err := h.service.ListPublicGroups(r.Context(), tenantID)
+	category := r.URL.Query().Get("category")
+	meetingDay := r.URL.Query().Get("meeting_day")
+	search := r.URL.Query().Get("search")
+	groups, err := h.service.ListPublicGroups(r.Context(), tenantID, category, meetingDay, search)
 	if err != nil {
 		http.Error(w, "Failed to list groups: "+err.Error(), http.StatusInternalServerError)
 		return

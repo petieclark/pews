@@ -10,20 +10,39 @@ import (
 	"net/http/httptest"
 	"testing"
 
+	"github.com/petieclark/pews/internal/activity"
 	"github.com/petieclark/pews/internal/auth"
 	"github.com/petieclark/pews/internal/billing"
+	"github.com/petieclark/pews/internal/calendar"
+	"github.com/petieclark/pews/internal/care"
+	"github.com/petieclark/pews/internal/ccli"
 	"github.com/petieclark/pews/internal/checkins"
 	"github.com/petieclark/pews/internal/communication"
 	"github.com/petieclark/pews/internal/config"
+	"github.com/petieclark/pews/internal/drip"
+	"github.com/petieclark/pews/internal/engagement"
 	"github.com/petieclark/pews/internal/giving"
 	"github.com/petieclark/pews/internal/groups"
+	"github.com/petieclark/pews/internal/i18n"
+	importpkg "github.com/petieclark/pews/internal/import"
+	"github.com/petieclark/pews/internal/media"
 	"github.com/petieclark/pews/internal/module"
+	"github.com/petieclark/pews/internal/notification"
 	"github.com/petieclark/pews/internal/people"
+	"github.com/petieclark/pews/internal/prayer"
+	"github.com/petieclark/pews/internal/public"
+	"github.com/petieclark/pews/internal/qr"
+	"github.com/petieclark/pews/internal/reports"
 	"github.com/petieclark/pews/internal/router"
+	"github.com/petieclark/pews/internal/search"
+	"github.com/petieclark/pews/internal/sermons"
 	"github.com/petieclark/pews/internal/services"
 	"github.com/petieclark/pews/internal/sms"
 	"github.com/petieclark/pews/internal/streaming"
+	"github.com/petieclark/pews/internal/teams"
 	"github.com/petieclark/pews/internal/tenant"
+	"github.com/petieclark/pews/internal/website"
+	"github.com/petieclark/pews/internal/worship"
 )
 
 // testServer wraps httptest.Server with helper methods
@@ -37,6 +56,7 @@ func newTestServer() *testServer {
 	pool := getTestPool()
 
 	// Initialize services
+	activityService := activity.NewService(pool)
 	authService := auth.NewService(pool, jwtSecret)
 	tenantService := tenant.NewService(pool)
 	moduleService := module.NewService(pool)
@@ -44,26 +64,59 @@ func newTestServer() *testServer {
 	peopleService := people.NewService(pool)
 	groupsService := groups.NewService(pool)
 	servicesService := services.NewService(pool)
+	sermonsService := sermons.NewService(pool)
 	givingService := giving.NewService(pool)
 	givingStripeService := giving.NewStripeService(pool, "", frontendURL)
 	streamingService := streaming.NewService(pool)
 	communicationService := communication.NewService(pool)
+	dripService := drip.NewService(pool)
 	checkinsService := checkins.NewService(pool)
+	reportsService := reports.NewService(pool)
+	calendarService := calendar.NewService(pool)
+	careService := care.NewService(pool)
+	prayerService := prayer.NewService(pool)
+	searchService := search.NewService(pool)
+	websiteService := website.NewService(pool)
+	qrService := qr.NewService(frontendURL)
 	smsService := sms.NewService(pool)
-
+	i18nService := i18n.NewService()
+	engagementService := engagement.NewService(pool)
+	importService := importpkg.NewService(pool)
+	teamsService := teams.NewService(pool, jwtSecret)
+	ccliService := ccli.NewService(pool)
+	mediaService := media.NewService(pool, "./uploads")
+	worshipService := worship.NewService(pool)
 	// Initialize handlers
-	authHandler := auth.NewHandler(authService, tenantService, billingService)
+	authHandler := auth.NewHandler(authService, tenantService, billingService, nil)
 	tenantHandler := tenant.NewHandler(tenantService)
 	moduleHandler := module.NewHandler(moduleService)
 	billingHandler := billing.NewHandler(billingService)
-	peopleHandler := people.NewHandler(peopleService)
+	peopleHandler := people.NewHandler(peopleService, activityService)
 	groupsHandler := groups.NewHandler(groupsService)
 	servicesHandler := services.NewHandler(servicesService)
-	givingHandler := giving.NewHandler(givingService, givingStripeService)
+	sermonsHandler := sermons.NewHandler(sermonsService)
+	givingHandler := giving.NewHandler(givingService, givingStripeService, activityService)
 	streamingHandler := streaming.NewHandler(streamingService)
 	communicationHandler := communication.NewHandler(communicationService)
+	dripHandler := drip.NewHandler(dripService)
 	checkinsHandler := checkins.NewHandler(checkinsService)
+	reportsHandler := reports.NewHandler(reportsService)
+	calendarHandler := calendar.NewHandler(calendarService)
+	careHandler := care.NewHandler(careService)
+	prayerHandler := prayer.NewHandler(prayerService)
+	searchHandler := search.NewHandler(searchService)
+	notificationHandler := notification.NewHandler(notification.NewInAppService(pool))
+	websiteHandler := website.NewHandler(websiteService)
+	qrHandler := qr.NewHandler(qrService)
+	engagementHandler := engagement.NewHandler(engagementService)
 	smsHandler := sms.NewHandler(smsService)
+	i18nHandler := i18n.NewHandler(i18nService)
+	importHandler := importpkg.NewHandler(importService)
+	teamsHandler := teams.NewHandler(teamsService)
+	ccliHandler := ccli.NewHandler(ccliService)
+	publicHandler := public.NewHandler(pool, jwtSecret)
+	mediaHandler := media.NewHandler(mediaService)
+	worshipHandler := worship.NewHandler(worshipService)
 
 	// Setup router
 	r := router.New(
@@ -75,11 +128,29 @@ func newTestServer() *testServer {
 		peopleHandler,
 		groupsHandler,
 		servicesHandler,
+		sermonsHandler,
 		givingHandler,
 		streamingHandler,
 		communicationHandler,
+		dripHandler,
 		checkinsHandler,
+		reportsHandler,
+		calendarHandler,
+		prayerHandler,
+		searchHandler,
+		notificationHandler,
+		websiteHandler,
+		qrHandler,
+		engagementHandler,
 		smsHandler,
+		i18nHandler,
+		importHandler,
+		teamsHandler,
+		careHandler,
+		ccliHandler,
+		publicHandler,
+		mediaHandler,
+		worshipHandler,
 		"test-webhook-secret",
 		"test-giving-webhook-secret",
 		frontendURL,

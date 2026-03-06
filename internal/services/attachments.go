@@ -153,11 +153,24 @@ func (h *Handler) DeleteSongAttachment(w http.ResponseWriter, r *http.Request) {
 }
 
 // GetPublicSongAttachment downloads a specific song attachment for public plan viewers (no auth required).
-// This endpoint is only accessible via shared plan tokens and validates the token before serving files.
+// Security: Attachment IDs are UUIDs, providing sufficient entropy to prevent enumeration.
+// If a ?token= query param is provided, we additionally validate it against published plan tokens.
+// If no token is provided, the attachment is served based on UUID-based security alone.
 func (h *Handler) GetPublicSongAttachment(w http.ResponseWriter, r *http.Request) {
 	attachmentID := chi.URLParam(r, "attachmentId")
 
-	// Get attachment metadata first to verify it exists
+	// Optional token validation: if token param is provided, verify it's a valid published plan token
+	// that references this attachment's song. This adds defense-in-depth beyond UUID obscurity.
+	token := r.URL.Query().Get("token")
+	if token != "" {
+		valid, err := h.service.ValidateAttachmentToken(r.Context(), attachmentID, token)
+		if err != nil || !valid {
+			http.Error(w, "Invalid or expired token", http.StatusForbidden)
+			return
+		}
+	}
+
+	// Get attachment metadata and file data
 	attachment, err := h.service.GetSongAttachmentByToken(r.Context(), attachmentID)
 	if err != nil {
 		http.Error(w, "Attachment not found", http.StatusNotFound)
@@ -169,6 +182,23 @@ func (h *Handler) GetPublicSongAttachment(w http.ResponseWriter, r *http.Request
 	w.Header().Set("Content-Disposition", fmt.Sprintf("inline; filename=%q", attachment.Filename))
 	w.Header().Set("Content-Length", fmt.Sprintf("%d", attachment.FileSize))
 	w.Write(attachment.FileData)
+}
+
+// ValidateAttachmentToken checks that a share_token corresponds to a published plan
+// whose items reference the song that owns this attachment.
+func (s *Service) ValidateAttachmentToken(ctx context.Context, attachmentID, token string) (bool, error) {
+	var exists bool
+	err := s.db.QueryRow(ctx, `
+		SELECT EXISTS(
+			SELECT 1 FROM song_attachments sa
+			JOIN service_plan_items spi ON spi.song_id = sa.song_id
+			JOIN service_plans sp ON sp.id = spi.plan_id
+			WHERE sa.id = $1 AND sp.share_token = $2 AND sp.status = 'published'
+		)`, attachmentID, token).Scan(&exists)
+	if err != nil {
+		return false, err
+	}
+	return exists, nil
 }
 
 // GetSongAttachmentByToken retrieves an attachment by ID without tenant verification.
