@@ -301,7 +301,7 @@ func (s *StripeService) CreatePublicGivingSession(ctx context.Context, req Publi
 				},
 			},
 			SubscriptionData: &stripe.CheckoutSessionSubscriptionDataParams{
-				ApplicationFeePercent: stripe.Float64(1.0), // 1% platform fee
+				ApplicationFeePercent: stripe.Float64(0.5), // 0.5% platform fee
 				Metadata:              metadata,
 			},
 			SuccessURL: stripe.String(successURL),
@@ -613,7 +613,7 @@ func (s *StripeService) GetPublicTenantInfo(ctx context.Context, slug string) (*
 // --- Helpers ---
 
 func calculateAppFee(amountCents int) int {
-	fee := amountCents / 100 // 1%
+	fee := amountCents / 200 // 0.5%
 	if fee < 30 {
 		fee = 30 // Minimum 30 cents
 	}
